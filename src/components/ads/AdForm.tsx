@@ -248,7 +248,6 @@ export function AdForm() {
     setAgeRange([minAge, maxAge]);
   }, [form.getValues('ageRangeMin'), form.getValues('ageRangeMax')]);
 
-  console.log("ads page")
   const onSubmit = async (data: AdFormData) => {
     try {
       setLoading(true);
@@ -769,68 +768,98 @@ export function AdForm() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <FormLabel>Price Range</FormLabel>
-                <div className="flex space-x-4">
-                  <FormField
-                    control={form.control}
-                    name="priceRangeMin"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input 
-                            type="text" 
-                            placeholder="Min price"
-                            value={field.value || ''}
-                            onChange={(e) => {
-                              handleNumberInput(e, (value) => {
-                                field.onChange(value);
-                                handlePriceChange('priceRangeMin', value);
-                              }, 0);
-                            }}
-                            onKeyPress={(e) => {
-                              // Allow only numbers and decimal point
-                              if (!/[0-9.]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                                e.preventDefault();
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex items-center">
-                    <span className="text-muted-foreground">to</span>
+              <div className="space-y-3">
+                <FormLabel className="text-slate-800 font-semibold flex items-center">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                  Price Range
+                </FormLabel>
+
+                <div className="space-y-3">
+                  <div className="px-2 py-3">
+                    <Slider
+                      value={[
+                        Math.min(form.getValues('priceRangeMin'), 400000),
+                        Math.min(form.getValues('priceRangeMax'), 400000),
+                      ]}
+                      onValueChange={(value) => {
+                        const [min, max] = value as [number, number];
+                        form.setValue('priceRangeMin', min);
+                        form.setValue('priceRangeMax', max);
+                        handlePriceChange('priceRangeMin', min);
+                        handlePriceChange('priceRangeMax', max);
+                      }}
+                      min={1}
+                      max={400000}
+                      step={1}
+                      className="w-full"
+                    />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="priceRangeMax"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input 
-                            type="text" 
-                            placeholder="Max price"
-                            value={field.value || ''}
-                            onChange={(e) => {
-                              handleNumberInput(e, (value) => {
-                                field.onChange(value);
-                                handlePriceChange('priceRangeMax', value);
-                              }, 1);
-                            }}
-                            onKeyPress={(e) => {
-                              // Allow only numbers and decimal point
-                              if (!/[0-9.]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                                e.preventDefault();
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                  <div className="flex justify-center">
+                    <div className="flex items-center space-x-4">
+                      <FormField
+                        control={form.control}
+                        name="priceRangeMin"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input
+                                type="text"
+                                placeholder="Min price"
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  handleNumberInput(e, (value) => {
+                                    field.onChange(value);
+                                    handlePriceChange('priceRangeMin', value);
+                                  }, 0);
+                                }}
+                                onKeyPress={(e) => {
+                                  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <span className="text-gray-400 text-sm">to</span>
+                      <FormField
+                        control={form.control}
+                        name="priceRangeMax"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input
+                                type="text"
+                                placeholder="Max price"
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  handleNumberInput(e, (value) => {
+                                    field.onChange(value);
+                                    handlePriceChange('priceRangeMax', value);
+                                  }, 1);
+                                }}
+                                onKeyPress={(e) => {
+                                  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {(form.formState.errors.priceRangeMax || form.formState.errors.priceRangeMin) && (
+                    <p className="text-sm text-red-500 font-medium mt-2">
+                      {form.formState.errors.priceRangeMax?.message || form.formState.errors.priceRangeMin?.message}
+                    </p>
+                  )}
                 </div>
               </div>
 

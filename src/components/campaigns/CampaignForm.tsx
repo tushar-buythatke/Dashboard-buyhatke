@@ -27,7 +27,6 @@ export function CampaignForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  console.log("comapign page")
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
@@ -276,7 +275,7 @@ export function CampaignForm() {
                     <FormItem className="space-y-3 md:col-span-2">
                       <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
-                        Total Budget ($)
+                        Total Budget (₹)
                       </FormLabel>
                       <FormControl>
                         <Input 

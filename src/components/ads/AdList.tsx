@@ -77,7 +77,7 @@ export function AdList() {
       toast.error('Failed to load campaign details');
     }
   };
-  console.log("im herererere")
+
   const fetchAds = async () => {
     try {
       setLoading(true);

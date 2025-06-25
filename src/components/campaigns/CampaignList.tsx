@@ -121,7 +121,7 @@ export function CampaignList() {
       day: 'numeric'
     });
   };
-  console.log("campaign listsdfasdfasdfasdf")
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative">
       {/* Background decorations */}
@@ -253,7 +253,7 @@ export function CampaignList() {
                     </TableCell>
                     <TableCell className="text-slate-700 font-medium">{campaign.impressionTarget.toLocaleString()}</TableCell>
                     <TableCell className="text-slate-700 font-medium">{campaign.clickTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-slate-700 font-medium">${parseFloat(campaign.totalBudget).toLocaleString()}</TableCell>
+                    <TableCell className="text-slate-700 font-medium">₹{parseFloat(campaign.totalBudget).toLocaleString()}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
