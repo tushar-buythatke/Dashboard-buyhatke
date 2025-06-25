@@ -1,0 +1,96 @@
+export interface Campaign {
+  campaignId: number;
+  brandName: string;
+  impressionTarget: number;
+  clickTarget: number;
+  totalBudget: string;
+  status: number; // 0: draft, 1: live, 2: test, 3: paused
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Slot {
+  slotId: number;
+  name: string;
+  platform: number;
+  width: string;
+  height: string;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Ad {
+  adId: number;
+  campaignId: number;
+  slotId: number;
+  slotName?: string;
+  slotWidth?: string;
+  slotHeight?: string;
+  impressionTarget: number;
+  clickTarget: number;
+  impressionPixel: string;
+  clickPixel: string;
+  status: number; // 0: inactive, 1: active
+  categories: Record<string, number>;
+  sites: Record<string, number>;
+  location: Record<string, number>;
+  brandTargets: Record<string, number>;
+  priceRangeMin: number;
+  priceRangeMax: number;
+  ageRangeMin: number;
+  ageRangeMax: number;
+  priority: number;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  creativeUrl: string;
+  gender: string;
+  isTestPhase: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlotListResponse {
+  status: number;
+  message: string;
+  data: {
+    slotList: Slot[];
+  };
+}
+
+export interface MetricsData {
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  conversions: number;
+  revenue: number;
+  roi: number;
+}
+
+export interface TrendDataPoint {
+  date: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+}
+
+export interface BreakdownData {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+export interface FilterState {
+  dateRange: {
+    from: string;
+    to: string;
+  };
+  campaigns: string[];
+  platforms: string[];
+  gender: string[];
+  ageGroups: string[];
+}
