@@ -65,22 +65,36 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {metrics.map((metric) => (
-        <Card key={metric.title} className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              {metric.title}
-            </CardTitle>
-            <div className={`p-2 rounded-full ${metric.bgColor}`}>
-              <metric.icon className={`w-4 h-4 ${metric.color}`} />
+      {metrics.map((metric, index) => (
+        <Card 
+          key={metric.title} 
+          className="backdrop-blur-sm bg-white/60 border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl overflow-hidden"
+        >
+          <CardHeader className="bg-gradient-to-r from-white/40 to-white/20 backdrop-blur-sm border-b border-white/20 p-6">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-3 ${
+                  index === 0 ? 'bg-blue-500' :
+                  index === 1 ? 'bg-green-500' :
+                  index === 2 ? 'bg-purple-500' :
+                  index === 3 ? 'bg-orange-500' :
+                  index === 4 ? 'bg-emerald-500' : 'bg-indigo-500'
+                } animate-pulse`}></div>
+                {metric.title}
+              </CardTitle>
+              <div className={`p-3 rounded-xl ${metric.bgColor} shadow-md backdrop-blur-sm border border-white/30`}>
+                <metric.icon className={`w-5 h-5 ${metric.color}`} />
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
+          <CardContent className="p-6">
+            <div className="text-3xl font-bold text-slate-900 mb-3">
               {metric.value}
             </div>
-            <div className="text-xs text-green-600 font-medium">
-              {metric.change} from last period
+            <div className="flex items-center space-x-2">
+              <div className="text-sm text-green-600 font-semibold bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                {metric.change} from last period
+              </div>
             </div>
           </CardContent>
         </Card>

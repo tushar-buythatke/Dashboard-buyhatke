@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, Calendar as CalendarIcon, Target, Star, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { CreativeUploadModal } from './CreativeUploadModal';
 import { categories, brands } from '@/data/mockData';
 import { toast } from 'sonner';
-import { Ad, Slot } from '@/types';
+import { Slot } from '@/types';
 
 // Schema validation
 const adSchema = z.object({
@@ -30,7 +29,7 @@ const adSchema = z.object({
   priceRangeMin: z.number().min(0, 'Minimum price must be 0 or greater'),
   priceRangeMax: z.number().min(1, 'Maximum price must be greater than 0'),
   ageRangeMin: z.number().min(13, 'Minimum age must be at least 13'),
-  ageRangeMax: z.number().max(100, 'Maximum age must be 100 or less'),
+  ageRangeMax: z.number().min(13, 'Maximum age must be at least 13'),
   priority: z.number().min(0).max(1000),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
@@ -40,6 +39,32 @@ const adSchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other']),
   status: z.number().min(0).max(1),
   isTestPhase: z.number().min(0).max(1)
+}).refine((data) => {
+  if (!data.startDate || !data.endDate) return true; // Let required validation handle empty dates
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  return endDate >= startDate;
+}, {
+  message: "End date must be equal to or later than start date",
+  path: ["endDate"]
+}).refine((data) => {
+  // Validate that maximum price is greater than or equal to minimum price
+  if (data.priceRangeMin && data.priceRangeMax) {
+    return data.priceRangeMax >= data.priceRangeMin;
+  }
+  return true;
+}, {
+  message: "Maximum price must be equal to or greater than minimum price",
+  path: ["priceRangeMax"]
+}).refine((data) => {
+  // Validate that maximum age is greater than or equal to minimum age
+  if (data.ageRangeMin && data.ageRangeMax) {
+    return data.ageRangeMax >= data.ageRangeMin;
+  }
+  return true;
+}, {
+  message: "Maximum age must be equal to or greater than minimum age",
+  path: ["ageRangeMax"]
 });
 
 type AdFormData = z.infer<typeof adSchema>;
@@ -55,6 +80,7 @@ export function AdForm() {
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [ageRange, setAgeRange] = useState<[number, number]>([18, 65]);
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
@@ -86,13 +112,45 @@ export function AdForm() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        setPreviewUrl(result);
-        form.setValue('creativeUrl', result);
+      // Check if a slot is selected
+      if (!selectedSlot) {
+        toast.error('Please select an ad slot first to determine required dimensions');
+        event.target.value = ''; // Clear the file input
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const requiredWidth = parseFloat(selectedSlot.width);
+        const requiredHeight = parseFloat(selectedSlot.height);
+        
+        // Check if image dimensions match the selected slot
+        if (img.width !== requiredWidth || img.height !== requiredHeight) {
+          toast.error(
+            `Image dimensions (${img.width}x${img.height}) don't match the required slot dimensions (${requiredWidth}x${requiredHeight}). Please upload an image with the correct dimensions.`
+          );
+          event.target.value = ''; // Clear the file input
+          return;
+        }
+
+        // If dimensions match, proceed with the upload
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          setPreviewUrl(result);
+          form.setValue('creativeUrl', result);
+          toast.success('Image uploaded successfully!');
+        };
+        reader.readAsDataURL(file);
       };
-      reader.readAsDataURL(file);
+
+      img.onerror = () => {
+        toast.error('Failed to load image. Please select a valid image file.');
+        event.target.value = ''; // Clear the file input
+      };
+
+      // Create object URL to load the image
+      img.src = URL.createObjectURL(file);
     }
   };
 
@@ -182,6 +240,14 @@ export function AdForm() {
 
     fetchData();
   }, [adId, isEditMode, form]);
+
+  // Sync age range state with form values
+  useEffect(() => {
+    const minAge = form.getValues('ageRangeMin') || 18;
+    const maxAge = form.getValues('ageRangeMax') || 65;
+    setAgeRange([minAge, maxAge]);
+  }, [form.getValues('ageRangeMin'), form.getValues('ageRangeMax')]);
+
   console.log("ads page")
   const onSubmit = async (data: AdFormData) => {
     try {
@@ -223,6 +289,86 @@ export function AdForm() {
   const handleCreativeUpload = (url: string) => {
     form.setValue('creativeUrl', url);
     setShowUploadModal(false);
+  };
+
+  // Date validation handler
+  const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+    form.setValue(field, value);
+    
+    // Get both dates
+    const startDate = field === 'startDate' ? value : form.getValues('startDate');
+    const endDate = field === 'endDate' ? value : form.getValues('endDate');
+    
+    // Validate if both dates are present
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (end < start) {
+        // This will trigger the form validation on the next render
+        setTimeout(() => {
+          form.trigger(['startDate', 'endDate']);
+        }, 0);
+      }
+    }
+  };
+
+  // Number input validation handler
+  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: number) => void, min?: number, max?: number) => {
+    const value = e.target.value;
+    
+    // Allow empty string for clearing
+    if (value === '') {
+      onChange(0);
+      return;
+    }
+    
+    // Only allow digits (and decimal point for decimal numbers)
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    
+    // Prevent multiple decimal points
+    const decimalCount = (numericValue.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      return;
+    }
+    
+    // Update the input value to only contain valid characters
+    e.target.value = numericValue;
+    
+    // Convert to number and always update the form state
+    // Let form validation handle min/max validation and show error messages
+    const num = parseFloat(numericValue);
+    if (!isNaN(num)) {
+      onChange(num);
+    }
+  };
+
+  // Price range validation handler
+  const handlePriceChange = (field: 'priceRangeMin' | 'priceRangeMax', value: number) => {
+    // Get both price values
+    const minPrice = field === 'priceRangeMin' ? value : form.getValues('priceRangeMin');
+    const maxPrice = field === 'priceRangeMax' ? value : form.getValues('priceRangeMax');
+    
+    // Trigger validation if both prices are present (check for numeric values, not truthiness)
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice !== null && maxPrice !== null) {
+      setTimeout(() => {
+        form.trigger(['priceRangeMin', 'priceRangeMax']);
+      }, 0);
+    }
+  };
+
+  // Age range validation handler
+  const handleAgeChange = (field: 'ageRangeMin' | 'ageRangeMax', value: number) => {
+    // Get both age values
+    const minAge = field === 'ageRangeMin' ? value : form.getValues('ageRangeMin');
+    const maxAge = field === 'ageRangeMax' ? value : form.getValues('ageRangeMax');
+    
+    // Trigger validation if both ages are present (check for numeric values, not truthiness)
+    if (minAge !== undefined && maxAge !== undefined && minAge !== null && maxAge !== null) {
+      setTimeout(() => {
+        form.trigger(['ageRangeMin', 'ageRangeMax']);
+      }, 0);
+    }
   };
 
   if (formLoading) {
@@ -383,10 +529,16 @@ export function AdForm() {
                     <FormLabel>Impression Target</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
-                        min="1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        type="text" 
+                        placeholder="Enter impression target"
+                        value={field.value || ''}
+                        onChange={(e) => handleNumberInput(e, field.onChange, 1)}
+                        onKeyPress={(e) => {
+                          // Allow only numbers
+                          if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                            e.preventDefault();
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -402,10 +554,16 @@ export function AdForm() {
                     <FormLabel>Click Target</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
-                        min="1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        type="text" 
+                        placeholder="Enter click target"
+                        value={field.value || ''}
+                        onChange={(e) => handleNumberInput(e, field.onChange, 1)}
+                        onKeyPress={(e) => {
+                          // Allow only numbers
+                          if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                            e.preventDefault();
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -421,11 +579,16 @@ export function AdForm() {
                     <FormLabel>Priority (0-1000)</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
-                        min="0" 
-                        max="1000"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        type="text" 
+                        placeholder="Enter priority (0-1000)"
+                        value={field.value || ''}
+                        onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
+                        onKeyPress={(e) => {
+                          // Allow only numbers
+                          if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                            e.preventDefault();
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
@@ -464,22 +627,62 @@ export function AdForm() {
               <FormField
                 control={form.control}
                 name="isTestPhase"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value === 1}
-                        onCheckedChange={(checked) => field.onChange(checked ? 1 : 0)}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Test Phase</FormLabel>
-                      <FormDescription>
-                        Enable to test this ad without affecting live traffic
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const isTestMode = field.value === 1;
+                  return (
+                    <FormItem>
+                      <div
+                        onClick={() => field.onChange(isTestMode ? 0 : 1)}
+                        className={`
+                          flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                          ${isTestMode 
+                            ? 'bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200 text-emerald-800' 
+                            : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                          }
+                        `}
+                      >
+                        <div className={`
+                          relative w-12 h-6 rounded-full transition-all duration-200 mr-4
+                          ${isTestMode 
+                            ? 'bg-emerald-500' 
+                            : 'bg-gray-300'
+                          }
+                        `}>
+                          <div className={`
+                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
+                            ${isTestMode 
+                              ? 'translate-x-6' 
+                              : 'translate-x-0.5'
+                            }
+                          `}>
+                            {isTestMode && (
+                              <div className="flex items-center justify-center h-full">
+                                <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800' : 'text-gray-700'}`}>
+                            Test Phase
+                          </FormLabel>
+                          <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600' : 'text-gray-500'}`}>
+                            Enable to test this ad without affecting live traffic
+                          </FormDescription>
+                        </div>
+                        {isTestMode && (
+                          <div className="ml-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                              Active
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             </div>
@@ -520,51 +723,50 @@ export function AdForm() {
                 )}
               />
 
-              <div className="space-y-2">
-                <FormLabel>Age Range</FormLabel>
-                <div className="flex space-x-4">
-                  <FormField
-                    control={form.control}
-                    name="ageRangeMin"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="13" 
-                            max="100"
-                            placeholder="Min age"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex items-center">
-                    <span className="text-muted-foreground">to</span>
+              <div className="space-y-3">
+                <FormLabel className="text-slate-800 font-semibold flex items-center">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                  Age Range
+                </FormLabel>
+                
+                <div className="space-y-3">
+                  <div className="px-2 py-3">
+                    <Slider
+                      value={ageRange}
+                      onValueChange={(value) => {
+                        const [min, max] = value as [number, number];
+                        setAgeRange([min, max]);
+                        form.setValue('ageRangeMin', min);
+                        form.setValue('ageRangeMax', max);
+                        handleAgeChange('ageRangeMin', min);
+                        handleAgeChange('ageRangeMax', max);
+                      }}
+                      min={13}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="ageRangeMax"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="13" 
-                            max="100"
-                            placeholder="Max age"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  
+                  <div className="flex justify-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                        {ageRange[0]} years
+                      </span>
+                      <span className="text-gray-400 text-xs">-</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                        {ageRange[1]} years
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Display age range validation error prominently */}
+                {(form.formState.errors.ageRangeMax || form.formState.errors.ageRangeMin) && (
+                  <p className="text-sm text-red-500 font-medium mt-2">
+                    {form.formState.errors.ageRangeMax?.message || form.formState.errors.ageRangeMin?.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -577,11 +779,21 @@ export function AdForm() {
                       <FormItem className="flex-1">
                         <FormControl>
                           <Input 
-                            type="number" 
-                            min="0"
+                            type="text" 
                             placeholder="Min price"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              handleNumberInput(e, (value) => {
+                                field.onChange(value);
+                                handlePriceChange('priceRangeMin', value);
+                              }, 0);
+                            }}
+                            onKeyPress={(e) => {
+                              // Allow only numbers and decimal point
+                              if (!/[0-9.]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -598,11 +810,21 @@ export function AdForm() {
                       <FormItem className="flex-1">
                         <FormControl>
                           <Input 
-                            type="number" 
-                            min="1"
+                            type="text" 
                             placeholder="Max price"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              handleNumberInput(e, (value) => {
+                                field.onChange(value);
+                                handlePriceChange('priceRangeMax', value);
+                              }, 1);
+                            }}
+                            onKeyPress={(e) => {
+                              // Allow only numbers and decimal point
+                              if (!/[0-9.]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -635,23 +857,33 @@ export function AdForm() {
                                 key={key}
                                 className="flex flex-row items-start space-x-3 space-y-0"
                               >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={!!field.value[key]}
-                                    onCheckedChange={(checked) => {
-                                      const current = { ...field.value };
-                                      if (checked) {
-                                        current[key] = 1;
-                                      } else {
-                                        delete current[key];
-                                      }
-                                      field.onChange(current);
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  {label}
-                                </FormLabel>
+                                <div
+                                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                                  onClick={() => {
+                                    const current = { ...field.value };
+                                    if (current[key]) {
+                                      delete current[key];
+                                    } else {
+                                      current[key] = 1;
+                                    }
+                                    field.onChange(current);
+                                  }}
+                                >
+                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                    field.value[key]
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300 bg-white hover:border-gray-400'
+                                  }`}>
+                                    {field.value[key] && (
+                                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <FormLabel className="font-normal text-sm text-gray-700 cursor-pointer">
+                                    {label}
+                                  </FormLabel>
+                                </div>
                               </FormItem>
                             );
                           }}
@@ -681,29 +913,42 @@ export function AdForm() {
                           control={form.control}
                           name="brandTargets"
                           render={({ field }) => {
+                            const isSelected = !!field.value[key];
                             return (
-                              <FormItem
+                              <div
                                 key={key}
-                                className="flex flex-row items-start space-x-3 space-y-0"
+                                onClick={() => {
+                                  const current = { ...field.value };
+                                  if (isSelected) {
+                                    delete current[key];
+                                  } else {
+                                    current[key] = 1;
+                                  }
+                                  field.onChange(current);
+                                }}
+                                className={`
+                                  flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md
+                                  ${isSelected 
+                                    ? 'bg-blue-500 border-blue-500 text-white' 
+                                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+                                  }
+                                `}
                               >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={!!field.value[key]}
-                                    onCheckedChange={(checked) => {
-                                      const current = { ...field.value };
-                                      if (checked) {
-                                        current[key] = 1;
-                                      } else {
-                                        delete current[key];
-                                      }
-                                      field.onChange(current);
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  {label}
-                                </FormLabel>
-                              </FormItem>
+                                <div className={`
+                                  w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-all duration-200
+                                  ${isSelected 
+                                    ? 'bg-blue-500 border-blue-500' 
+                                    : 'bg-white border-gray-300'
+                                  }
+                                `}>
+                                  {isSelected && (
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className="font-medium">{label}</span>
+                              </div>
                             );
                           }}
                         />
@@ -725,38 +970,55 @@ export function AdForm() {
                         Select the locations this ad targets
                       </FormDescription>
                     </div>
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {['Bangalore', 'Mumbai', 'Delhi', 'Chennai', 'Kolkata', 'Hyderabad'].map((location) => (
                         <FormField
                           key={location}
                           control={form.control}
                           name="location"
-                          render={({ field }) => (
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`location-${location}`}
-                                checked={!!field.value[location]}
-                                onCheckedChange={(checked) => {
+                          render={({ field }) => {
+                            const isSelected = !!field.value[location];
+                            return (
+                              <div
+                                key={location}
+                                onClick={() => {
                                   const current = { ...field.value };
-                                  if (checked) {
-                                    current[location] = 1;
-                                  } else {
+                                  if (isSelected) {
                                     delete current[location];
+                                  } else {
+                                    current[location] = 1;
                                   }
                                   field.onChange(current);
                                 }}
-                              />
-                              <label
-                                htmlFor={`location-${location}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                className={`
+                                  flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md
+                                  ${isSelected 
+                                    ? 'bg-blue-500 border-blue-500 text-white' 
+                                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+                                  }
+                                `}
                               >
-                                {location}
-                              </label>
-                            </div>
-                          )}
+                                <div className={`
+                                  w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-all duration-200
+                                  ${isSelected 
+                                    ? 'bg-blue-500 border-blue-500' 
+                                    : 'bg-white border-gray-300'
+                                  }
+                                `}>
+                                  {isSelected && (
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className="font-medium">{location}</span>
+                              </div>
+                            );
+                          }}
                         />
                       ))}
                     </div>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -841,19 +1103,39 @@ export function AdForm() {
                       <Input 
                         type="date" 
                         min={new Date().toISOString().split('T')[0]}
-                        className="pr-10"
+                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
                         ref={field.ref}
-                        onChange={field.onChange}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleDateChange('startDate', e.target.value);
+                        }}
                         onBlur={field.onBlur}
                         value={field.value}
                         id="start-date-input"
+                        style={{
+                          colorScheme: 'light',
+                          direction: 'ltr'
+                        }}
                       />
-                      <label 
-                        htmlFor="start-date-input" 
-                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = document.getElementById('start-date-input') as HTMLInputElement;
+                          if (input) {
+                            // Focus the input first to establish context
+                            input.focus();
+                            // Small delay to ensure focus is established
+                            setTimeout(() => {
+                              input.showPicker?.();
+                            }, 10);
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                      </label>
+                      </button>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -870,19 +1152,39 @@ export function AdForm() {
                       <Input 
                         type="date" 
                         min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
-                        className="pr-10"
+                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
                         ref={field.ref}
-                        onChange={field.onChange}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleDateChange('endDate', e.target.value);
+                        }}
                         onBlur={field.onBlur}
                         value={field.value}
                         id="end-date-input"
+                        style={{
+                          colorScheme: 'light',
+                          direction: 'ltr'
+                        }}
                       />
-                      <label 
-                        htmlFor="end-date-input" 
-                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = document.getElementById('end-date-input') as HTMLInputElement;
+                          if (input) {
+                            // Focus the input first to establish context
+                            input.focus();
+                            // Small delay to ensure focus is established
+                            setTimeout(() => {
+                              input.showPicker?.();
+                            }, 10);
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                      </label>
+                      </button>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -895,12 +1197,39 @@ export function AdForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Start Time</FormLabel>
-                    <FormControl>
+                    <div className="relative">
                       <Input 
                         type="time" 
-                        {...field}
+                        step="60"
+                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                        ref={field.ref}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        id="start-time-input"
+                        style={{
+                          colorScheme: 'light',
+                          direction: 'ltr'
+                        }}
                       />
-                    </FormControl>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = document.getElementById('start-time-input') as HTMLInputElement;
+                          if (input) {
+                            input.focus();
+                            setTimeout(() => {
+                              input.showPicker?.();
+                            }, 10);
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                      >
+                        <Clock className="h-4 w-4" />
+                      </button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -912,12 +1241,39 @@ export function AdForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>End Time</FormLabel>
-                    <FormControl>
+                    <div className="relative">
                       <Input 
                         type="time" 
-                        {...field}
+                        step="60"
+                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                        ref={field.ref}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        id="end-time-input"
+                        style={{
+                          colorScheme: 'light',
+                          direction: 'ltr'
+                        }}
                       />
-                    </FormControl>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = document.getElementById('end-time-input') as HTMLInputElement;
+                          if (input) {
+                            input.focus();
+                            setTimeout(() => {
+                              input.showPicker?.();
+                            }, 10);
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                      >
+                        <Clock className="h-4 w-4" />
+                      </button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
