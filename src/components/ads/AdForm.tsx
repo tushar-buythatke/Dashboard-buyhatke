@@ -235,38 +235,60 @@ export function AdForm() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center space-x-4">
-        <Button 
-          variant="backGhost"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold">
-            {isEditMode ? 'Edit Ad' : 'Create New Ad'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isEditMode 
-              ? 'Update your ad settings and targeting.' 
-              : 'Set up a new ad for your campaign.'}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative">
+      {/* Background decorations */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+      <div className="absolute top-0 right-0 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+      <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
+
+      <div className="relative max-w-6xl mx-auto p-8 space-y-8">
+        {/* Enhanced Header with Glass Effect */}
+        <div className="backdrop-blur-sm bg-white/30 rounded-2xl border border-white/20 shadow-xl p-8">
+          <div className="flex items-center space-x-6">
+            <Button 
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 transition-all duration-300 shadow-md"
+            >
+              <ArrowLeft className="h-5 w-5 text-blue-700" />
+            </Button>
+            <div>
+              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                {isEditMode ? 'Edit Ad' : 'Create New Ad'}
+              </h2>
+              <p className="text-slate-700 text-lg font-medium">
+                {isEditMode 
+                  ? 'Update your ad settings and targeting.' 
+                  : 'Set up a new ad for your campaign.'}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card className="p-6 space-y-6">
-            <h3 className="text-lg font-medium">Ad Details</h3>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                  <Target className="h-3 w-3" />
+                </div>
+                Ad Details
+              </h3>
+            </div>
+            <div className="p-8 space-y-8">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <FormField
                 control={form.control}
                 name="slotId"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ad Slot</FormLabel>
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-slate-800 font-semibold text-lg flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                      Ad Slot
+                    </FormLabel>
                     <Select
                       onValueChange={(value) => {
                         const slot = slots.find(s => s.slotId === parseInt(value));
@@ -276,43 +298,47 @@ export function AdForm() {
                       value={field.value?.toString()}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
                           <SelectValue placeholder="Select a slot" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white/95 backdrop-blur-sm border-white/20 shadow-xl rounded-lg">
                         {slots.map((slot) => (
                           <SelectItem 
                             key={slot.slotId} 
                             value={slot.slotId.toString()}
+                            className="hover:bg-blue-50"
                           >
                             {slot.name} ({slot.width} x {slot.height})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 font-medium" />
                   </FormItem>
                 )}
               />
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <FormLabel>Creative</FormLabel>
+                  <FormLabel className="text-slate-800 font-semibold text-lg flex items-center">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    Creative
+                  </FormLabel>
                   {selectedSlot && (
                     <span className="text-sm text-gray-500">
-                      Required dimensions: {Math.round(selectedSlot.width)} x {Math.round(selectedSlot.height)}px
+                      Required: {selectedSlot.width} x {selectedSlot.height}px
                     </span>
                   )}
                 </div>
                 
                 <div className="flex items-center space-x-4">
                   {previewUrl ? (
-                    <div className="relative group">
+                    <div className="relative group bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-lg">
                       <img
                         src={previewUrl}
                         alt="Ad preview"
-                        className="h-32 w-32 object-cover rounded-md border"
+                        className="h-32 w-32 object-cover rounded-lg border border-white/30"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
@@ -323,16 +349,16 @@ export function AdForm() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
                         onClick={() => setPreviewUrl('')}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                   ) : (
-                    <label className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center space-y-2 w-32 h-32 cursor-pointer">
-                      <Upload className="h-6 w-6 text-gray-400" />
-                      <p className="text-sm text-gray-500 text-center">
+                    <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 bg-white/60 backdrop-blur-sm">
+                      <Upload className="h-6 w-6 text-blue-500" />
+                      <p className="text-sm text-blue-600 text-center font-medium">
                         Click to upload
                       </p>
                       <input
@@ -345,7 +371,7 @@ export function AdForm() {
                   )}
                 </div>
                 {form.formState.errors.creativeUrl && (
-                  <p className="text-sm text-red-500">{form.formState.errors.creativeUrl.message}</p>
+                  <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
                 )}
               </div>
 
@@ -456,12 +482,21 @@ export function AdForm() {
                 )}
               />
             </div>
+            </div>
           </Card>
 
-          <Card className="p-6 space-y-6">
-            <h3 className="text-lg font-medium">Targeting</h3>
+          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                  <Target className="h-3 w-3" />
+                </div>
+                Targeting
+              </h3>
+            </div>
+            <div className="p-8 space-y-8">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <FormField
                 control={form.control}
                 name="gender"
@@ -726,10 +761,19 @@ export function AdForm() {
                 )}
               />
             </div>
+            </div>
           </Card>
 
-          <Card className="p-6 space-y-6">
-            <h3 className="text-lg font-medium">Tracking & Pixels</h3>
+          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                  <Target className="h-3 w-3" />
+                </div>
+                Tracking & Pixels
+              </h3>
+            </div>
+            <div className="p-8 space-y-8">
             
             <div className="grid grid-cols-1 gap-6">
               <FormField
@@ -772,10 +816,19 @@ export function AdForm() {
                 )}
               />
             </div>
+            </div>
           </Card>
 
-          <Card className="p-6 space-y-6">
-            <h3 className="text-lg font-medium">Scheduling</h3>
+          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                  <CalendarIcon className="h-3 w-3" />
+                </div>
+                Scheduling
+              </h3>
+            </div>
+            <div className="p-8 space-y-8">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
@@ -870,20 +923,34 @@ export function AdForm() {
                 )}
               />
             </div>
+            </div>
           </Card>
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-6 pt-8">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate(-1)}
               disabled={loading}
+              className="px-8 py-3 h-12 text-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-xl transition-all duration-300 shadow-sm"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Update Ad' : 'Create Ad'}
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="px-8 py-3 h-12 text-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                  Saving...
+                </span>
+              ) : (
+                <>
+                  {isEditMode ? 'Update Ad' : 'Create Ad'}
+                </>
+              )}
             </Button>
           </div>
         </form>
@@ -894,9 +961,10 @@ export function AdForm() {
         onClose={() => setShowUploadModal(false)}
         onUpload={handleCreativeUpload}
         requiredDimensions={selectedSlot ? 
-          { width: selectedSlot.width, height: selectedSlot.height } : undefined
+          { width: parseFloat(selectedSlot.width), height: parseFloat(selectedSlot.height) } : undefined
         }
       />
+      </div>
     </div>
   );
 }

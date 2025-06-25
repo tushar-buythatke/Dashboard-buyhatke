@@ -120,42 +120,56 @@ export function CampaignForm() {
   };
 
   return (
-    <div className="w-full space-y-6 p-6">
-      <div className="flex items-center space-x-4">
-        <Button 
-          variant="backGhost"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold">
-            {isEditMode ? 'Edit Campaign' : 'Create New Campaign'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isEditMode ? 'Update campaign details' : 'Set up a new advertising campaign'}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="max-w-5xl mx-auto p-8 space-y-10">
+        <div className="flex items-center space-x-6 bg-white/95 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white/20">
+          <Button 
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 transition-all duration-300 shadow-md"
+          >
+            <ArrowLeft className="h-5 w-5 text-blue-700" />
+          </Button>
+          <div>
+            <h2 className="text-4xl font-bold text-gray-900 tracking-tight bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+              {isEditMode ? 'Edit Campaign' : 'Create New Campaign'}
+            </h2>
+            <p className="text-gray-600 mt-2 text-lg">
+              {isEditMode ? 'Update campaign details' : 'Set up a new advertising campaign'}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Campaign Information</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card className="bg-white/95 backdrop-blur-lg shadow-2xl border-0 ring-1 ring-white/30 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8">
+            <CardTitle className="text-2xl font-semibold flex items-center">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                <Save className="h-4 w-4" />
+              </div>
+              Campaign Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-10">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <FormField
                   control={form.control}
                   name="brandName"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand Name</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                        Brand Name
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter brand name" {...field} />
+                        <Input 
+                          placeholder="Enter brand name" 
+                          className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500 font-medium" />
                     </FormItem>
                   )}
                 />
@@ -164,26 +178,49 @@ export function CampaignForm() {
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        Status
+                      </FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                         disabled={loading}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="0">Draft</SelectItem>
-                          <SelectItem value="1">Live</SelectItem>
-                          <SelectItem value="2">Test</SelectItem>
-                          <SelectItem value="3">Paused</SelectItem>
+                        <SelectContent className="bg-white border-2 border-gray-200 shadow-2xl rounded-xl">
+                          <SelectItem value="0" className="hover:bg-gray-50 p-3 rounded-lg m-1">
+                            <span className="flex items-center text-lg">
+                              <div className="w-3 h-3 rounded-full bg-gray-400 mr-3 shadow-sm"></div>
+                              Draft
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="1" className="hover:bg-green-50 p-3 rounded-lg m-1">
+                            <span className="flex items-center text-lg">
+                              <div className="w-3 h-3 rounded-full bg-green-500 mr-3 shadow-sm"></div>
+                              Live
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="2" className="hover:bg-blue-50 p-3 rounded-lg m-1">
+                            <span className="flex items-center text-lg">
+                              <div className="w-3 h-3 rounded-full bg-blue-500 mr-3 shadow-sm"></div>
+                              Test
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="3" className="hover:bg-orange-50 p-3 rounded-lg m-1">
+                            <span className="flex items-center text-lg">
+                              <div className="w-3 h-3 rounded-full bg-orange-500 mr-3 shadow-sm"></div>
+                              Paused
+                            </span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      <FormMessage className="text-red-500 font-medium" />
                     </FormItem>
                   )}
                 />
@@ -192,12 +229,20 @@ export function CampaignForm() {
                   control={form.control}
                   name="impressionTarget"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Impression Target</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                        Impression Target
+                      </FormLabel>
                       <FormControl>
-                        <Input type="number" min={1} {...field} />
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500 font-medium" />
                     </FormItem>
                   )}
                 />
@@ -206,12 +251,20 @@ export function CampaignForm() {
                   control={form.control}
                   name="clickTarget"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Click Target</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                        Click Target
+                      </FormLabel>
                       <FormControl>
-                        <Input type="number" min={1} {...field} />
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500 font-medium" />
                     </FormItem>
                   )}
                 />
@@ -220,32 +273,49 @@ export function CampaignForm() {
                   control={form.control}
                   name="totalBudget"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Budget ($)</FormLabel>
+                    <FormItem className="space-y-3 md:col-span-2">
+                      <FormLabel className="text-gray-800 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                        Total Budget ($)
+                      </FormLabel>
                       <FormControl>
-                        <Input type="number" min={0} step="0.01" {...field} />
+                        <Input 
+                          type="number" 
+                          min={0} 
+                          step="0.01" 
+                          className="border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white h-12 text-lg rounded-xl shadow-sm transition-all duration-300 max-w-md"
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-500 font-medium" />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end space-x-6 pt-10 border-t-2 border-gray-100">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate('/campaigns')}
                   disabled={loading}
+                  className="px-8 py-3 h-12 text-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-xl transition-all duration-300 shadow-sm"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="px-8 py-3 h-12 text-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
                   {loading ? (
-                    'Saving...'
+                    <span className="flex items-center">
+                      <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                      Saving...
+                    </span>
                   ) : (
                     <>
-                      <Save className="mr-2 h-4 w-4" />
+                      <Save className="mr-3 h-5 w-5" />
                       {isEditMode ? 'Update' : 'Create'} Campaign
                     </>
                   )}
@@ -255,6 +325,7 @@ export function CampaignForm() {
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

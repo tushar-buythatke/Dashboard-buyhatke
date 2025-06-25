@@ -188,72 +188,89 @@ export function AdList() {
   }
 
   return (
-    <div className="w-full space-y-6 p-6">
-      <div className="flex items-center space-x-4">
-        <Button 
-          variant="backGhost"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold">
-            {campaign?.brandName || 'Campaign'} Ads
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage ads for {campaign?.brandName || 'this campaign'}
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative">
+      {/* Background decorations */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+      <div className="absolute top-0 right-0 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+      <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <Input
-            placeholder="Search ads..."
-            className="w-64"
-            // Add search functionality if needed
-          />
+      <div className="relative max-w-7xl mx-auto p-8 space-y-8">
+        {/* Enhanced Header with Glass Effect */}
+        <div className="backdrop-blur-sm bg-white/30 rounded-2xl border border-white/20 shadow-xl p-8">
+          <div className="flex items-center space-x-6">
+            <Button 
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 transition-all duration-300 shadow-md"
+            >
+              <ArrowLeft className="h-5 w-5 text-blue-700" />
+            </Button>
+            <div>
+              <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                {campaign?.brandName || 'Campaign'} Ads
+              </h2>
+              <p className="text-slate-700 text-lg font-medium">
+                Manage ads for {campaign?.brandName || 'this campaign'}
+              </p>
+            </div>
+          </div>
         </div>
-        <Button 
-          onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)} 
-          className="bg-purple-600 hover:bg-purple-700 text-white border-0"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Ad
-        </Button>
-      </div>
 
-      <Card>
-        <div className="rounded-md border">
+        <div className="flex justify-between items-center backdrop-blur-sm bg-white/30 rounded-2xl border border-white/20 shadow-lg p-6">
+          <div className="flex items-center space-x-6">
+            <Input
+              placeholder="Search ads..."
+              className="w-72 bg-white/90 border-0 shadow-md hover:shadow-lg focus:shadow-xl transition-all duration-200 rounded-lg text-slate-700 font-medium placeholder:text-slate-500"
+            />
+          </div>
+          <Button 
+            onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)} 
+            className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-700 text-white border-0 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+          >
+            <Plus className="w-5 h-5 mr-3" />
+            Create Ad
+          </Button>
+        </div>
+
+      <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/30 shadow-lg overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Creative</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Slot</TableHead>
-                <TableHead>Impressions</TableHead>
-                <TableHead>Clicks</TableHead>
-                <TableHead>CTR</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
+                <TableHead className="text-slate-700 font-semibold">Creative</TableHead>
+                <TableHead className="text-slate-700 font-semibold">Status</TableHead>
+                <TableHead className="text-slate-700 font-semibold">Slot</TableHead>
+                <TableHead className="text-slate-700 font-semibold">Impressions</TableHead>
+                <TableHead className="text-slate-700 font-semibold">Clicks</TableHead>
+                <TableHead className="text-slate-700 font-semibold">CTR</TableHead>
+                <TableHead className="text-right text-slate-700 font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No ads found. Create your first ad to get started.
+                  <TableCell colSpan={7} className="h-32 text-center">
+                    <div className="text-slate-500 bg-slate-50 rounded-lg p-6 inline-block">
+                      <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                ads.map((ad) => (
-                  <TableRow key={ad.adId}>
+                ads.map((ad, index) => (
+                  <TableRow 
+                    key={ad.adId}
+                    className={`transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md ${
+                      index % 2 === 0 ? 'bg-white/50' : 'bg-slate-50/50'
+                    } border-slate-100`}
+                  >
                     <TableCell>
-                      <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-50 rounded">
+                      <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-white/60 backdrop-blur-sm rounded-lg border border-white/30 shadow-sm">
                         {ad.creativeUrl ? (
                           <img 
                             src={ad.creativeUrl} 
                             alt="Ad creative" 
-                            className="h-full w-full object-contain"
+                            className="h-full w-full object-contain rounded-lg"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               if (!target.dataset.fallback) {
@@ -263,71 +280,77 @@ export function AdList() {
                             }}
                           />
                         ) : (
-                          <div className="flex flex-col items-center justify-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center text-blue-400">
                             <ImageIcon className="h-5 w-5 mb-1" />
-                            <span className="text-xs">No Image</span>
+                            <span className="text-xs font-medium">No Image</span>
                           </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={ad.status === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                      <Badge className={`${ad.status === 1 ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'} font-medium shadow-sm`}>
                         {ad.status === 1 ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-slate-700 font-medium">
                       {ad.slotName && (
                         <div className="flex flex-col">
-                          <span>{ad.slotName}</span>
+                          <span className="font-semibold">{ad.slotName}</span>
                           {ad.slotWidth && ad.slotHeight && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full inline-block mt-1 w-fit">
                               {ad.slotWidth} x {ad.slotHeight}
                             </span>
                           )}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>{ad.impressionTarget.toLocaleString()}</TableCell>
-                    <TableCell>{ad.clickTarget.toLocaleString()}</TableCell>
-                    <TableCell>
-                      {ad.impressionTarget > 0 
-                        ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
-                        : '0.00%'}
+                    <TableCell className="text-slate-700 font-medium">{ad.impressionTarget.toLocaleString()}</TableCell>
+                    <TableCell className="text-slate-700 font-medium">{ad.clickTarget.toLocaleString()}</TableCell>
+                    <TableCell className="text-slate-700 font-medium">
+                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold">
+                        {ad.impressionTarget > 0 
+                          ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
+                          : '0.00%'}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full transition-colors duration-200">
                             <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="h-4 w-4 text-slate-600" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="bg-white/95 backdrop-blur-sm border-white/20 shadow-xl rounded-lg">
                           <DropdownMenuItem
                             onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
+                            className="hover:bg-blue-50 transition-colors duration-200"
                           >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
+                            <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                            <span className="text-slate-700 font-medium">Edit</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleCloneAd(ad.adId)}
+                            className="hover:bg-purple-50 transition-colors duration-200"
                           >
-                            <Copy className="mr-2 h-4 w-4" />
-                            Clone
+                            <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                            <span className="text-slate-700 font-medium">Clone</span>
                           </DropdownMenuItem>
                           {ad.status === 1 ? (
                             <DropdownMenuItem
                               onClick={() => handleStatusChange(ad.adId, 0)}
+                              className="hover:bg-orange-50 transition-colors duration-200"
                             >
-                              <Pause className="mr-2 h-4 w-4" />
-                              Pause
+                              <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                              <span className="text-slate-700 font-medium">Pause</span>
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
                               onClick={() => handleStatusChange(ad.adId, 1)}
+                              className="hover:bg-green-50 transition-colors duration-200"
                             >
-                              <Play className="mr-2 h-4 w-4" />
-                              Activate
+                              <Play className="mr-2 h-4 w-4 text-green-600" />
+                              <span className="text-slate-700 font-medium">Activate</span>
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -340,6 +363,7 @@ export function AdList() {
           </Table>
         </div>
       </Card>
+      </div>
     </div>
   );
 }

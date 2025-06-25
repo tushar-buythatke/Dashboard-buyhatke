@@ -61,6 +61,14 @@ export interface SlotListResponse {
   };
 }
 
+export interface CampaignResponse {
+  status: number;
+  message: string;
+  data: {
+    campaignList: Campaign[];
+  };
+}
+
 export interface MetricsData {
   impressions: number;
   clicks: number;
