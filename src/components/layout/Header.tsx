@@ -6,10 +6,14 @@ export function Header() {
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center space-x-6">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-            <span className="text-2xl font-bold text-white">A</span>
+            <img
+              src="/logo_512x512.png"
+              alt="Logo"
+              className="w-8 h-8 object-contain"
+            />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            AdCampaign Pro
+            Hatke! Dashboard
           </h1>
         </div>
         <div className="flex items-center space-x-4">
