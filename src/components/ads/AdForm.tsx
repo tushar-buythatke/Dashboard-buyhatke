@@ -67,6 +67,22 @@ const adSchema = z.object({
   path: ["ageRangeMax"]
 });
 
+const hardcodedSites = [
+  { pos: 1, name: 'Amazon', logo: 'https://example.com/amazon-logo.png', url: 'https://www.amazon.com' },
+  { pos: 2, name: 'Flipkart', logo: 'https://example.com/flipkart-logo.png', url: 'https://www.flipkart.com' },
+  { pos: 3, name: 'Myntra', logo: 'https://example.com/myntra-logo.png', url: 'https://www.myntra.com' },
+  { pos: 4, name: 'Snapdeal', logo: 'https://example.com/snapdeal-logo.png', url: 'https://www.snapdeal.com' },
+];
+
+const hardcodedLocations = [
+  'Bangalore',
+  'Mumbai',
+  'Delhi',
+  'Chennai',
+  'Kolkata',
+  'Hyderabad',
+];
+
 type AdFormData = z.infer<typeof adSchema>;
 
 export function AdForm() {
@@ -92,7 +108,7 @@ export function AdForm() {
       clickPixel: '',
       categories: {},
       sites: {},
-      location: {},
+      location: { input: '', suggestions: [] }, // Ensure input and suggestions are initialized
       brandTargets: {},
       priceRangeMin: 0,
       priceRangeMax: 1000,
@@ -182,43 +198,43 @@ export function AdForm() {
     const fetchData = async () => {
       try {
         setFormLoading(true);
-        
+
         await fetchSlots();
 
         // Fetch ad data
         const fetchAd = async () => {
           if (!adId) return;
-          
+
           try {
             setFormLoading(true);
-            
+
             const params = new URLSearchParams({
               campaignId: campaignId || '',
               slotId: '',
               adId: adId,
               status: ''
             });
-            
+
             const response = await fetch(
               `https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads?${params.toString()}`
             );
-            
+
             if (!response.ok) {
               throw new Error('Failed to fetch ad');
             }
-            
+
             const result = await response.json();
-            
+
             if (result.status === 1 && result.data?.adsList?.[0]) {
               const adData = result.data.adsList[0];
-              
+
               // Format the data for the form
               form.reset({
                 ...adData,
-                // Convert date strings to Date objects if needed
-                startDate: adData.startDate ? new Date(adData.startDate) : undefined,
-                endDate: adData.endDate ? new Date(adData.endDate) : undefined,
-                // Add any other necessary transformations
+                startDate: adData.startDate ? adData.startDate.split('T')[0] : undefined,
+                endDate: adData.endDate ? adData.endDate.split('T')[0] : undefined,
+                startTime: adData.startTime ? adData.startTime.slice(0, 5) : '09:00',
+                endTime: adData.endTime ? adData.endTime.slice(0, 5) : '21:00',
               });
             }
           } catch (error) {
@@ -228,7 +244,7 @@ export function AdForm() {
             setFormLoading(false);
           }
         };
-        
+
         await fetchAd();
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -715,6 +731,7 @@ export function AdForm() {
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="N/A">N/A</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -865,191 +882,610 @@ export function AdForm() {
 
               <FormField
                 control={form.control}
-                name="categories"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-2">
-                      <FormLabel>Categories</FormLabel>
-                      <FormDescription>
-                        Select the categories this ad targets
-                      </FormDescription>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(categories).map(([key, label]) => (
-                        <FormField
-                          key={key}
-                          control={form.control}
-                          name="categories"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={key}
-                                className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                <div
-                                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                                  onClick={() => {
-                                    const current = { ...field.value };
-                                    if (current[key]) {
-                                      delete current[key];
-                                    } else {
-                                      current[key] = 1;
-                                    }
-                                    field.onChange(current);
-                                  }}
-                                >
-                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                                    field.value[key]
-                                      ? 'bg-blue-500 border-blue-500'
-                                      : 'border-gray-300 bg-white hover:border-gray-400'
-                                  }`}>
-                                    {field.value[key] && (
-                                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                      </svg>
-                                    )}
+                name="sites"
+                render={({ field }) => {
+                  const [showSuggestions, setShowSuggestions] = useState(false);
+
+                  const handleOutsideClick = (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('.sites-input-container')) {
+                      setShowSuggestions(false);
+                    }
+                  };
+
+                  useEffect(() => {
+                    document.addEventListener('click', handleOutsideClick);
+                    return () => {
+                      document.removeEventListener('click', handleOutsideClick);
+                    };
+                  }, []);
+
+                  return (
+                    <FormItem>
+                      <div className="mb-2">
+                        <FormLabel>Target Sites</FormLabel>
+                        <FormDescription>
+                          Type to search for sites or toggle "No Specificity" to target all sites.
+                        </FormDescription>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <FormControl>
+                          <div className="relative sites-input-container">
+                            <Input
+                              type="text"
+                              placeholder="Type a site name"
+                              value={field.value.input || ''}
+                              onChange={(e) => {
+                                const query = e.target.value.toLowerCase();
+                                const matchingSites = hardcodedSites.filter((site) =>
+                                  site.name.toLowerCase().includes(query)
+                                );
+                                field.onChange({
+                                  ...field.value,
+                                  input: e.target.value,
+                                  suggestions: matchingSites,
+                                });
+                                setShowSuggestions(true);
+                              }}
+                              disabled={field.value['no-specificity']}
+                            />
+                            {showSuggestions && field.value.suggestions?.length > 0 && (
+                              <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                {field.value.suggestions.map((site) => (
+                                  <div
+                                    key={site.pos}
+                                    className="flex items-center px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    onClick={() => {
+                                      const updatedSites = { ...field.value };
+                                      delete updatedSites.input;
+                                      delete updatedSites.suggestions;
+                                      updatedSites[site.pos] = site.url;
+                                      field.onChange(updatedSites);
+                                      setShowSuggestions(false);
+                                    }}
+                                  >
+                                    <img
+                                      src={site.logo}
+                                      alt={site.name}
+                                      className="w-6 h-6 rounded-full mr-3"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = 'https://via.placeholder.com/24';
+                                      }}
+                                    />
+                                    <span className="font-medium">{site.name}</span>
+                                    <span className="ml-auto text-gray-500 text-sm">({site.pos})</span>
                                   </div>
-                                  <FormLabel className="font-normal text-sm text-gray-700 cursor-pointer">
-                                    {label}
-                                  </FormLabel>
-                                </div>
-                              </FormItem>
-                            );
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <div
+                          onClick={() => {
+                            if (field.value['no-specificity']) {
+                              field.onChange({});
+                            } else {
+                              field.onChange({ 'no-specificity': 1 });
+                            }
                           }}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                          className={`
+                            flex items-center p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md
+                            ${field.value['no-specificity']
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                            ${field.value['no-specificity']
+                              ? 'bg-green-500'
+                              : 'bg-gray-300'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                              ${field.value['no-specificity']
+                                ? 'translate-x-5'
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {field.value['no-specificity'] && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-medium text-sm">
+                            No Specificity
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Object.keys(field.value)
+                          .filter((key) => key !== 'input' && key !== 'suggestions' && key !== 'no-specificity')
+                          .map((siteKey) => {
+                            const site = hardcodedSites.find((s) => s.pos.toString() === siteKey);
+                            return (
+                              site && (
+                                <div
+                                  key={siteKey}
+                                  className="flex items-center justify-between p-1 border rounded-md bg-gray-50 text-sm"
+                                >
+                                  <div className="flex items-center">
+                                    <img
+                                      src={site.logo}
+                                      alt={site.name}
+                                      className="w-6 h-6 rounded-full mr-2"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = 'https://via.placeholder.com/24';
+                                      }}
+                                    />
+                                    <span className="text-gray-700 truncate">{site.name} ({site.pos})</span>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const updatedSites = { ...field.value };
+                                      delete updatedSites[siteKey];
+                                      field.onChange(updatedSites);
+                                    }}
+                                    className="text-red-500 hover:text-red-600 p-0 text-xs"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              )
+                            );
+                          })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="categories"
+                render={({ field }) => {
+                  const [showSuggestions, setShowSuggestions] = useState(false);
+
+                  const handleOutsideClick = (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('.categories-input-container')) {
+                      setShowSuggestions(false);
+                    }
+                  };
+
+                  useEffect(() => {
+                    document.addEventListener('click', handleOutsideClick);
+                    return () => {
+                      document.removeEventListener('click', handleOutsideClick);
+                    };
+                  }, []);
+
+                  return (
+                    <FormItem>
+                      <div className="mb-2">
+                        <FormLabel>Categories</FormLabel>
+                        <FormDescription>
+                          Type to search for categories or toggle "No Specificity" to target all categories.
+                        </FormDescription>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <FormControl>
+                          <div className="relative categories-input-container">
+                            <Input
+                              type="text"
+                              placeholder="Type a category name"
+                              value={field.value.input || ''}
+                              onChange={(e) => {
+                                const query = e.target.value.toLowerCase();
+                                const matchingCategories = Object.entries(categories).filter(([key, label]) =>
+                                  label.toLowerCase().includes(query)
+                                );
+                                field.onChange({
+                                  ...field.value,
+                                  input: e.target.value,
+                                  suggestions: matchingCategories,
+                                });
+                                setShowSuggestions(true);
+                              }}
+                              disabled={field.value['no-specificity']}
+                            />
+                            {showSuggestions && field.value.suggestions?.length > 0 && (
+                              <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                {field.value.suggestions.map(([key, label]) => (
+                                  <div
+                                    key={key}
+                                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    onClick={() => {
+                                      const updatedCategories = { ...field.value };
+                                      delete updatedCategories.input;
+                                      delete updatedCategories.suggestions;
+                                      updatedCategories[key] = 1;
+                                      field.onChange(updatedCategories);
+                                      setShowSuggestions(false);
+                                    }}
+                                  >
+                                    {label}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <div
+                          onClick={() => {
+                            if (field.value['no-specificity']) {
+                              field.onChange({});
+                            } else {
+                              field.onChange({ 'no-specificity': 1 });
+                            }
+                          }}
+                          className={`
+                            flex items-center p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md
+                            ${field.value['no-specificity']
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                            ${field.value['no-specificity']
+                              ? 'bg-green-500'
+                              : 'bg-gray-300'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                              ${field.value['no-specificity']
+                                ? 'translate-x-5'
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {field.value['no-specificity'] && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-medium text-sm">
+                            No Specificity
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Object.keys(field.value)
+                          .filter((key) => key !== 'input' && key !== 'suggestions' && key !== 'no-specificity')
+                          .map((key) => (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between p-1 border rounded-md bg-gray-50 text-sm"
+                            >
+                              <span className="text-gray-700 truncate pl-2">{categories[key]}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedCategories = { ...field.value };
+                                  delete updatedCategories[key];
+                                  field.onChange(updatedCategories);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-0 text-xs"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="brandTargets"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-2">
-                      <FormLabel>Brands</FormLabel>
-                      <FormDescription>
-                        Select the brands this ad targets
-                      </FormDescription>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(brands).map(([key, label]) => (
-                        <FormField
-                          key={key}
-                          control={form.control}
-                          name="brandTargets"
-                          render={({ field }) => {
-                            const isSelected = !!field.value[key];
-                            return (
-                              <div
-                                key={key}
-                                onClick={() => {
-                                  const current = { ...field.value };
-                                  if (isSelected) {
-                                    delete current[key];
-                                  } else {
-                                    current[key] = 1;
-                                  }
-                                  field.onChange(current);
-                                }}
-                                className={`
-                                  flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md
-                                  ${isSelected 
-                                    ? 'bg-blue-500 border-blue-500 text-white' 
-                                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                                  }
-                                `}
-                              >
-                                <div className={`
-                                  w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-all duration-200
-                                  ${isSelected 
-                                    ? 'bg-blue-500 border-blue-500' 
-                                    : 'bg-white border-gray-300'
-                                  }
-                                `}>
-                                  {isSelected && (
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <span className="font-medium">{label}</span>
+                render={({ field }) => {
+                  const [showSuggestions, setShowSuggestions] = useState(false);
+
+                  const handleOutsideClick = (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('.brands-input-container')) {
+                      setShowSuggestions(false);
+                    }
+                  };
+
+                  useEffect(() => {
+                    document.addEventListener('click', handleOutsideClick);
+                    return () => {
+                      document.removeEventListener('click', handleOutsideClick);
+                    };
+                  }, []);
+
+                  return (
+                    <FormItem>
+                      <div className="mb-2">
+                        <FormLabel>Brands</FormLabel>
+                        <FormDescription>
+                          Type to search for brands or toggle "No Specificity" to target all brands.
+                        </FormDescription>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <FormControl>
+                          <div className="relative brands-input-container">
+                            <Input
+                              type="text"
+                              placeholder="Type a brand name"
+                              value={field.value.input || ''}
+                              onChange={(e) => {
+                                const query = e.target.value.toLowerCase();
+                                const matchingBrands = Object.entries(brands).filter(([key, label]) =>
+                                  label.toLowerCase().includes(query)
+                                );
+                                field.onChange({
+                                  ...field.value,
+                                  input: e.target.value,
+                                  suggestions: matchingBrands,
+                                });
+                                setShowSuggestions(true);
+                              }}
+                              disabled={field.value['no-specificity']}
+                            />
+                            {showSuggestions && field.value.suggestions?.length > 0 && (
+                              <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                {field.value.suggestions.map(([key, label]) => (
+                                  <div
+                                    key={key}
+                                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    onClick={() => {
+                                      const updatedBrands = { ...field.value };
+                                      delete updatedBrands.input;
+                                      delete updatedBrands.suggestions;
+                                      updatedBrands[key] = 1;
+                                      field.onChange(updatedBrands);
+                                      setShowSuggestions(false);
+                                    }}
+                                  >
+                                    {label}
+                                  </div>
+                                ))}
                               </div>
-                            );
+                            )}
+                          </div>
+                        </FormControl>
+                        <div
+                          onClick={() => {
+                            if (field.value['no-specificity']) {
+                              field.onChange({});
+                            } else {
+                              field.onChange({ 'no-specificity': 1 });
+                            }
                           }}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                          className={`
+                            flex items-center p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md
+                            ${field.value['no-specificity']
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                            ${field.value['no-specificity']
+                              ? 'bg-green-500'
+                              : 'bg-gray-300'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                              ${field.value['no-specificity']
+                                ? 'translate-x-5'
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {field.value['no-specificity'] && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-medium text-sm">
+                            No Specificity
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Object.keys(field.value)
+                          .filter((key) => key !== 'input' && key !== 'suggestions' && key !== 'no-specificity')
+                          .map((key) => (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between p-1 border rounded-md bg-gray-50 text-sm"
+                            >
+                              <span className="text-gray-700 truncate pl-2">{brands[key]}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedBrands = { ...field.value };
+                                  delete updatedBrands[key];
+                                  field.onChange(updatedBrands);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-0 text-xs"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="location"
-                render={() => (
-                  <FormItem>
-                    <div className="mb-2">
-                      <FormLabel>Locations</FormLabel>
-                      <FormDescription>
-                        Select the locations this ad targets
-                      </FormDescription>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['Bangalore', 'Mumbai', 'Delhi', 'Chennai', 'Kolkata', 'Hyderabad'].map((location) => (
-                        <FormField
-                          key={location}
-                          control={form.control}
-                          name="location"
-                          render={({ field }) => {
-                            const isSelected = !!field.value[location];
-                            return (
-                              <div
-                                key={location}
-                                onClick={() => {
-                                  const current = { ...field.value };
-                                  if (isSelected) {
-                                    delete current[location];
-                                  } else {
-                                    current[location] = 1;
-                                  }
-                                  field.onChange(current);
-                                }}
-                                className={`
-                                  flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md
-                                  ${isSelected 
-                                    ? 'bg-blue-500 border-blue-500 text-white' 
-                                    : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                                  }
-                                `}
-                              >
-                                <div className={`
-                                  w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-all duration-200
-                                  ${isSelected 
-                                    ? 'bg-blue-500 border-blue-500' 
-                                    : 'bg-white border-gray-300'
-                                  }
-                                `}>
-                                  {isSelected && (
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <span className="font-medium">{location}</span>
+                render={({ field }) => {
+                  const [showSuggestions, setShowSuggestions] = useState(false);
+
+                  const handleOutsideClick = (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('.location-input-container')) {
+                      setShowSuggestions(false);
+                    }
+                  };
+
+                  useEffect(() => {
+                    document.addEventListener('click', handleOutsideClick);
+                    return () => {
+                      document.removeEventListener('click', handleOutsideClick);
+                    };
+                  }, []);
+
+                  return (
+                    <FormItem>
+                      <div className="mb-2">
+                        <FormLabel>Locations</FormLabel>
+                        <FormDescription>
+                          Type to search for cities or toggle "No Specificity" to target all locations.
+                        </FormDescription>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <FormControl>
+                          <div className="relative location-input-container">
+                            <Input
+                              type="text"
+                              placeholder="Type a city name"
+                              value={field.value.input || ''}
+                              onChange={(e) => {
+                                const query = e.target.value.toLowerCase();
+                                const matchingCities = hardcodedLocations.filter((city) =>
+                                  city.toLowerCase().includes(query)
+                                );
+                                field.onChange({
+                                  ...field.value,
+                                  input: e.target.value,
+                                  suggestions: matchingCities,
+                                });
+                                setShowSuggestions(true);
+                              }}
+                              disabled={field.value['no-specificity']}
+                            />
+                            {showSuggestions && field.value.suggestions?.length > 0 && (
+                              <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
+                                {field.value.suggestions.map((city) => (
+                                  <div
+                                    key={city}
+                                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                    onClick={() => {
+                                      const updatedLocations = { ...field.value };
+                                      delete updatedLocations.input;
+                                      delete updatedLocations.suggestions;
+                                      updatedLocations[city] = 1;
+                                      field.onChange(updatedLocations);
+                                      setShowSuggestions(false);
+                                    }}
+                                  >
+                                    {city}
+                                  </div>
+                                ))}
                               </div>
-                            );
+                            )}
+                          </div>
+                        </FormControl>
+                        <div
+                          onClick={() => {
+                            if (field.value['no-specificity']) {
+                              field.onChange({});
+                            } else {
+                              field.onChange({ 'no-specificity': 1 });
+                            }
                           }}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                          className={`
+                            flex items-center p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md
+                            ${field.value['no-specificity']
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                            ${field.value['no-specificity']
+                              ? 'bg-green-500'
+                              : 'bg-gray-300'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                              ${field.value['no-specificity']
+                                ? 'translate-x-5'
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {field.value['no-specificity'] && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-medium text-sm">
+                            No Specificity
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {Object.keys(field.value)
+                          .filter((key) => key !== 'input' && key !== 'suggestions' && key !== 'no-specificity')
+                          .map((location) => (
+                            <div
+                              key={location}
+                              className="flex items-center justify-between p-1 border rounded-md bg-gray-50 text-sm"
+                            >
+                              <span className="text-gray-700 truncate pl-2">{location}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedLocations = { ...field.value };
+                                  delete updatedLocations[location];
+                                  field.onChange(updatedLocations);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-0 text-xs"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             </div>
