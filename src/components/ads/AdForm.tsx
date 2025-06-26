@@ -36,7 +36,8 @@ const adSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   creativeUrl: z.string().url('Creative URL must be valid'),
-  gender: z.enum(['Male', 'Female', 'Other']),
+  gender: z.string().optional(),
+  noGenderSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1),
   isTestPhase: z.number().min(0).max(1)
 }).refine((data) => {
@@ -121,6 +122,7 @@ export function AdForm() {
       endTime: '21:00',
       creativeUrl: '',
       gender: 'Male',
+      noGenderSpecificity: false,
       status: 1,
       isTestPhase: 0
     }
@@ -642,7 +644,7 @@ export function AdForm() {
               <FormField
                 control={form.control}
                 name="isTestPhase"
-                render={({ field }) => {
+                render={({ field, fieldState }) => {
                   const isTestMode = field.value === 1;
                   return (
                     <FormItem>
@@ -718,29 +720,87 @@ export function AdForm() {
               <FormField
                 control={form.control}
                 name="gender"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
+                    <div className="mb-2">
+                      <FormLabel>Gender</FormLabel>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <FormControl className="w-48">
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value === 'N/A') {
+                              form.setValue('noGenderSpecificity', true, { shouldValidate: true });
+                            }
+                          }} 
+                          value={field.value}
+                          disabled={form.watch('noGenderSpecificity')}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={form.watch('noGenderSpecificity') ? "N/A" : "Select gender"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                            <SelectItem value="N/A">N/A</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                        <SelectItem value="N/A">N/A</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <div 
+                        onClick={() => {
+                          const currentValue = form.getValues('noGenderSpecificity');
+                          form.setValue('noGenderSpecificity', !currentValue, { shouldValidate: true });
+                          if (!currentValue) {
+                            form.setValue('gender', '', { shouldValidate: true });
+                          } else {
+                            form.setValue('gender', 'Male', { shouldValidate: true });
+                          }
+                        }}
+                        className={`
+                          flex items-center p-2 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md text-sm
+                          ${form.watch('noGenderSpecificity')
+                            ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                          }
+                        `}
+                      >
+                        <div className={`
+                          relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                          ${form.watch('noGenderSpecificity')
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                          }
+                        `}>
+                          <div className={`
+                            absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                            ${form.watch('noGenderSpecificity')
+                              ? 'translate-x-5'
+                              : 'translate-x-0.5'
+                            }
+                          `}>
+                            {form.watch('noGenderSpecificity') && (
+                              <div className="flex items-center justify-center h-full">
+                                <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-medium whitespace-nowrap">
+                          No Specificity
+                        </span>
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
               <div className="space-y-3">
-                <FormLabel className="text-slate-800 font-semibold flex items-center">
+                <FormLabel className="text-slate-800 font-semibold text-lg flex items-center">
                   <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
                   Age Range
                 </FormLabel>
@@ -786,7 +846,7 @@ export function AdForm() {
               </div>
 
               <div className="space-y-3">
-                <FormLabel className="text-slate-800 font-semibold flex items-center">
+                <FormLabel className="text-slate-800 font-semibold text-lg flex items-center">
                   <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
                   Price Range
                 </FormLabel>
@@ -954,7 +1014,7 @@ export function AdForm() {
                                         target.src = 'https://via.placeholder.com/24';
                                       }}
                                     />
-                                    <span className="font-medium">{site.name}</span>
+                                    <span className="font-medium">{site.name} ({site.pos})</span>
                                     <span className="ml-auto text-gray-500 text-sm">({site.pos})</span>
                                   </div>
                                 ))}
