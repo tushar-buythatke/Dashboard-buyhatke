@@ -38,6 +38,7 @@ const adSchema = z.object({
   creativeUrl: z.string().url('Creative URL must be valid'),
   gender: z.string().optional(),
   noGenderSpecificity: z.boolean().optional(),
+  noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1),
   isTestPhase: z.number().min(0).max(1)
 }).refine((data) => {
@@ -123,6 +124,7 @@ export function AdForm() {
       creativeUrl: '',
       gender: 'Male',
       noGenderSpecificity: false,
+      noSpecificity: false,
       status: 1,
       isTestPhase: 0
     }
@@ -707,12 +709,101 @@ export function AdForm() {
 
           <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                  <Target className="h-3 w-3" />
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <Target className="h-3 w-3" />
+                  </div>
+                  Targeting
+                </h3>
+                <div 
+                  onClick={() => {
+                    const currentValue = form.getValues('noSpecificity');
+                    form.setValue('noSpecificity', !currentValue, { shouldValidate: true });
+                    
+                    // Toggle all specificity toggles
+                    form.setValue('noGenderSpecificity', !currentValue, { shouldValidate: true });
+                    form.setValue('noAgeSpecificity', !currentValue, { shouldValidate: true });
+                    
+                    // Get current form values
+                    const formValues = form.getValues();
+                    
+                    if (!currentValue) {
+                      // If enabling master toggle, set default values
+                      form.setValue('gender', '', { shouldValidate: true });
+                      form.setValue('ageRangeMin', 13, { shouldValidate: true });
+                      form.setValue('ageRangeMax', 100, { shouldValidate: true });
+                      setAgeRange([13, 100]);
+                      
+                      // Set no-specificity for all target sections
+                      if (!formValues.sites?.['no-specificity']) {
+                        form.setValue('sites', { 'no-specificity': 1 }, { shouldValidate: true });
+                      }
+                      if (!formValues.brandTargets?.['no-specificity']) {
+                        form.setValue('brandTargets', { 'no-specificity': 1 }, { shouldValidate: true });
+                      }
+                      if (!formValues.location?.['no-specificity']) {
+                        form.setValue('location', { 'no-specificity': 1 }, { shouldValidate: true });
+                      }
+                      if (!formValues.categories?.['no-specificity']) {
+                        form.setValue('categories', { 'no-specificity': 1 }, { shouldValidate: true });
+                      }
+                    } else {
+                      // If disabling master toggle, reset to defaults
+                      form.setValue('gender', 'Male', { shouldValidate: true });
+                      form.setValue('ageRangeMin', 18, { shouldValidate: true });
+                      form.setValue('ageRangeMax', 65, { shouldValidate: true });
+                      setAgeRange([18, 65]);
+                      
+                      // Reset no-specificity for all target sections
+                      if (formValues.sites?.['no-specificity']) {
+                        form.setValue('sites', {}, { shouldValidate: true });
+                      }
+                      if (formValues.brandTargets?.['no-specificity']) {
+                        form.setValue('brandTargets', {}, { shouldValidate: true });
+                      }
+                      if (formValues.location?.['no-specificity']) {
+                        form.setValue('location', {}, { shouldValidate: true });
+                      }
+                      if (formValues.categories?.['no-specificity']) {
+                        form.setValue('categories', {}, { shouldValidate: true });
+                      }
+                    }
+                  }}
+                  className={`
+                    flex items-center px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-200 text-sm
+                    ${form.watch('noSpecificity')
+                      ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-300 text-green-800 hover:shadow-md'
+                      : 'bg-white/20 border-white/30 text-white hover:bg-white/30'
+                    }
+                  `}
+                >
+                  <div className={`
+                    relative w-10 h-5 rounded-full transition-all duration-200 mr-2
+                    ${form.watch('noSpecificity')
+                      ? 'bg-green-500'
+                      : 'bg-gray-300'
+                    }
+                  `}>
+                    <div className={`
+                      absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-200 transform
+                      ${form.watch('noSpecificity')
+                        ? 'translate-x-5'
+                        : 'translate-x-0.5'
+                      }
+                    `}>
+                      {form.watch('noSpecificity') && (
+                        <div className="flex items-center justify-center h-full">
+                          <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="font-medium">No Specificity</span>
                 </div>
-                Targeting
-              </h3>
+              </div>
             </div>
             <div className="p-8 space-y-8">
             
@@ -735,10 +826,10 @@ export function AdForm() {
                             }
                           }} 
                           value={field.value}
-                          disabled={form.watch('noGenderSpecificity')}
+                          disabled={form.watch('noSpecificity')}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder={form.watch('noGenderSpecificity') ? "N/A" : "Select gender"} />
+                            <SelectValue placeholder={form.watch('noSpecificity') ? "N/A" : "Select gender"} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Male">Male</SelectItem>
@@ -821,6 +912,7 @@ export function AdForm() {
                       max={100}
                       step={1}
                       className="w-full"
+                      disabled={form.watch('noSpecificity')}
                     />
                   </div>
                   
@@ -869,6 +961,7 @@ export function AdForm() {
                       max={400000}
                       step={1}
                       className="w-full"
+                      disabled={form.watch('noSpecificity')}
                     />
                   </div>
 
@@ -895,6 +988,7 @@ export function AdForm() {
                                     e.preventDefault();
                                   }
                                 }}
+                                disabled={form.watch('noSpecificity')}
                               />
                             </FormControl>
                             <FormMessage />
@@ -923,6 +1017,7 @@ export function AdForm() {
                                     e.preventDefault();
                                   }
                                 }}
+                                disabled={form.watch('noSpecificity')}
                               />
                             </FormControl>
                             <FormMessage />
@@ -987,7 +1082,7 @@ export function AdForm() {
                                 });
                                 setShowSuggestions(true);
                               }}
-                              disabled={field.value['no-specificity']}
+                              disabled={form.watch('noSpecificity')}
                             />
                             {showSuggestions && field.value.suggestions?.length > 0 && (
                               <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
@@ -1160,7 +1255,7 @@ export function AdForm() {
                                 });
                                 setShowSuggestions(true);
                               }}
-                              disabled={field.value['no-specificity']}
+                              disabled={form.watch('noSpecificity')}
                             />
                             {showSuggestions && field.value.suggestions?.length > 0 && (
                               <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
@@ -1305,7 +1400,7 @@ export function AdForm() {
                                 });
                                 setShowSuggestions(true);
                               }}
-                              disabled={field.value['no-specificity']}
+                              disabled={form.watch('noSpecificity')}
                             />
                             {showSuggestions && field.value.suggestions?.length > 0 && (
                               <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
@@ -1450,7 +1545,7 @@ export function AdForm() {
                                 });
                                 setShowSuggestions(true);
                               }}
-                              disabled={field.value['no-specificity']}
+                              disabled={form.watch('noSpecificity')}
                             />
                             {showSuggestions && field.value.suggestions?.length > 0 && (
                               <div className="absolute z-10 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
