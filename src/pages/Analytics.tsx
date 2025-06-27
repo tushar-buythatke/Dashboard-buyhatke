@@ -10,6 +10,7 @@ import {
   mockPlatformBreakdown, 
   mockLocationBreakdown 
 } from '@/data/mockData';
+import { motion } from 'framer-motion';
 
 const mockMetrics = {
   impressions: 187400,
@@ -60,26 +61,33 @@ export function Analytics() {
               <MetricsDashboard data={mockMetrics} />
             </div>
             
-            {/* Trend Chart */}
-            <div className="backdrop-blur-sm bg-white/30 border border-white/20 rounded-2xl p-6 shadow-xl">
-              <TrendChart data={mockTrendData} title="Performance Over Time" />
-            </div>
-            
-            {/* Breakdown Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="backdrop-blur-sm bg-white/30 border border-white/20 rounded-2xl p-6 shadow-xl">
-                <BreakdownPieChart data={mockGenderBreakdown} title="Gender Distribution" />
+            {/* Charts Section in a Single White Div */}
+            <motion.div 
+              className="bg-white border border-gray-100 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-150 ease-out will-change-shadow"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              <div className="space-y-6">
+                <div className="group hover:shadow-md transition-shadow duration-150 ease-out rounded-lg">
+                  <TrendChart data={mockTrendData} title="Performance Over Time" />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="group hover:shadow-md transition-shadow duration-150 ease-out rounded-lg">
+                    <BreakdownPieChart data={mockGenderBreakdown} title="Gender Distribution" />
+                  </div>
+                  <div className="group hover:shadow-md transition-shadow duration-150 ease-out rounded-lg">
+                    <BreakdownPieChart data={mockAgeBreakdown} title="Age Groups" />
+                  </div>
+                  <div className="group hover:shadow-md transition-shadow duration-150 ease-out rounded-lg">
+                    <BreakdownPieChart data={mockPlatformBreakdown} title="Platform Performance" />
+                  </div>
+                  <div className="group hover:shadow-md transition-shadow duration-150 ease-out rounded-lg">
+                    <BreakdownPieChart data={mockLocationBreakdown} title="Geographic Distribution" />
+                  </div>
+                </div>
               </div>
-              <div className="backdrop-blur-sm bg-white/30 border border-white/20 rounded-2xl p-6 shadow-xl">
-                <BreakdownPieChart data={mockAgeBreakdown} title="Age Groups" />
-              </div>
-              <div className="backdrop-blur-sm bg-white/30 border border-white/20 rounded-2xl p-6 shadow-xl">
-                <BreakdownPieChart data={mockPlatformBreakdown} title="Platform Performance" />
-              </div>
-              <div className="backdrop-blur-sm bg-white/30 border border-white/20 rounded-2xl p-6 shadow-xl">
-                <BreakdownPieChart data={mockLocationBreakdown} title="Geographic Distribution" />
-              </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
