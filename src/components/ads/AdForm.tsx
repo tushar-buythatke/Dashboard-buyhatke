@@ -16,7 +16,6 @@ import { adService } from '@/services/adService';
 import { toast } from 'sonner';
 import { Slot } from '@/types';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/context/ThemeContext';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {

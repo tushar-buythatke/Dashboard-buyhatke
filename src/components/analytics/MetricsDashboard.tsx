@@ -1,6 +1,6 @@
-import React, { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Eye, MousePointer, Target, BarChart3, IndianRupee } from 'lucide-react';
+import { TrendingUp, Eye, MousePointerClick, DollarSign, TrendingDown } from 'lucide-react';
 import { MetricsData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -48,7 +48,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'Clicks',
       value: formatNumber(data.clicks),
       rawValue: data.clicks,
-      icon: MousePointer,
+      icon: MousePointerClick,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       change: '+8.2%'
@@ -57,7 +57,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'CTR',
       value: formatPercentage(data.ctr),
       rawValue: data.ctr,
-      icon: Target,
+      icon: DollarSign,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       change: '+0.3%'
@@ -75,7 +75,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'Revenue',
       value: formatCurrency(data.revenue),
       rawValue: data.revenue,
-      icon: IndianRupee,
+      icon: DollarSign,
       color: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
       change: '+22.1%'
@@ -84,7 +84,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'ROI',
       value: formatPercentage(data.roi),
       rawValue: data.roi,
-      icon: BarChart3,
+      icon: TrendingDown,
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
       change: '+18.9%'

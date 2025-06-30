@@ -1,6 +1,5 @@
 import { memo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendDataPoint } from '@/types';
 
 interface TrendChartProps {
@@ -83,7 +82,6 @@ CustomTooltip.displayName = 'CustomTooltip';
 export const TrendChart = memo<TrendChartProps>(({ 
   data, 
   title, 
-  height = 450,
   showGrid = true,
   animated = true 
 }) => {

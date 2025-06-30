@@ -53,7 +53,7 @@ export function SiteSelect({ value, onChange, placeholder = "Select sites...", c
 
   const selectedItems = Object.keys(value);
 
-  const handleAdd = (siteId: string, siteName: string) => {
+  const handleAdd = (siteId: string) => {
     if (!value[siteId]) {
       onChange({ ...value, [siteId]: 1 });
     }
@@ -162,7 +162,7 @@ export function SiteSelect({ value, onChange, placeholder = "Select sites...", c
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     type="button"
-                    onClick={() => handleAdd(siteId, site.name)}
+                    onClick={() => handleAdd(siteId)}
                     disabled={!!value[siteId]}
                     className={cn(
                       "w-full text-left px-6 py-4 text-sm transition-all duration-200 flex items-center justify-between group",

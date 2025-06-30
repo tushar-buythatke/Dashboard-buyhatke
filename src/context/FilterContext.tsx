@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { FilterState } from '@/types';
 
 interface FilterContextType {

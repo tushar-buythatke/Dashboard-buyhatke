@@ -1,6 +1,5 @@
 import { useState, useCallback, memo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BreakdownData } from '@/types';
 
 interface BreakdownPieChartProps {
@@ -56,7 +55,7 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const renderLabel = useCallback((entry: BreakdownData) => {
+  const renderLabel = useCallback(() => {
     return ''; // Disable labels completely to prevent overflow
   }, []);
 
@@ -95,7 +94,7 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >
-              {enrichedData.map((entry, index) => (
+              {enrichedData.map((_, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={COLORS[index % COLORS.length]}

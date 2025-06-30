@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { BarChart3, Lamp as Campaign, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
