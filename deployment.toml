@@ -1,0 +1,24 @@
+# Deployment configuration in TOML format
+# Note: This is for reference only - Vercel uses vercel.json
+
+[[rewrites]]
+source = "/(.*)"
+destination = "/index.html"
+
+[[headers]]
+source = "/api/(.*)"
+
+  [[headers.headers]]
+  key = "Cache-Control"
+  value = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+source = "/(.*)"
+
+  [[headers.headers]]
+  key = "X-Frame-Options"
+  value = "DENY"
+
+  [[headers.headers]]
+  key = "X-Content-Type-Options"
+  value = "nosniff" 
