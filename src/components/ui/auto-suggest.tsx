@@ -168,7 +168,7 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
                             : "text-gray-900 dark:text-gray-100"
                         )}>{locationName}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {count} available locations
+                          {count} active users
                         </div>
                       </div>
                     </span>

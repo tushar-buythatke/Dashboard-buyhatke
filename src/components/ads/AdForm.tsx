@@ -123,7 +123,9 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
 
 // Schema validation
 const adSchema = z.object({
-  slotId: z.number().min(1, 'Slot selection is required'),
+  slotId: z.union([z.undefined(), z.number().min(1, 'Slot selection is required')]).refine((val) => val !== undefined && val > 0, {
+    message: 'Slot selection is required'
+  }),
   impressionTarget: z.number().min(1, 'Impression target is required'),
   clickTarget: z.number().min(1, 'Click target is required'),
   impressionPixel: z.string().url('Must be a valid URL'),
@@ -205,7 +207,7 @@ export function AdForm() {
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
-      slotId: 0,
+      slotId: undefined,
       impressionTarget: 1000,
       clickTarget: 100,
       impressionPixel: '',
@@ -611,7 +613,7 @@ export function AdForm() {
                         setSelectedSlot(slot || null);
                         field.onChange(parseInt(value));
                       }}
-                      value={field.value?.toString()}
+                      value={field.value?.toString() || ""}
                     >
                       <FormControl>
                         <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
