@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Filter, Play, Pause, Edit, Copy, MoreHorizontal, RefreshCw, Download, Search, BarChart3, Calendar, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,7 +33,6 @@ export function CampaignList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
   const statusFilter = searchParams.get('status') || 'all';
   const brandNameFilter = searchParams.get('brandName') || '';
@@ -43,20 +41,7 @@ export function CampaignList() {
     fetchCampaigns();
   }, [statusFilter, brandNameFilter]);
 
-  // Auto-switch to card view on mobile
-  useEffect(() => {
-    const checkScreenSize = () => {
-      if (window.innerWidth < 768) {
-        setViewMode('cards');
-      } else {
-        setViewMode('table');
-      }
-    };
 
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
 
   const fetchCampaigns = async () => {
     try {

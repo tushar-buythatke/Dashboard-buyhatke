@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BreakdownData } from '@/types';

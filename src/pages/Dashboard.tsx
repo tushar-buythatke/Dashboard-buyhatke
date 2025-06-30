@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';

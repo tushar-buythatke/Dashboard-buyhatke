@@ -38,7 +38,6 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
   size = 'md',
   variant = 'default'
 }) => {
-  const { theme } = useTheme();
   
   const sizeClasses = {
     sm: { toggle: 'w-8 h-4', thumb: 'w-3 h-3', translateX: 'translate-x-4' },
@@ -195,7 +194,6 @@ export function AdForm() {
   const { adId } = useParams<{ adId?: string }>();
   const isEditMode = !!adId;
   const navigate = useNavigate();
-  const { theme } = useTheme();
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -825,7 +823,7 @@ export function AdForm() {
               <FormField
                 control={form.control}
                 name="isTestPhase"
-                render={({ field, fieldState }) => {
+                render={({ field }) => {
                   const isTestMode = field.value === 1;
                   return (
                     <FormItem>
@@ -915,8 +913,7 @@ export function AdForm() {
                       // Toggle all specificity toggles
                       form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
                       
-                      // Get current form values
-                      const formValues = form.getValues();
+
                       
                       if (checked) {
                         // If enabling master toggle, set default values and highlight price range
@@ -960,7 +957,7 @@ export function AdForm() {
               <FormField
                 control={form.control}
                 name="gender"
-                render={({ field, fieldState }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Gender Targeting</FormLabel>
                     <div className="space-y-3">

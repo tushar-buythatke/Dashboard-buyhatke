@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { X, Upload, AlertCircle, Check } from 'lucide-react';
+import { Upload, AlertCircle, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';

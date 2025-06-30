@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,25 +6,21 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuLabel, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Bell, 
   Settings, 
   User as UserIcon, 
   LogOut, 
-  Shield, 
   ChevronDown,
   Moon,
   Sun,
   HelpCircle,
   Activity,
-  Menu,
-  X
+  Menu
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
@@ -45,7 +41,7 @@ function getInitials(userName: string | null | undefined) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function getGravatarUrl(email: string | null | undefined) {
+function getGravatarUrl() {
   return `https://gravatar.com/avatar/?d=mp&s=40`;
 }
 
@@ -72,13 +68,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     }
   };
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
 
-  const handleExport = () => {
-    console.log('Export functionality triggered');
-  };
 
   return (
     <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-gray-800 dark:via-gray-900 dark:to-black border-b border-white/20 dark:border-gray-700/50 px-4 sm:px-6 py-3 sm:py-4 w-full shadow-xl backdrop-blur-sm z-50 fixed top-0 left-0 right-0">
@@ -178,7 +168,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <Avatar className="h-6 w-6 sm:h-8 sm:w-8 border-2 border-white/30">
                       <AvatarImage 
-                        src={getGravatarUrl(user.userName)} 
+                        src={getGravatarUrl()} 
                         alt={user.userName ? user.userName : 'User'} 
                       />
                       <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-xs sm:text-sm">
@@ -203,7 +193,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-gray-100 dark:border-gray-700">
                       <AvatarImage 
-                        src={getGravatarUrl(user.userName)} 
+                        src={getGravatarUrl()} 
                         alt={user.userName ? user.userName : 'User'} 
                       />
                       <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, X, Globe, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { adService, SiteDetails } from '@/services/adService';
