@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { FilterProvider } from '@/context/FilterContext';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import { Analytics } from '@/pages/Analytics';
@@ -9,36 +11,66 @@ import { CampaignForm } from '@/components/campaigns/CampaignForm';
 import { AdList } from '@/components/ads/AdList';
 import { AdForm } from '@/components/ads/AdForm';
 import { Toaster } from '@/components/ui/sonner';
+import Login from '@/pages/Login';
+
+function PrivateRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function AppRoutes() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="campaigns">
+              <Route index element={<CampaignList />} />
+              <Route path="new" element={<CampaignForm />} />
+              <Route path=":campaignId">
+                <Route index element={<Navigate to="ads" replace />} />
+                <Route path="edit" element={<CampaignForm />} />
+                <Route path="ads">
+                  <Route index element={<AdList />} />
+                  <Route path="new" element={<AdForm />} />
+                  <Route path=":adId/edit" element={<AdForm />} />
+                </Route>
+              </Route>
+            </Route>
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+        <Toaster />
+      </div>
+    </Router>
+  );
+}
 
 function App() {
   return (
-    <FilterProvider>
-      <Router>
-        <div className="min-h-screen bg-slate-50">
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="campaigns">
-                <Route index element={<CampaignList />} />
-                <Route path="new" element={<CampaignForm />} />
-                <Route path=":campaignId">
-                  <Route index element={<Navigate to="ads" replace />} />
-                  <Route path="edit" element={<CampaignForm />} />
-                  <Route path="ads">
-                    <Route index element={<AdList />} />
-                    <Route path="new" element={<AdForm />} />
-                    <Route path=":adId/edit" element={<AdForm />} />
-                  </Route>
-                </Route>
-              </Route>
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-          <Toaster />
-        </div>
-      </Router>
-    </FilterProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <FilterProvider>
+          <AppRoutes />
+        </FilterProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

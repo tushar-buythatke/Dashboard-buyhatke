@@ -3,7 +3,6 @@ import { Filter, X, Calendar, Users, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useFilters } from '@/context/FilterContext';
 import { mockCampaigns, platforms } from '@/data/mockData';
 
@@ -25,199 +24,235 @@ export function FilterSidebar() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="backdrop-blur-sm bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-200/30 rounded-xl p-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold flex items-center text-slate-700">
-            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-            <Filter className="w-4 h-4 mr-2 text-blue-600" />
-            Filters
-          </h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={resetFilters}
-            className="hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <X className="w-4 h-4 mr-1" />
-            Clear
-          </Button>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+          <Filter className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+          Apply Filters
+        </h3>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={resetFilters}
+          className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <X className="w-4 h-4 mr-1" />
+          Clear All
+        </Button>
+      </div>
+
+      {/* Filters Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {/* Date Range */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h4 className="font-medium text-gray-900 dark:text-white">Date Range</h4>
+          </div>
+          
+          <div className="space-y-2">
+            <div>
+              <Label htmlFor="date-from" className="text-xs text-gray-600 dark:text-gray-400">
+                From
+              </Label>
+              <Input
+                id="date-from"
+                type="date"
+                value={filters.dateRange.from}
+                onChange={(e) => updateFilters({
+                  dateRange: { ...filters.dateRange, from: e.target.value }
+                })}
+                className="text-sm h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <Label htmlFor="date-to" className="text-xs text-gray-600 dark:text-gray-400">
+                To
+              </Label>
+              <Input
+                id="date-to"
+                type="date"
+                value={filters.dateRange.to}
+                onChange={(e) => updateFilters({
+                  dateRange: { ...filters.dateRange, to: e.target.value }
+                })}
+                className="text-sm h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Campaigns */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Monitor className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h4 className="font-medium text-gray-900 dark:text-white">Campaigns</h4>
+          </div>
+          
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {mockCampaigns.slice(0, 4).map((campaign: any) => (
+              <label
+                key={campaign.id}
+                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.campaigns.includes(campaign.id)}
+                  onChange={(e) => handleFilterChange('campaigns', campaign.id, e.target.checked)}
+                  className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
+                  style={{
+                    accentColor: '#9333ea'
+                  }}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                  {campaign.brandName}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Platforms */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Monitor className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <h4 className="font-medium text-gray-900 dark:text-white">Platforms</h4>
+          </div>
+          
+          <div className="space-y-2">
+            {platforms.map((platform) => (
+              <label
+                key={platform}
+                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.platforms.includes(platform)}
+                  onChange={(e) => handleFilterChange('platforms', platform, e.target.checked)}
+                  className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
+                  style={{
+                    accentColor: '#9333ea'
+                  }}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {platform}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Gender */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h4 className="font-medium text-gray-900 dark:text-white">Gender</h4>
+          </div>
+          
+          <div className="space-y-2">
+            {genderOptions.map((gender) => (
+              <label
+                key={gender}
+                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.gender.includes(gender)}
+                  onChange={(e) => handleFilterChange('gender', gender, e.target.checked)}
+                  className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
+                  style={{
+                    accentColor: '#9333ea'
+                  }}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {gender}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Age Groups */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Users className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <h4 className="font-medium text-gray-900 dark:text-white">Age Groups</h4>
+          </div>
+          
+          <div className="space-y-2">
+            {ageGroups.map((ageGroup) => (
+              <label
+                key={ageGroup}
+                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.ageGroups.includes(ageGroup)}
+                  onChange={(e) => handleFilterChange('ageGroups', ageGroup, e.target.checked)}
+                  className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
+                  style={{
+                    accentColor: '#9333ea'
+                  }}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {ageGroup}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Date Range */}
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 border border-emerald-200 rounded-xl shadow-sm transition-all duration-200">
-          <span className="flex items-center font-medium text-slate-700">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
-            <Calendar className="w-4 h-4 mr-2 text-emerald-600" />
-            Date Range
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 p-4 mt-2 bg-white/50 backdrop-blur-sm border border-emerald-100 rounded-xl shadow-sm">
-          <div>
-            <Label htmlFor="date-from" className="text-sm font-medium text-slate-600 mb-1 block">
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-2"></div>
-              From
-            </Label>
-            <Input
-              id="date-from"
-              type="date"
-              value={filters.dateRange.from}
-              onChange={(e) => updateFilters({
-                dateRange: { ...filters.dateRange, from: e.target.value }
-              })}
-              className="text-sm border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400"
-            />
-          </div>
-          <div>
-            <Label htmlFor="date-to" className="text-sm font-medium text-slate-600 mb-1 block">
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-2"></div>
-              To
-            </Label>
-            <Input
-              id="date-to"
-              type="date"
-              value={filters.dateRange.to}
-              onChange={(e) => updateFilters({
-                dateRange: { ...filters.dateRange, to: e.target.value }
-              })}
-              className="text-sm border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400"
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Campaigns */}
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border border-blue-200 rounded-xl shadow-sm transition-all duration-200">
-          <span className="flex items-center font-medium text-slate-700">
-            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-            <Monitor className="w-4 h-4 mr-2 text-blue-600" />
-            Campaigns
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 p-4 mt-2 bg-white/50 backdrop-blur-sm border border-blue-100 rounded-xl shadow-sm">
-          {mockCampaigns.map((campaign: any) => (
-            <div
-              key={campaign.id}
-              className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-              onClick={() => handleFilterChange('campaigns', campaign.id, !filters.campaigns.includes(campaign.id))}
-            >
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                filters.campaigns.includes(campaign.id)
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              }`}>
-                {filters.campaigns.includes(campaign.id) && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-gray-700 flex-1">{campaign.brandName}</span>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Platforms */}
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 border border-purple-200 rounded-xl shadow-sm transition-all duration-200">
-          <span className="flex items-center font-medium text-slate-700">
-            <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-            <Monitor className="w-4 h-4 mr-2 text-purple-600" />
-            Platforms
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 p-4 mt-2 bg-white/50 backdrop-blur-sm border border-purple-100 rounded-xl shadow-sm">
-          {platforms.map((platform) => (
-            <div
-              key={platform}
-              className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-              onClick={() => handleFilterChange('platforms', platform, !filters.platforms.includes(platform))}
-            >
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                filters.platforms.includes(platform)
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              }`}>
-                {filters.platforms.includes(platform) && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-gray-700 flex-1">{platform}</span>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Gender */}
-      <Collapsible>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200 border border-indigo-200 rounded-xl shadow-sm transition-all duration-200">
-          <span className="flex items-center font-medium text-slate-700">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
-            <Users className="w-4 h-4 mr-2 text-indigo-600" />
-            Gender
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 p-4 mt-2 bg-white/50 backdrop-blur-sm border border-indigo-100 rounded-xl shadow-sm">
-          {genderOptions.map((gender) => (
-            <div
-              key={gender}
-              className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-              onClick={() => handleFilterChange('gender', gender, !filters.gender.includes(gender))}
-            >
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                filters.gender.includes(gender)
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              }`}>
-                {filters.gender.includes(gender) && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-gray-700 flex-1">{gender}</span>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Age Groups */}
-      <Collapsible>
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-gradient-to-r from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200 border border-rose-200 rounded-xl shadow-sm transition-all duration-200">
-          <span className="flex items-center font-medium text-slate-700">
-            <div className="w-2 h-2 bg-rose-500 rounded-full mr-2"></div>
-            <Users className="w-4 h-4 mr-2 text-rose-600" />
-            Age Groups
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 p-4 mt-2 bg-white/50 backdrop-blur-sm border border-rose-100 rounded-xl shadow-sm">
-          {ageGroups.map((ageGroup) => (
-            <div
-              key={ageGroup}
-              className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-              onClick={() => handleFilterChange('ageGroups', ageGroup, !filters.ageGroups.includes(ageGroup))}
-            >
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                filters.ageGroups.includes(ageGroup)
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              }`}>
-                {filters.ageGroups.includes(ageGroup) && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-gray-700 flex-1">{ageGroup}</span>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
+      {/* Quick Filter Buttons */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+        <div className="flex items-center space-x-2 mb-3">
+          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+          <h4 className="font-medium text-gray-900 dark:text-white">Quick Filters</h4>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+            onClick={() => updateFilters({ 
+              dateRange: { 
+                from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                to: new Date().toISOString().split('T')[0]
+              }
+            })}
+          >
+            Last 7 Days
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+            onClick={() => updateFilters({ 
+              dateRange: { 
+                from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                to: new Date().toISOString().split('T')[0]
+              }
+            })}
+          >
+            Last 30 Days
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+            onClick={() => updateFilters({ platforms: ['Mobile'] })}
+          >
+            Mobile Only
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+            onClick={() => updateFilters({ gender: ['Male', 'Female'] })}
+          >
+            All Genders
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

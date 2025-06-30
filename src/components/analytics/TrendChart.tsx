@@ -52,8 +52,8 @@ const CustomTooltip = memo(({ active, payload, label }: any) => {
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 min-w-[200px]">
-      <div className="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[200px]">
+      <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
         {formatDate(label)}
       </div>
       <div className="space-y-2">
@@ -61,14 +61,14 @@ const CustomTooltip = memo(({ active, payload, label }: any) => {
           <div key={index} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div 
-                className="w-3 h-3 rounded-full shadow-sm" 
+                className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {METRICS_CONFIG[entry.dataKey as keyof typeof METRICS_CONFIG]?.name || entry.dataKey}
               </span>
             </div>
-            <span className="text-sm font-bold text-slate-900">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
               {formatValue(entry.value, entry.dataKey)}
             </span>
           </div>
@@ -104,14 +104,10 @@ export const TrendChart = memo<TrendChartProps>(({
   );
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-white to-slate-50/50 border-0 shadow-xl backdrop-blur-sm">
-      <CardHeader className="pb-6">
-        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <ResponsiveContainer width="100%" height={height}>
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
+      <div className="h-[450px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart 
             data={data} 
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
@@ -121,30 +117,33 @@ export const TrendChart = memo<TrendChartProps>(({
             {showGrid && (
               <CartesianGrid 
                 strokeDasharray="2 4" 
-                stroke="#e2e8f0" 
-                strokeOpacity={0.6}
+                stroke="currentColor" 
+                strokeOpacity={0.2}
                 vertical={false}
+                className="text-gray-300 dark:text-gray-600"
               />
             )}
             
             <XAxis 
               dataKey="date" 
               tickFormatter={formatDate}
-              stroke="#64748b"
+              stroke="currentColor"
               fontSize={12}
               fontWeight={500}
               axisLine={false}
               tickLine={false}
               dy={10}
+              className="text-gray-600 dark:text-gray-400"
             />
             
             <YAxis 
-              stroke="#64748b"
+              stroke="currentColor"
               fontSize={12}
               fontWeight={500}
               axisLine={false}
               tickLine={false}
               dx={-10}
+              className="text-gray-600 dark:text-gray-400"
             />
             
             <Tooltip content={<CustomTooltip />} />
@@ -169,25 +168,22 @@ export const TrendChart = memo<TrendChartProps>(({
                   fill: config.color, 
                   strokeWidth: 3, 
                   r: 5,
-                  stroke: '#fff',
-                  filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))'
+                  stroke: '#fff'
                 }}
                 activeDot={{ 
                   r: 8, 
                   stroke: config.color,
                   strokeWidth: 4,
-                  fill: '#fff',
-                  filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.15))'
+                  fill: '#fff'
                 }}
                 animationDuration={animated ? 1500 : 0}
                 animationEasing="ease-in-out"
-                className="drop-shadow-sm"
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });
 

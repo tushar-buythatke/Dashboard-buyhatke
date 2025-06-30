@@ -22,27 +22,24 @@ const CustomTooltip = memo(({ active, payload }: any) => {
   const { name, value, percentage } = payload[0].payload;
   
   return (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-2xl blur-xl"></div>
-      <div className="relative bg-white/90 backdrop-blur-2xl border border-white/30 rounded-2xl p-4 shadow-2xl min-w-[180px]">
-        <div className="flex items-center gap-3 mb-2">
-          <div 
-            className="w-4 h-4 rounded-full shadow-lg" 
-            style={{ backgroundColor: payload[0].fill }}
-          />
-          <p className="font-bold text-slate-900 text-base">{name}</p>
-        </div>
-        <div className="pl-7">
-          <p className="text-2xl font-black bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            {value.toLocaleString()}
-          </p>
-          <p className="text-lg font-bold text-indigo-600 mt-1">
-            {percentage}%
-          </p>
-          <p className="text-xs font-medium text-slate-500">
-            of total
-          </p>
-        </div>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 min-w-[140px]">
+      <div className="flex items-center gap-2 mb-1">
+        <div 
+          className="w-3 h-3 rounded-full" 
+          style={{ backgroundColor: payload[0].fill }}
+        />
+        <p className="font-semibold text-gray-900 dark:text-white text-sm">{name}</p>
+      </div>
+      <div className="pl-5">
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
+          {value.toLocaleString()}
+        </p>
+        <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+          {percentage}%
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          of total
+        </p>
       </div>
     </div>
   );
@@ -63,18 +60,6 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
     return ''; // Disable labels completely to prevent overflow
   }, []);
 
-  const renderGradients = () => (
-    <defs>
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge> 
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-  );
-
   const handleMouseEnter = (_, index: number) => {
     setHoveredIndex(index);
   };
@@ -89,19 +74,11 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
   }));
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 border-0 shadow-2xl backdrop-blur-sm">
-      <CardHeader className="pb-6 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-        <CardTitle className="relative text-2xl font-black bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-indigo-50/20 to-purple-50/20 rounded-lg"></div>
-        <ResponsiveContainer width="100%" height={height}>
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
+      <div className="h-[400px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 80 }}>
-            {renderGradients()}
-            
             <Pie
               data={enrichedData}
               cx="50%"
@@ -124,7 +101,6 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
                   fill={COLORS[index % COLORS.length]}
                   stroke={hoveredIndex === index ? '#ffffff' : 'transparent'}
                   strokeWidth={hoveredIndex === index ? 4 : 0}
-                  filter={hoveredIndex === index ? 'url(#glow)' : 'none'}
                   style={{
                     transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
                     transformOrigin: 'center',
@@ -144,8 +120,7 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
               wrapperStyle={{
                 paddingTop: '20px',
                 fontSize: '13px',
-                fontWeight: '600',
-                color: '#374151'
+                fontWeight: '600'
               }}
               formatter={(value, entry, index) => {
                 const dataEntry = enrichedData[index];
@@ -158,8 +133,8 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
             />
           </PieChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });
 

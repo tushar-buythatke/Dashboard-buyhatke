@@ -40,9 +40,8 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatNumber(data.impressions),
       rawValue: data.impressions,
       icon: Eye,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100/50',
-      gradient: 'from-blue-50 to-blue-100',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
       change: '+12.5%'
     },
     {
@@ -50,9 +49,8 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatNumber(data.clicks),
       rawValue: data.clicks,
       icon: MousePointer,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100/50',
-      gradient: 'from-green-50 to-green-100',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
       change: '+8.2%'
     },
     {
@@ -60,9 +58,8 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatPercentage(data.ctr),
       rawValue: data.ctr,
       icon: Target,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100/50',
-      gradient: 'from-purple-50 to-purple-100',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       change: '+0.3%'
     },
     {
@@ -70,9 +67,8 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatNumber(data.conversions),
       rawValue: data.conversions,
       icon: TrendingUp,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100/50',
-      gradient: 'from-orange-50 to-orange-100',
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
       change: '+15.7%'
     },
     {
@@ -80,9 +76,8 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatCurrency(data.revenue),
       rawValue: data.revenue,
       icon: IndianRupee,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100/50',
-      gradient: 'from-emerald-50 to-emerald-100',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
       change: '+22.1%'
     },
     {
@@ -90,15 +85,14 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       value: formatPercentage(data.roi),
       rawValue: data.roi,
       icon: BarChart3,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-100/50',
-      gradient: 'from-indigo-50 to-indigo-100',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
       change: '+18.9%'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <AnimatePresence>
         {metrics.map((metric, index) => (
           <motion.div
@@ -107,15 +101,12 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.05 }}
           >
-            <Card 
-              className="relative backdrop-blur-md bg-white/70 border border-white/20 shadow-xl hover:shadow-3xl hover:scale-110 hover:-translate-y-1 transition-all duration-200 ease-out rounded-2xl overflow-hidden will-change-transform group"
-            >
-              <div className={`absolute inset-0 bg-gradient-to-r ${metric.gradient} opacity-30 group-hover:opacity-50 transition-opacity duration-200 ease-out`} />
-              <CardHeader className="relative bg-gradient-to-r from-white/50 to-white/30 backdrop-blur-md border-b border-white/20 p-6">
+            <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-shadow duration-200">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-800 flex items-center">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center">
                     <div 
-                      className={`w-3 h-3 rounded-full mr-3 ${
+                      className={`w-2 h-2 rounded-full mr-2 ${
                         index === 0 ? 'bg-blue-500' :
                         index === 1 ? 'bg-green-500' :
                         index === 2 ? 'bg-purple-500' :
@@ -125,32 +116,20 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
                     />
                     {metric.title}
                   </CardTitle>
-                  <div className={`p-3 rounded-full ${metric.bgColor} shadow-lg border border-white/30 will-change-transform group-hover:scale-105 group-hover:rotate-6 transition-transform duration-150 ease-out`}>
-                    <metric.icon className={`w-6 h-6 ${metric.color}`} />
+                  <div className={`p-2 rounded-lg ${metric.bgColor}`}>
+                    <metric.icon className={`w-5 h-5 ${metric.color}`} />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 relative">
-                <motion.div 
-                  className="text-4xl font-extrabold text-slate-900 mb-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                >
+              <CardContent className="pt-0">
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   {metric.title === 'Revenue' || metric.title === 'ROI' || metric.title === 'CTR' 
                     ? metric.value 
                     : <NumberCounter end={metric.rawValue} />}
-                </motion.div>
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, ease: 'easeOut', delay: 0.2 }}
-                >
-                  <div className="text-sm text-green-700 font-medium bg-green-100/70 px-3 py-1 rounded-full border border-green-200/50 shadow-sm">
-                    {metric.change} from last period
-                  </div>
-                </motion.div>
+                </div>
+                <div className="text-sm text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md inline-block">
+                  {metric.change} from last period
+                </div>
               </CardContent>
             </Card>
           </motion.div>

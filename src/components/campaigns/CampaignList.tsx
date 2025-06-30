@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Filter, Play, Pause, Edit, Copy, MoreHorizontal } from 'lucide-react';
+import { Plus, Filter, Play, Pause, Edit, Copy, MoreHorizontal, RefreshCw, Download, Search, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { Campaign, CampaignResponse } from '@/types';
+import { motion } from 'framer-motion';
 
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
@@ -32,6 +33,7 @@ export function CampaignList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const statusFilter = searchParams.get('status') || 'all';
   const brandNameFilter = searchParams.get('brandName') || '';
@@ -67,6 +69,18 @@ export function CampaignList() {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchCampaigns();
+    setIsRefreshing(false);
+  };
+
+  const handleExport = () => {
+    // Simulate export functionality
+    console.log('Exporting campaigns data...');
+    toast.success('Export started');
+  };
+
   const handleCloneCampaign = async (campaignId: number) => {
     try {
       const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns/clone?userId=1', {
@@ -87,6 +101,7 @@ export function CampaignList() {
       toast.error('Failed to clone campaign');
     }
   };
+
   const handleStatusChange = async (campaignId: number, newStatus: number) => {
     try {
       const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns/update?userId=1', {
@@ -122,52 +137,147 @@ export function CampaignList() {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative">
-      {/* Background decorations */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-      <div className="absolute top-0 right-0 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
-      <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
+  // Calculate summary stats
+  const activeCampaigns = campaigns.filter(c => c.status === 1).length;
+  const totalBudget = campaigns.reduce((sum, c) => sum + parseFloat(c.totalBudget), 0);
+  const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressionTarget, 0);
 
-      <div className="relative max-w-7xl mx-auto p-8 space-y-10">
-        {/* Enhanced Header with Glass Effect */}
-        <div className="backdrop-blur-sm bg-white/30 rounded-2xl border border-white/20 shadow-xl p-8 mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-3">
-                Campaigns
-              </h1>
-              <p className="text-slate-700 text-lg font-medium">Manage and monitor your advertising campaigns</p>
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-800 transition-colors duration-200">
+      {/* Enhanced Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-100"></div>
+                <div className="w-3 h-3 bg-indigo-500 rounded-full animate-pulse delay-200"></div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Campaigns
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">Manage and monitor your advertising campaigns</p>
+              </div>
             </div>
-            <Button 
-              onClick={() => navigate('/campaigns/new')} 
-              className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-700 text-white border-0 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-            >
-              <Plus className="w-5 h-5 mr-3" />
-              Create Campaign
-            </Button>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="flex items-center space-x-2"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/analytics')}
+                className="flex items-center space-x-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Analytics</span>
+              </Button>
+              
+              <Button 
+                onClick={() => navigate('/campaigns/new')} 
+                className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              >
+                <Plus className="w-4 h-4" />
+                Create Campaign
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
 
-      <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl p-8">
-        {/* Colored header for the filters section */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-4 mb-8 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="space-y-8">
+          {/* Summary Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 dark:text-green-400 text-sm font-medium">Active Campaigns</p>
+                  <p className="text-3xl font-bold text-green-700 dark:text-green-300">{activeCampaigns}</p>
+                </div>
+                <div className="p-3 bg-green-500 rounded-lg">
+                  <Play className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Budget</p>
+                  <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">₹{totalBudget.toLocaleString()}</p>
+                </div>
+                <div className="p-3 bg-blue-500 rounded-lg">
+                  <span className="text-white text-xl">💰</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Target Impressions</p>
+                  <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{totalImpressions.toLocaleString()}</p>
+                </div>
+                <div className="p-3 bg-purple-500 rounded-lg">
+                  <span className="text-white text-xl">👁️</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Filters Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 border border-gray-200 dark:border-gray-600"
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
                 <Select 
                   value={statusFilter} 
                   onValueChange={(value) => setSearchParams(prev => ({ ...prev, status: value === 'all' ? '' : value }))}
                 >
-                  <SelectTrigger className="w-48 bg-white/90 border-0 shadow-md hover:shadow-lg transition-all duration-200 rounded-lg text-slate-700 font-medium">
-                    <Filter className="w-4 h-4 mr-2 text-emerald-600" />
-                    <SelectValue placeholder="Status" />
+                  <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                    <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
-                  <SelectContent className="border-white/20 bg-white/95 backdrop-blur-sm rounded-lg shadow-xl">
+                  <SelectContent>
                     {statusOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value} className="hover:bg-emerald-50">
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
@@ -175,149 +285,149 @@ export function CampaignList() {
                 </Select>
               </div>
               
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse animation-delay-500"></div>
-                <Input
-                  placeholder="Search by brand name"
-                  className="w-72 bg-white/90 border-0 shadow-md hover:shadow-lg focus:shadow-xl transition-all duration-200 rounded-lg text-slate-700 font-medium placeholder:text-slate-500"
-                  value={brandNameFilter}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, brandName: e.target.value }))}
-                />
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search by brand name"
+                    className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                    value={brandNameFilter}
+                    onChange={(e) => setSearchParams(prev => ({ ...prev, brandName: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
 
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/30 shadow-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
-                <TableHead className="text-slate-700 font-semibold">Brand</TableHead>
-                <TableHead className="text-slate-700 font-semibold">Status</TableHead>
-                <TableHead className="text-slate-700 font-semibold">Created</TableHead>
-                <TableHead className="text-slate-700 font-semibold">Impressions</TableHead>
-                <TableHead className="text-slate-700 font-semibold">Clicks</TableHead>
-                <TableHead className="text-slate-700 font-semibold">Budget</TableHead>
-                <TableHead className="text-right text-slate-700 font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-slate-600">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce animation-delay-200"></div>
-                      <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce animation-delay-400"></div>
-                      <span className="ml-3 text-lg font-medium">Loading campaigns...</span>
-                    </div>
-                  </TableCell>
+          {/* Campaigns Table */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 dark:bg-gray-700">
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Brand</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Status</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Created</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Impressions</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Clicks</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Budget</TableHead>
+                  <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold">Actions</TableHead>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    <div className="text-red-500 bg-red-50 rounded-lg p-4 inline-block">
-                      <span className="font-medium">{error}</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredCampaigns.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    <div className="text-slate-500 bg-slate-50 rounded-lg p-4 inline-block">
-                      <span className="font-medium">No campaigns found</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredCampaigns.map((campaign, index) => (
-                  <TableRow 
-                    key={campaign.campaignId}
-                    className={`cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md ${
-                      index % 2 === 0 ? 'bg-white/50' : 'bg-slate-50/50'
-                    } border-slate-100`}
-                    onClick={() => navigate(`/campaigns/${campaign.campaignId}/ads`)}
-                  >
-                    <TableCell className="font-semibold text-slate-800">
-                      {campaign.brandName}
-                    </TableCell>
-                    <TableCell>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Badge className={`${statusMap[campaign.status as keyof typeof statusMap]?.color || 'bg-gray-100'} font-medium shadow-sm`}>
-                          {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
-                        </Badge>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center">
+                      <div className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+                        <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <span className="ml-3 text-lg font-medium">Loading campaigns...</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-700 font-medium">
-                      {formatDate(campaign.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-slate-700 font-medium">{campaign.impressionTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-slate-700 font-medium">{campaign.clickTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-slate-700 font-medium">₹{parseFloat(campaign.totalBudget).toLocaleString()}</TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full transition-colors duration-200">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4 text-slate-600" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white/95 backdrop-blur-sm border-white/20 shadow-xl rounded-lg">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/campaigns/${campaign.campaignId}/edit`);
-                              {console.log(campaign.campaignId)}
-                            }}
-                            className="hover:bg-blue-50 transition-colors duration-200"
-                          >
-                            <Edit className="mr-2 h-4 w-4 text-blue-600" />
-                            <span className="text-slate-700 font-medium">Edit</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCloneCampaign(campaign.campaignId);
-                            }}
-                            className="hover:bg-purple-50 transition-colors duration-200"
-                          >
-                            <Copy className="mr-2 h-4 w-4 text-purple-600" />
-                            <span className="text-slate-700 font-medium">Clone</span>
-                          </DropdownMenuItem>
-                          {campaign.status !== 3 && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(campaign.campaignId, 3);
-                              }}
-                              className="hover:bg-orange-50 transition-colors duration-200"
-                            >
-                              <Pause className="mr-2 h-4 w-4 text-orange-600" />
-                              <span className="text-slate-700 font-medium">Pause</span>
-                            </DropdownMenuItem>
-                          )}
-                          {campaign.status === 3 && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(campaign.campaignId, 1);
-                              }}
-                              className="hover:bg-green-50 transition-colors duration-200"
-                            >
-                              <Play className="mr-2 h-4 w-4 text-green-600" />
-                              <span className="text-slate-700 font-medium">Resume</span>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      <div className="text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 inline-block">
+                        <span className="font-medium">{error}</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredCampaigns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      <div className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-4 inline-block">
+                        <span className="font-medium">No campaigns found</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCampaigns.map((campaign, index) => (
+                    <TableRow 
+                      key={campaign.campaignId}
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                      onClick={() => navigate(`/campaigns/${campaign.campaignId}/ads`)}
+                    >
+                      <TableCell className="font-semibold text-gray-900 dark:text-gray-100">
+                        {campaign.brandName}
+                      </TableCell>
+                      <TableCell>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Badge className={`${statusMap[campaign.status as keyof typeof statusMap]?.color || 'bg-gray-100'} font-medium`}>
+                            {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">
+                        {formatDate(campaign.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">{campaign.impressionTarget.toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">{campaign.clickTarget.toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">₹{parseFloat(campaign.totalBudget).toLocaleString()}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/campaigns/${campaign.campaignId}/edit`);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCloneCampaign(campaign.campaignId);
+                              }}
+                            >
+                              <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                              <span>Clone</span>
+                            </DropdownMenuItem>
+                            {campaign.status !== 3 && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(campaign.campaignId, 3);
+                                }}
+                              >
+                                <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                                <span>Pause</span>
+                              </DropdownMenuItem>
+                            )}
+                            {campaign.status === 3 && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(campaign.campaignId, 1);
+                                }}
+                              >
+                                <Play className="mr-2 h-4 w-4 text-green-600" />
+                                <span>Resume</span>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </motion.div>
         </div>
-      </Card>
       </div>
     </div>
   );

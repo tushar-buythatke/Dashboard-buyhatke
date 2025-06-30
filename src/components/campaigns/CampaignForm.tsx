@@ -47,7 +47,9 @@ export function CampaignForm() {
 
   const fetchCampaign = async () => {
     try {
-      const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`);
+              const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`, {
+          credentials: 'omit'
+        });
       if (!response.ok) throw new Error('Failed to fetch campaign');
       
       const result = await response.json();
@@ -96,6 +98,7 @@ export function CampaignForm() {
 
       const response = await fetch(url, {
         method: 'POST',
+        credentials: 'omit',
         headers: {
           'Content-Type': 'application/json',
         },
