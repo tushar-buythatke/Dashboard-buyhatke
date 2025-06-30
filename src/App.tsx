@@ -32,7 +32,12 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
 
 function AppRoutes() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', width: '100vw' }}>
         <Routes>
           <Route path="/login" element={<Login />} />

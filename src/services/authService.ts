@@ -155,7 +155,7 @@ class AuthService {
   // Validate login credentials
   async validateLogin(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const encryptedPassword = encryptAES(credentials.password);
+      const encryptedPassword = await encryptAES(credentials.password);
       
       const response = await fetch(`${API_BASE_URL}/validateLogin`, {
         method: 'POST',
@@ -243,7 +243,7 @@ class AuthService {
   // Add new user (admin function)
   async addUser(userData: AddUserData): Promise<{ success: boolean; message?: string }> {
     try {
-      const encryptedPassword = encryptAES(userData.password);
+      const encryptedPassword = await encryptAES(userData.password);
       
       const response = await fetch(`${API_BASE_URL}/addUsers`, {
         method: 'POST',
