@@ -36,7 +36,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-800 transition-colors duration-200">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Enhanced Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto">
@@ -93,7 +93,7 @@ export function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2">
         <div className="space-y-6 sm:space-y-8">
           {/* Performance Summary Banner */}
           <motion.div

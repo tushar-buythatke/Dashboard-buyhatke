@@ -34,7 +34,7 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
 function AppRoutes() {
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', width: '100vw' }}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>

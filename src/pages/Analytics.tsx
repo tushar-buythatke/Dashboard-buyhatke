@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { FilterSidebar } from '@/components/analytics/FilterSidebar';
+import { useFilters } from '@/context/FilterContext';
 import { 
   mockTrendData, 
   mockGenderBreakdown, 
@@ -11,9 +12,10 @@ import {
   mockLocationBreakdown 
 } from '@/data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, ChevronDown, Download, RefreshCw, Calendar, TrendingUp, X } from 'lucide-react';
+import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const mockMetrics = {
   impressions: 187400,
@@ -25,9 +27,94 @@ const mockMetrics = {
 };
 
 export function Analytics() {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const { filters, updateFilters } = useFilters();
+
+  // Function to get display text based on current filters
+  const getPerformanceTimeText = () => {
+    if (filters.dateRange.from && filters.dateRange.to) {
+      const fromDate = new Date(filters.dateRange.from);
+      const toDate = new Date(filters.dateRange.to);
+      const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) return 'Last 24 hours';
+      if (diffDays === 7) return 'Last 7 days';
+      if (diffDays === 30) return 'Last 30 days';
+      if (diffDays === 90) return 'Last 90 days';
+      
+      return `${fromDate.toLocaleDateString()} - ${toDate.toLocaleDateString()}`;
+    }
+    
+    // Fallback to time range selector
+    return timeRanges.find(r => r.value === selectedTimeRange)?.label.toLowerCase() || 'Last 7 days';
+  };
+
+  // Handle time range selector change
+  const handleTimeRangeChange = (value: string) => {
+    setSelectedTimeRange(value);
+    
+    // Update filter date range based on selection
+    const today = new Date();
+    const fromDate = new Date();
+    
+    switch (value) {
+      case '1d':
+        fromDate.setDate(today.getDate() - 1);
+        break;
+      case '7d':
+        fromDate.setDate(today.getDate() - 7);
+        break;
+      case '30d':
+        fromDate.setDate(today.getDate() - 30);
+        break;
+      case '90d':
+        fromDate.setDate(today.getDate() - 90);
+        break;
+      default:
+        fromDate.setDate(today.getDate() - 7);
+    }
+    
+    updateFilters({
+      dateRange: {
+        from: fromDate.toISOString().split('T')[0],
+        to: today.toISOString().split('T')[0]
+      }
+    });
+  };
+
+  // Sync time range selector with filter date range
+  useEffect(() => {
+    if (filters.dateRange.from && filters.dateRange.to) {
+      const fromDate = new Date(filters.dateRange.from);
+      const toDate = new Date(filters.dateRange.to);
+      const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) setSelectedTimeRange('1d');
+      else if (diffDays === 7) setSelectedTimeRange('7d');
+      else if (diffDays === 30) setSelectedTimeRange('30d');
+      else if (diffDays === 90) setSelectedTimeRange('90d');
+    }
+  }, [filters.dateRange]);
+
+  // Initialize default date range if not set
+  useEffect(() => {
+    if (!filters.dateRange.from || !filters.dateRange.to) {
+      const today = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(today.getDate() - 7); // Default to last 7 days
+      
+      updateFilters({
+        dateRange: {
+          from: fromDate.toISOString().split('T')[0],
+          to: today.toISOString().split('T')[0]
+        }
+      });
+    }
+  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -47,7 +134,7 @@ export function Analytics() {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-800 transition-colors duration-200">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Enhanced Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto">
@@ -68,33 +155,22 @@ export function Analytics() {
             
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-              {/* Mobile Filter Toggle */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="flex items-center justify-center space-x-2 h-9 sm:h-8 lg:hidden"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="text-sm">Filters</span>
-              </Button>
-
               {/* Time Range Selector */}
-              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                {timeRanges.map((range) => (
-                  <button
-                    key={range.value}
-                    onClick={() => setSelectedTimeRange(range.value)}
-                    className={`px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
-                      selectedTimeRange === range.value
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {range.label}
-                  </button>
-                ))}
-              </div>
+              <Select value={selectedTimeRange} onValueChange={handleTimeRangeChange}>
+                <SelectTrigger className="w-40 h-9 sm:h-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {timeRanges.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Button
                 variant="outline"
@@ -116,64 +192,44 @@ export function Analytics() {
                 <Download className="h-4 w-4" />
                 <span className="text-sm">Export</span>
               </Button>
+
+              {/* Filter Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                className="flex items-center justify-center space-x-2 h-9 sm:h-8"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="text-sm">Filters</span>
+                {isFilterExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Mobile Filter Overlay */}
-          <AnimatePresence>
-            {isFilterOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                  onClick={() => setIsFilterOpen(false)}
-                />
-                <motion.div
-                  initial={{ x: -300 }}
-                  animate={{ x: 0 }}
-                  exit={{ x: -300 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className="fixed left-0 top-0 z-50 h-full w-80 bg-white dark:bg-gray-800 shadow-xl lg:hidden"
-                >
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 className="font-semibold text-gray-900 dark:text-white">Filters</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsFilterOpen(false)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="p-4">
-                    <FilterSidebar />
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Desktop Filter Sidebar */}
-          <div className="hidden lg:block w-80 flex-shrink-0">
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 border border-gray-200 dark:border-gray-600 sticky top-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
-              </div>
+      {/* Expandable Filter Section */}
+      <AnimatePresence>
+        {isFilterExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto p-4 sm:p-6">
               <FilterSidebar />
             </div>
-          </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Main Analytics Content */}
-          <div className="flex-1 space-y-6 sm:space-y-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2">
+        {/* Main Analytics Content */}
+        <div className="space-y-6 sm:space-y-8">
             {/* Performance Summary */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -191,7 +247,7 @@ export function Analytics() {
                       Performance Analytics
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 text-sm">
-                      Last {timeRanges.find(r => r.value === selectedTimeRange)?.label.toLowerCase()} • Updated now
+                      {getPerformanceTimeText()} • Updated now
                     </p>
                   </div>
                 </div>
@@ -307,7 +363,6 @@ export function Analytics() {
               >
                 <BreakdownPieChart data={mockLocationBreakdown} title="Location Breakdown" height={300} />
               </motion.div>
-            </div>
           </div>
         </div>
       </div>

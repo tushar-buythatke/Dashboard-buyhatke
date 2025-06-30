@@ -20,8 +20,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex w-64 h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex-shrink-0 transition-colors duration-200 fixed left-0 top-0 z-30">
-        <div className="flex flex-col w-full pt-20">
+      <div className="hidden lg:flex w-64 h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex-shrink-0 transition-colors duration-200 fixed left-0 top-20 z-30">
+        <div className="flex flex-col w-full pt-4">
           <nav className="flex-1 px-4 pb-4 space-y-2">
             {navigation.map((item) => (
               <NavLink
@@ -52,7 +52,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="lg:hidden fixed left-0 top-0 z-50 w-64 h-full bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 shadow-xl"
+            className="lg:hidden fixed left-0 top-20 z-50 w-64 h-full bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 shadow-xl"
           >
             <div className="flex flex-col h-full">
               {/* Mobile header */}

@@ -81,7 +81,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-gray-800 dark:via-gray-900 dark:to-black border-b border-white/20 dark:border-gray-700/50 px-4 sm:px-6 py-3 sm:py-4 w-full shadow-xl backdrop-blur-sm z-50 relative">
+    <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-gray-800 dark:via-gray-900 dark:to-black border-b border-white/20 dark:border-gray-700/50 px-4 sm:px-6 py-3 sm:py-4 w-full shadow-xl backdrop-blur-sm z-50 fixed top-0 left-0 right-0">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Left Section - Mobile Menu + Logo & Title */}
         <motion.div 

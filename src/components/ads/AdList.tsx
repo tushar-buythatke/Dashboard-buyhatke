@@ -26,6 +26,23 @@ export function AdList() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Inject gradient animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes gradientFlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (campaignId) {
         try {
@@ -312,14 +329,21 @@ export function AdList() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2 space-y-6">
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+          className="relative overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+          style={{
+            background: theme === 'dark' 
+              ? 'linear-gradient(-45deg, #1f2937, #374151, #4f46e5, #7c3aed, #1f2937, #374151)'
+              : 'linear-gradient(-45deg, #ffffff, #f8fafc, #e0e7ff, #ddd6fe, #ffffff, #f8fafc)',
+            backgroundSize: '400% 400%',
+            animation: 'gradientFlow 8s ease infinite'
+          }}
         >
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">

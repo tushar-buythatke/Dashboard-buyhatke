@@ -9,7 +9,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #f8fafc;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -59,7 +59,7 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: #f8fafc;
   }
   a:hover {
     color: #747bff;
@@ -129,16 +129,45 @@ button:focus-visible {
   * {
     @apply border-border;
   }
+  html {
+    @apply bg-slate-50 dark:bg-gray-900;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-slate-50 dark:bg-gray-900 text-foreground;
   }
 }
 
 /* Override for full width layout */
+html {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+}
+
 body {
   margin: 0 !important;
+  padding: 0 !important;
   min-width: 320px !important;
   min-height: 100vh !important;
   width: 100% !important;
   display: block !important;
+}
+
+/* Dynamic root background for theme switching */
+html, :root {
+  background-color: #f8fafc !important;
+}
+
+html.dark, :root.dark {
+  background-color: #111827 !important;
+}
+
+/* Ensure document element has proper background */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
