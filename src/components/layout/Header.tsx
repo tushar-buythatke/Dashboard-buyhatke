@@ -91,7 +91,10 @@ export function Header({ onMenuClick }: HeaderProps) {
           </Button>
 
           <div className="relative">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 dark:bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 dark:border-gray-600/30 group hover:bg-white/30 dark:hover:bg-white/20 transition-all duration-200">
+            <div 
+              onClick={() => navigate('/')}
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 dark:bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 dark:border-gray-600/30 group hover:bg-white/30 dark:hover:bg-white/20 transition-all duration-200 cursor-pointer"
+            >
               <img
                 src="/logo_512x512.png"
                 alt="Logo"
@@ -102,15 +105,21 @@ export function Header({ onMenuClick }: HeaderProps) {
               <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <div 
+            onClick={() => navigate('/')}
+            className="hidden sm:block cursor-pointer"
+          >
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200">
               Hatke! Dashboard
             </h1>
             <p className="text-blue-100 dark:text-gray-300 text-xs sm:text-sm font-medium">Marketing Intelligence Platform</p>
           </div>
           {/* Mobile title */}
-          <div className="sm:hidden">
-            <h1 className="text-lg font-bold text-white tracking-tight">
+          <div 
+            onClick={() => navigate('/')}
+            className="sm:hidden cursor-pointer"
+          >
+            <h1 className="text-lg font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200">
               Hatke!
             </h1>
           </div>

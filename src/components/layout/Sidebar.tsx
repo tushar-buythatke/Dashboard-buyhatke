@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { BarChart3, Lamp as Campaign, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const navigate = useNavigate();
+  
   return (
     <>
       {/* Desktop Sidebar */}
@@ -56,7 +58,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex flex-col h-full">
               {/* Mobile header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
+                <div 
+                  onClick={() => {
+                    navigate('/');
+                    onClose();
+                  }}
+                  className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+                >
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                     <img
                       src="/logo_512x512.png"
