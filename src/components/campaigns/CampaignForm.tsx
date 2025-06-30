@@ -146,7 +146,7 @@ export function CampaignForm() {
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8">
             <CardTitle className="text-2xl font-semibold flex items-center">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                <Save className="h-4 w-4" />
+                <Save className="h-5 w-5" />
               </div>
               Campaign Information
             </CardTitle>

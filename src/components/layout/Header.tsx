@@ -119,9 +119,9 @@ export function Header() {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 dark:border-gray-600/30 text-white transition-all duration-200"
+            className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 hover:scale-110 border border-white/20 dark:border-gray-600/30 text-white transition-all duration-200 hover:shadow-lg"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
           {/* Notifications */}
@@ -130,9 +130,9 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 dark:border-gray-600/30 text-white relative transition-all duration-200"
+                className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 hover:scale-110 border border-white/20 dark:border-gray-600/30 text-white relative transition-all duration-200 hover:shadow-lg"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
                   <Badge 
                     variant="destructive" 
@@ -186,7 +186,7 @@ export function Header() {
                       <Avatar className="h-8 w-8 border-2 border-white/30 dark:border-gray-600/30">
                         <AvatarImage 
                           src={getGravatarUrl(user.userName)} 
-                          alt={user.userName || 'User'} 
+                          alt={user.userName ? user.userName : 'User'} 
                         />
                         <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-sm">
                           {getInitials(user.userName)}
@@ -204,7 +204,7 @@ export function Header() {
                         {user.type === 0 ? 'Admin' : 'User'} • Online
                       </p>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-white/60" />
+                    <ChevronDown className="h-5 w-5 text-white/60" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -214,7 +214,7 @@ export function Header() {
                     <Avatar className="h-12 w-12 border-2 border-gray-100 dark:border-gray-700">
                       <AvatarImage 
                         src={getGravatarUrl(user.userName)} 
-                        alt={user.userName || 'User'} 
+                        alt={user.userName ? user.userName : 'User'} 
                       />
                       <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold">
                         {getInitials(user.userName)}
@@ -236,24 +236,24 @@ export function Header() {
                 </div>
                 
                 <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <UserIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <UserIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   <span>View Profile</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <Settings className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   <span>Account Settings</span>
                 </DropdownMenuItem>
                 
                 {user.type === 0 && (
                   <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                    <Shield className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                    <Shield className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                     <span>Admin Panel</span>
                   </DropdownMenuItem>
                 )}
                 
                 <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <HelpCircle className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   <span>Help & Support</span>
                 </DropdownMenuItem>
                 
@@ -264,7 +264,7 @@ export function Header() {
                   disabled={isLoggingOut}
                   className="flex items-center space-x-2 p-3 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-700"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                   <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

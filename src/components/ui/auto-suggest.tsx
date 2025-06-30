@@ -178,7 +178,7 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
                         animate={{ scale: 1 }}
                         className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center"
                       >
-                        <Check className="h-4 w-4 text-white" />
+                        <Check className="h-5 w-5 text-white" />
                       </motion.div>
                     )}
                   </motion.button>
@@ -390,7 +390,7 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
                           animate={{ scale: 1 }}
                           className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"
                         >
-                          <Check className="h-4 w-4 text-white" />
+                          <Check className="h-5 w-5 text-white" />
                         </motion.div>
                       )}
                     </div>
@@ -487,7 +487,7 @@ export function BrandInput({ value, onChange, placeholder = "Type brand names...
               exit={{ opacity: 0, scale: 0.8 }}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-md hover:shadow-lg transition-all duration-200"
             >
-              <Package className="h-3 w-3" />
+              <Package className="h-5 w-5" />
               {brand}
               <button
                 type="button"
@@ -511,7 +511,7 @@ export function BrandInput({ value, onChange, placeholder = "Type brand names...
           />
           <div className="flex items-center gap-2 text-gray-400">
             <span className="text-xs">Press Enter or comma to add</span>
-            <Package className="h-4 w-4" />
+            <Package className="h-5 w-5" />
           </div>
         </div>
       </motion.div>

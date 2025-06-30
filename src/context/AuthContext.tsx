@@ -58,11 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let sessionCheckInterval: NodeJS.Timeout;
 
     if (user) {
+      console.debug('Setting up periodic session validation (every 10 minutes)');
       sessionCheckInterval = setInterval(async () => {
         try {
+          console.debug('Periodic session validation triggered');
           const isValid = await authService.validateSession();
           if (!isValid) {
-            console.log('Session expired, logging out user');
+            console.log('Periodic validation: Session expired, logging out user');
             setUser(null);
             authService.clearSession();
           }
@@ -79,12 +81,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  // Handle visibility change - check session when tab becomes visible
+  // Handle visibility change - check session when tab becomes visible (throttled)
   useEffect(() => {
+    let lastVisibilityCheck = 0;
+    
     const handleVisibilityChange = () => {
       if (!document.hidden && user) {
-        // Tab became visible and user is logged in, validate session
-        refreshSession();
+        const now = Date.now();
+        // Throttle visibility checks to at most once every 5 minutes
+        if (now - lastVisibilityCheck > 5 * 60 * 1000) {
+          console.debug('Tab visibility change triggered session validation');
+          lastVisibilityCheck = now;
+          refreshSession();
+        } else {
+          console.debug('Tab visibility change ignored (throttled)');
+        }
       }
     };
 
@@ -94,11 +105,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, refreshSession]);
 
-  // Handle page focus - refresh session when user returns to window
+  // Handle page focus - refresh session when user returns to window (throttled)
   useEffect(() => {
+    let lastFocusCheck = 0;
+    
     const handleFocus = () => {
       if (user) {
-        refreshSession();
+        const now = Date.now();
+        // Throttle focus checks to at most once every 5 minutes
+        if (now - lastFocusCheck > 5 * 60 * 1000) {
+          console.debug('Window focus triggered session validation');
+          lastFocusCheck = now;
+          refreshSession();
+        } else {
+          console.debug('Window focus ignored (throttled)');
+        }
       }
     };
 

@@ -212,7 +212,7 @@ export function AdList() {
               <Button 
                 variant="ghost"
                 onClick={() => navigate(-1)}
-                className="h-10 w-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="h-100 w-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
@@ -232,21 +232,21 @@ export function AdList() {
                 onClick={fetchAds}
                 className="border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-5 w-5 mr-2" />
                 Refresh
               </Button>
               <Button
                 variant="outline"
                 className="border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-5 w-5 mr-2" />
                 Export
               </Button>
               <Button 
                 onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)} 
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-5 h-5 mr-2" />
                 Create Ad
               </Button>
             </div>
@@ -379,11 +379,7 @@ export function AdList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`${
-                        ad.status === 1 
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600'
-                      } font-medium`}>
+                      <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="font-medium">
                         {ad.status === 1 ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -413,7 +409,7 @@ export function AdList() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
                             <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -421,14 +417,14 @@ export function AdList() {
                             onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
                             className="hover:bg-gray-50 dark:hover:bg-gray-700"
                           >
-                            <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <Edit className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
                             <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleCloneAd(ad.adId)}
                             className="hover:bg-gray-50 dark:hover:bg-gray-700"
                           >
-                            <Copy className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <Copy className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
                             <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
                           </DropdownMenuItem>
                           {ad.status === 1 ? (
@@ -436,7 +432,7 @@ export function AdList() {
                               onClick={() => handleStatusChange(ad.adId, 0)}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
-                              <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              <Pause className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
                               <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
                             </DropdownMenuItem>
                           ) : (
@@ -444,7 +440,7 @@ export function AdList() {
                               onClick={() => handleStatusChange(ad.adId, 1)}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
-                              <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                              <Play className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
                               <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
                             </DropdownMenuItem>
                           )}

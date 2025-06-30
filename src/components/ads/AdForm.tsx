@@ -463,15 +463,33 @@ export function AdForm() {
       return;
     }
     
+    // Convert to number to check bounds
+    const num = parseFloat(numericValue);
+    
+    // Check if the number is valid
+    if (isNaN(num)) {
+      return;
+    }
+    
+    // Enforce minimum value
+    if (min !== undefined && num < min) {
+      e.target.value = min.toString();
+      onChange(min);
+      return;
+    }
+    
+    // Enforce maximum value
+    if (max !== undefined && num > max) {
+      e.target.value = max.toString();
+      onChange(max);
+      return;
+    }
+    
     // Update the input value to only contain valid characters
     e.target.value = numericValue;
     
-    // Convert to number and always update the form state
-    // Let form validation handle min/max validation and show error messages
-    const num = parseFloat(numericValue);
-    if (!isNaN(num)) {
-      onChange(num);
-    }
+    // Update form state with the valid number
+    onChange(num);
   };
 
   // Price range validation handler
@@ -540,7 +558,7 @@ export function AdForm() {
               <Button 
                 variant="ghost"
                 onClick={() => navigate(-1)}
-                className="h-10 w-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="h-100 w-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
@@ -750,7 +768,9 @@ export function AdForm() {
                     <FormControl>
                       <div className="space-y-3">
                         <Input 
-                          type="text" 
+                          type="number" 
+                          min={0}
+                          max={1000}
                           placeholder="Enter priority score (0-1000)"
                           value={field.value || ''}
                           onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
@@ -1207,13 +1227,12 @@ export function AdForm() {
                   <FormItem>
                     <FormLabel>Brand Targets</FormLabel>
                     <FormDescription>
-                      Type brand names and press Enter or comma to add them.
+                    Type brand names like Apple, Samsung, etc...
                     </FormDescription>
                     <FormControl>
                       <BrandInput
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="Type brand names like Apple, Samsung, etc..."
                       />
                     </FormControl>
                     <FormMessage />

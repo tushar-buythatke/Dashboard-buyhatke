@@ -83,12 +83,17 @@ class AuthService {
       if (this.sessionData && this.currentUser) {
         const timeSinceLastValidation = Date.now() - this.sessionData.lastValidated;
         
-        // If validated within the last 2 minutes, trust the local session
-        if (timeSinceLastValidation < 2 * 60 * 1000) {
+        // Extended: If validated within the last 15 minutes, trust the local session
+        // This reduces server calls and prevents premature logouts due to backend session expiry
+        if (timeSinceLastValidation < 15 * 60 * 1000) {
+          console.debug(`Session trusted locally (last validated ${Math.round(timeSinceLastValidation / 1000 / 60)} minutes ago)`);
           return { isLoggedIn: true, user: this.currentUser };
         }
+        
+        console.debug(`Session validation required (last validated ${Math.round(timeSinceLastValidation / 1000 / 60)} minutes ago)`);
       }
 
+      console.debug('Calling server to validate session...');
       const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
         method: 'POST',
         credentials: 'omit', // Don't send cookies to avoid CORS issues
@@ -102,6 +107,7 @@ class AuthService {
       }
 
       const result = await response.json();
+      console.debug('Server session validation result:', result);
       
       if (result.status === 1 && result.isLoggedIn && result.user) {
         // Update session data with successful validation
@@ -120,10 +126,12 @@ class AuthService {
         
         this.currentUser = result.user;
         this.saveSessionToStorage(this.sessionData);
+        console.debug('Session validated successfully');
         return { isLoggedIn: true, user: result.user };
       }
       
       // Server says not logged in, clear local session
+      console.debug('Server says session invalid, clearing local session');
       this.clearSession();
       return { isLoggedIn: false };
     } catch (error) {
@@ -132,12 +140,13 @@ class AuthService {
       // On network error, trust local session if it exists and is recent
       if (this.sessionData && this.currentUser) {
         const sessionAge = Date.now() - this.sessionData.loginTime;
-        if (sessionAge < 30 * 60 * 1000) { // 30 minutes grace period
-          console.log('Network error, but trusting recent local session');
+        if (sessionAge < 60 * 60 * 1000) { // Extended to 1 hour grace period for network errors
+          console.debug('Network error, but trusting recent local session');
           return { isLoggedIn: true, user: this.currentUser };
         }
       }
       
+      console.debug('Network error and no valid local session, clearing session');
       this.clearSession();
       return { isLoggedIn: false };
     }
@@ -318,6 +327,92 @@ class AuthService {
       lastValidated: this.sessionData.lastValidated
     };
   }
+
+  // Comprehensive debug information
+  getDebugInfo(): any {
+    const sessionInfo = this.getSessionInfo();
+    const now = Date.now();
+    
+    return {
+      currentUser: this.currentUser,
+      hasSession: sessionInfo.hasSession,
+      sessionData: this.sessionData,
+      sessionAge: sessionInfo.sessionAge ? {
+        ms: sessionInfo.sessionAge,
+        minutes: Math.round(sessionInfo.sessionAge / 1000 / 60),
+        hours: Math.round(sessionInfo.sessionAge / 1000 / 60 / 60)
+      } : null,
+      lastValidated: sessionInfo.lastValidated ? {
+        timestamp: sessionInfo.lastValidated,
+        ago: now - sessionInfo.lastValidated,
+        agoMinutes: Math.round((now - sessionInfo.lastValidated) / 1000 / 60)
+      } : null,
+      localStorageData: {
+        user: localStorage.getItem(this.USER_STORAGE_KEY),
+        session: localStorage.getItem(this.SESSION_STORAGE_KEY)
+      },
+      validation: {
+        nextValidationDue: sessionInfo.lastValidated ? 
+          Math.max(0, 15 * 60 * 1000 - (now - sessionInfo.lastValidated)) : null,
+        willTrustLocal: sessionInfo.lastValidated ? 
+          (now - sessionInfo.lastValidated) < 15 * 60 * 1000 : false
+      }
+    };
+  }
 }
 
-export const authService = new AuthService(); 
+export const authService = new AuthService();
+
+// Expose debug function globally for troubleshooting
+if (typeof window !== 'undefined') {
+  (window as any).debugAuth = () => {
+    const debugInfo = authService.getDebugInfo();
+    console.group('🔍 Auth Debug Information');
+    console.log('Current User:', debugInfo.currentUser);
+    console.log('Has Active Session:', debugInfo.hasSession);
+    console.log('Session Age:', debugInfo.sessionAge?.minutes, 'minutes');
+    console.log('Last Validated:', debugInfo.lastValidated?.agoMinutes, 'minutes ago');
+    console.log('Will Trust Local Session:', debugInfo.validation.willTrustLocal);
+    console.log('Next Server Check In:', debugInfo.validation.nextValidationDue ? 
+      Math.round(debugInfo.validation.nextValidationDue / 1000 / 60) + ' minutes' : 'Now');
+    console.log('Full Debug Data:', debugInfo);
+    console.groupEnd();
+    return debugInfo;
+  };
+
+  (window as any).testBackendSession = async () => {
+    console.group('🔍 Testing Backend Session');
+    console.log('Calling backend isLoggedIn endpoint...');
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      console.log('Backend Response Status:', response.status);
+      console.log('Backend Response:', result);
+      
+      if (result.status === 1 && result.isLoggedIn) {
+        console.log('✅ Backend says session is VALID');
+      } else {
+        console.log('❌ Backend says session is INVALID or EXPIRED');
+      }
+      
+      console.groupEnd();
+      return result;
+    } catch (error) {
+      console.error('❌ Error calling backend:', error);
+      console.groupEnd();
+      throw error;
+    }
+  };
+
+  console.log('🛠️ Auth debugging enabled.');
+  console.log('• Type debugAuth() to check session status');
+  console.log('• Type testBackendSession() to test backend directly');
+} 

@@ -71,7 +71,7 @@ export function Analytics() {
                   disabled={isRefreshing}
                   className="flex items-center space-x-2"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                   <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
                 </Button>
                 
@@ -81,7 +81,7 @@ export function Analytics() {
                   onClick={handleExport}
                   className="flex items-center space-x-2"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-5 w-5" />
                   <span>Export</span>
                 </Button>
                 
@@ -95,9 +95,9 @@ export function Analytics() {
                       : 'hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20'
                   }`}
                 >
-                  <Filter className="h-4 w-4" />
+                  <Filter className="h-5 w-5" />
                   <span>Filters</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-5 w-5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                   <Badge variant="secondary" className="ml-1">3</Badge>
                 </Button>
               </div>

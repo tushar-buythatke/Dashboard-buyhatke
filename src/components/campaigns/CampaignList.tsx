@@ -21,10 +21,10 @@ const statusOptions = [
 ];
 
 const statusMap = {
-  0: { label: 'Draft', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  1: { label: 'Live', color: 'bg-green-100 text-green-800 border-green-200' },
-  2: { label: 'Test', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  3: { label: 'Paused', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+  0: { label: 'Draft', variant: 'warning' as const },
+  1: { label: 'Live', variant: 'success' as const },
+  2: { label: 'Test', variant: 'info' as const },
+  3: { label: 'Paused', variant: 'outline' as const },
 } as const;
 
 export function CampaignList() {
@@ -171,7 +171,7 @@ export function CampaignList() {
                 disabled={isRefreshing}
                 className="flex items-center space-x-2"
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
               
@@ -181,7 +181,7 @@ export function CampaignList() {
                 onClick={handleExport}
                 className="flex items-center space-x-2"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-5 w-5" />
                 <span>Export</span>
               </Button>
               
@@ -191,7 +191,7 @@ export function CampaignList() {
                 onClick={() => navigate('/analytics')}
                 className="flex items-center space-x-2"
               >
-                <BarChart3 className="h-4 w-4" />
+                <BarChart3 className="h-5 w-5" />
                 <span>Analytics</span>
               </Button>
               
@@ -199,7 +199,7 @@ export function CampaignList() {
                 onClick={() => navigate('/campaigns/new')} 
                 className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 Create Campaign
               </Button>
             </div>
@@ -287,7 +287,7 @@ export function CampaignList() {
               
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
                     placeholder="Search by brand name"
                     className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
@@ -358,7 +358,7 @@ export function CampaignList() {
                       </TableCell>
                       <TableCell>
                         <div onClick={(e) => e.stopPropagation()}>
-                          <Badge className={`${statusMap[campaign.status as keyof typeof statusMap]?.color || 'bg-gray-100'} font-medium`}>
+                          <Badge variant={statusMap[campaign.status as keyof typeof statusMap]?.variant || 'outline'} className="font-medium">
                             {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
                           </Badge>
                         </div>
@@ -374,7 +374,7 @@ export function CampaignList() {
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full">
                               <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                              <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -384,7 +384,7 @@ export function CampaignList() {
                                 navigate(`/campaigns/${campaign.campaignId}/edit`);
                               }}
                             >
-                              <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                              <Edit className="mr-2 h-5 w-5 text-blue-600" />
                               <span>Edit</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -393,7 +393,7 @@ export function CampaignList() {
                                 handleCloneCampaign(campaign.campaignId);
                               }}
                             >
-                              <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                              <Copy className="mr-2 h-5 w-5 text-purple-600" />
                               <span>Clone</span>
                             </DropdownMenuItem>
                             {campaign.status !== 3 && (
@@ -403,7 +403,7 @@ export function CampaignList() {
                                   handleStatusChange(campaign.campaignId, 3);
                                 }}
                               >
-                                <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                                <Pause className="mr-2 h-5 w-5 text-orange-600" />
                                 <span>Pause</span>
                               </DropdownMenuItem>
                             )}
@@ -414,7 +414,7 @@ export function CampaignList() {
                                   handleStatusChange(campaign.campaignId, 1);
                                 }}
                               >
-                                <Play className="mr-2 h-4 w-4 text-green-600" />
+                                <Play className="mr-2 h-5 w-5 text-green-600" />
                                 <span>Resume</span>
                               </DropdownMenuItem>
                             )}

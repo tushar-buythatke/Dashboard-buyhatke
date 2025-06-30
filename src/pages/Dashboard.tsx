@@ -64,7 +64,7 @@ export function Dashboard() {
                 disabled={isRefreshing}
                 className="flex items-center space-x-2"
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
               
@@ -74,7 +74,7 @@ export function Dashboard() {
                 onClick={handleExport}
                 className="flex items-center space-x-2"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-5 w-5" />
                 <span>Export</span>
               </Button>
               
@@ -84,7 +84,7 @@ export function Dashboard() {
                 onClick={() => navigate('/analytics')}
                 className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
               >
-                <TrendingUp className="h-4 w-4" />
+                <TrendingUp className="h-5 w-5" />
                 <span>View Analytics</span>
               </Button>
             </div>
