@@ -545,16 +545,16 @@ export function AdForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         {/* Modern Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <Button 
                 variant="ghost"
                 onClick={() => navigate(-1)}
@@ -563,10 +563,10 @@ export function AdForm() {
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {isEditMode ? 'Edit Ad' : 'Create New Ad'}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
                   {isEditMode 
                     ? 'Update your ad settings and targeting.' 
                     : 'Set up a new ad for your campaign.'}
@@ -574,7 +574,7 @@ export function AdForm() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-lg text-sm font-medium">
+              <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-lg text-xs sm:text-sm font-medium">
                 {isEditMode ? 'Edit Mode' : 'Create Mode'}
               </div>
             </div>
@@ -599,7 +599,7 @@ export function AdForm() {
               </div>
               <div className="p-6 space-y-6">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               <FormField
                 control={form.control}
                 name="slotId"
@@ -957,7 +957,7 @@ export function AdForm() {
                   />
                 </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <FormField
                 control={form.control}
                 name="gender"
@@ -1331,7 +1331,7 @@ export function AdForm() {
             </div>
             <div className="p-8 space-y-8">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <FormField
                 control={form.control}
                 name="startDate"
@@ -1525,24 +1525,15 @@ export function AdForm() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
+            className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
           >
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-              disabled={loading}
-              className="px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              Cancel
-            </Button>
             <Button 
               type="submit" 
               disabled={loading}
-              className="px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
             >
               {loading ? (
-                <span className="flex items-center">
+                <span className="flex items-center justify-center">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Saving...
                 </span>
@@ -1551,6 +1542,15 @@ export function AdForm() {
                   {isEditMode ? 'Update Ad' : 'Create Ad'}
                 </>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              disabled={loading}
+              className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
+            >
+              Cancel
             </Button>
           </motion.div>
         </form>

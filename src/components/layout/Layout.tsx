@@ -1,16 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
 export function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
-      <Header />
+      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
-          <div className="w-full">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="flex-1 w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200 min-h-screen">
+          {/* Mobile overlay */}
+          {sidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <div className="w-full lg:ml-0">
             <Outlet />
           </div>
         </main>

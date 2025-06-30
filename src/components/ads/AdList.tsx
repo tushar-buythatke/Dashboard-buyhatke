@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick } from 'lucide-react';
+import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -178,6 +178,120 @@ export function AdList() {
   const totalClicks = ads.reduce((sum, ad) => sum + ad.clickTarget, 0);
   const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
+  // Mobile Ad Card Component
+  const AdCard = ({ ad, index }: { ad: Ad; index: number }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95"
+    >
+      <div className="flex items-start space-x-4">
+        {/* Creative */}
+        <div className="flex-shrink-0">
+          <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            {ad.creativeUrl ? (
+              <img 
+                src={ad.creativeUrl} 
+                alt="Ad creative" 
+                className="h-full w-full object-contain rounded-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.dataset.fallback) {
+                    target.dataset.fallback = 'true';
+                    target.src = PLACEHOLDER_IMAGE;
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                <ImageIcon className="h-4 w-4 mb-1" />
+                <span className="text-xs font-medium">No Image</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-1">
+                <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="text-xs">
+                  {ad.status === 1 ? 'Active' : 'Inactive'}
+                </Badge>
+                {ad.slotName && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                    {ad.slotName}
+                  </span>
+                )}
+              </div>
+              {ad.slotWidth && ad.slotHeight && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {ad.slotWidth} x {ad.slotHeight}px
+                </p>
+              )}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                  <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                  <span>Edit</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCloneAd(ad.adId)}>
+                  <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                  <span>Clone</span>
+                </DropdownMenuItem>
+                {ad.status === 1 ? (
+                  <DropdownMenuItem onClick={() => handleStatusChange(ad.adId, 0)}>
+                    <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                    <span>Pause</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => handleStatusChange(ad.adId, 1)}>
+                    <Play className="mr-2 h-4 w-4 text-green-600" />
+                    <span>Activate</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Impressions</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {ad.impressionTarget.toLocaleString()}
+              </div>
+            </div>
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Clicks</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {ad.clickTarget.toLocaleString()}
+              </div>
+            </div>
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">CTR</div>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {ad.impressionTarget > 0 
+                  ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
+                  : '0.00%'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -188,7 +302,7 @@ export function AdList() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
@@ -199,16 +313,16 @@ export function AdList() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <Button 
                 variant="ghost"
                 onClick={() => navigate(-1)}
@@ -217,37 +331,37 @@ export function AdList() {
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {campaign?.brandName || 'Campaign'} Ads
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
                   Manage ads for {campaign?.brandName || 'this campaign'}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
               <Button
                 variant="outline"
                 onClick={fetchAds}
-                className="border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex items-center justify-center space-x-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 h-9 sm:h-10"
               >
-                <RefreshCw className="h-5 w-5 mr-2" />
-                Refresh
+                <RefreshCw className="h-4 w-4" />
+                <span className="text-sm">Refresh</span>
               </Button>
               <Button
                 variant="outline"
-                className="border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex items-center justify-center space-x-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 h-9 sm:h-10"
               >
-                <Download className="h-5 w-5 mr-2" />
-                Export
+                <Download className="h-4 w-4" />
+                <span className="text-sm">Export</span>
               </Button>
               <Button 
                 onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)} 
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white h-9 sm:h-10"
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Create Ad
+                <Plus className="w-4 h-4" />
+                <span className="text-sm">Create Ad</span>
               </Button>
             </div>
           </div>
@@ -258,45 +372,45 @@ export function AdList() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 p-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Ads</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{totalAds}</p>
+                <p className="text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-medium">Total Ads</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">{totalAds}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 p-6">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-600 dark:text-green-400 text-sm font-medium">Active Ads</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{activeAds}</p>
+                <p className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-medium">Active Ads</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100">{activeAds}</p>
               </div>
-              <Play className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <Play className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 p-6">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-600 dark:text-orange-400 text-sm font-medium">Total Impressions</p>
-                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{totalImpressions.toLocaleString()}</p>
+                <p className="text-orange-600 dark:text-orange-400 text-xs sm:text-sm font-medium">Total Impressions</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{totalImpressions.toLocaleString()}</p>
               </div>
-              <Eye className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 dark:text-orange-400" />
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 p-6">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Average CTR</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{averageCTR.toFixed(2)}%</p>
+                <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm font-medium">Average CTR</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100">{averageCTR.toFixed(2)}%</p>
               </div>
-              <MousePointerClick className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              <MousePointerClick className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" />
             </div>
           </Card>
         </motion.div>
@@ -306,152 +420,169 @@ export function AdList() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 w-full">
               <Input
                 placeholder="Search ads..."
-                className="w-80 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                className="flex-1 sm:max-w-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Ads Table */}
+        {/* Ads Content */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 dark:border-gray-700">
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Creative</TableHead>
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Status</TableHead>
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Slot</TableHead>
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Impressions</TableHead>
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Clicks</TableHead>
-                <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">CTR</TableHead>
-                <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ads.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center">
-                    <div className="text-gray-500 dark:text-gray-400 p-6">
-                      <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
-                    </div>
-                  </TableCell>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 dark:border-gray-700">
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Creative</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Status</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Slot</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Impressions</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Clicks</TableHead>
+                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">CTR</TableHead>
+                  <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold">Actions</TableHead>
                 </TableRow>
-              ) : (
-                ads.map((ad, index) => (
-                  <motion.tr 
-                    key={ad.adId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
-                  >
-                    <TableCell>
-                      <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                        {ad.creativeUrl ? (
-                          <img 
-                            src={ad.creativeUrl} 
-                            alt="Ad creative" 
-                            className="h-full w-full object-contain rounded-lg"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              if (!target.dataset.fallback) {
-                                target.dataset.fallback = 'true';
-                                target.src = PLACEHOLDER_IMAGE;
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                            <ImageIcon className="h-5 w-5 mb-1" />
-                            <span className="text-xs font-medium">No Image</span>
-                          </div>
-                        )}
+              </TableHeader>
+              <TableBody>
+                {ads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center">
+                      <div className="text-gray-500 dark:text-gray-400 p-6">
+                        <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="font-medium">
-                        {ad.status === 1 ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
-                      {ad.slotName && (
-                        <div className="flex flex-col">
-                          <span className="font-semibold">{ad.slotName}</span>
-                          {ad.slotWidth && ad.slotHeight && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full inline-block mt-1 w-fit">
-                              {ad.slotWidth} x {ad.slotHeight}
-                            </span>
+                  </TableRow>
+                ) : (
+                  ads.map((ad, index) => (
+                    <motion.tr 
+                      key={ad.adId}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }}
+                      className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+                    >
+                      <TableCell>
+                        <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                          {ad.creativeUrl ? (
+                            <img 
+                              src={ad.creativeUrl} 
+                              alt="Ad creative" 
+                              className="h-full w-full object-contain rounded-lg"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.dataset.fallback) {
+                                  target.dataset.fallback = 'true';
+                                  target.src = PLACEHOLDER_IMAGE;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                              <ImageIcon className="h-5 w-5 mb-1" />
+                              <span className="text-xs font-medium">No Image</span>
+                            </div>
                           )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.impressionTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.clickTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
-                      <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-sm font-semibold">
-                        {ad.impressionTarget > 0 
-                          ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
-                          : '0.00%'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                          <DropdownMenuItem
-                            onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                          >
-                            <Edit className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleCloneAd(ad.adId)}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                          >
-                            <Copy className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
-                          </DropdownMenuItem>
-                          {ad.status === 1 ? (
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="font-medium">
+                          {ad.status === 1 ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
+                        {ad.slotName && (
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{ad.slotName}</span>
+                            {ad.slotWidth && ad.slotHeight && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full inline-block mt-1 w-fit">
+                                {ad.slotWidth} x {ad.slotHeight}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.impressionTarget.toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.clickTarget.toLocaleString()}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
+                        <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-sm font-semibold">
+                          {ad.impressionTarget > 0 
+                            ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
+                            : '0.00%'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(ad.adId, 0)}
+                              onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
-                              <Pause className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                              <Edit className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
                             </DropdownMenuItem>
-                          ) : (
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(ad.adId, 1)}
+                              onClick={() => handleCloneAd(ad.adId)}
                               className="hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
-                              <Play className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                              <Copy className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </motion.tr>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                            {ad.status === 1 ? (
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(ad.adId, 0)}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <Pause className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(ad.adId, 1)}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <Play className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {ads.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                  <span className="font-medium">No ads found. Create your first ad to get started.</span>
+                </div>
+              </div>
+            ) : (
+              ads.map((ad, index) => (
+                <AdCard key={ad.adId} ad={ad} index={index} />
+              ))
+            )}
+          </div>
         </motion.div>
       </div>
     </div>

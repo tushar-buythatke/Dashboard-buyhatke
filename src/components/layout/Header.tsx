@@ -22,7 +22,9 @@ import {
   Moon,
   Sun,
   HelpCircle,
-  Activity
+  Activity,
+  Menu,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
@@ -43,14 +45,15 @@ function getInitials(userName: string | null | undefined) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function getGravatarUrl(userName: string | null) {
-  if (!userName) return null;
-  // Create a simple hash based on username for consistency
-  const hash = btoa(userName.toLowerCase().trim()).replace(/=/g, '');
-  return `https://www.gravatar.com/avatar/${hash}?d=mp&s=100`;
+function getGravatarUrl(email: string | null | undefined) {
+  return `https://gravatar.com/avatar/?d=mp&s=40`;
 }
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [notificationCount] = useState(3);
@@ -78,140 +81,127 @@ export function Header() {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-gray-800 dark:via-gray-900 dark:to-black border-b border-white/20 dark:border-gray-700/50 px-6 py-4 w-full shadow-xl backdrop-blur-sm z-30 relative">
+    <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-gray-800 dark:via-gray-900 dark:to-black border-b border-white/20 dark:border-gray-700/50 px-4 sm:px-6 py-3 sm:py-4 w-full shadow-xl backdrop-blur-sm z-50 relative">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Left Section - Logo & Title */}
+        {/* Left Section - Mobile Menu + Logo & Title */}
         <motion.div 
-          className="flex items-center space-x-4"
+          className="flex items-center space-x-2 sm:space-x-4"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
         >
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="lg:hidden h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-lg"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+
           <div className="relative">
-            <div className="w-12 h-12 bg-white/20 dark:bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 dark:border-gray-600/30 group hover:bg-white/30 dark:hover:bg-white/20 transition-all duration-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 dark:bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 dark:border-gray-600/30 group hover:bg-white/30 dark:hover:bg-white/20 transition-all duration-200">
               <img
                 src="/logo_512x512.png"
                 alt="Logo"
-                className="w-8 h-8 object-contain group-hover:scale-110 transition-transform duration-200"
+                className="w-6 h-6 sm:w-8 sm:h-8 object-contain group-hover:scale-110 transition-transform duration-200"
               />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm">
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm">
               <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
             </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+          <div className="hidden sm:block">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               Hatke! Dashboard
             </h1>
-            <p className="text-blue-100 dark:text-gray-300 text-sm font-medium">Marketing Intelligence Platform</p>
+            <p className="text-blue-100 dark:text-gray-300 text-xs sm:text-sm font-medium">Marketing Intelligence Platform</p>
+          </div>
+          {/* Mobile title */}
+          <div className="sm:hidden">
+            <h1 className="text-lg font-bold text-white tracking-tight">
+              Hatke!
+            </h1>
           </div>
         </motion.div>
 
         {/* Right Section - Actions & Profile */}
         <motion.div 
-          className="flex items-center space-x-3"
+          className="flex items-center space-x-2 sm:space-x-4"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
+          transition={{ duration: 0.3 }}
         >
-          {/* Dark Mode Toggle */}
+          {/* Theme Toggle - Visible on mobile */}
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={toggleTheme}
-            className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 hover:scale-110 border border-white/20 dark:border-gray-600/30 text-white transition-all duration-200 hover:shadow-lg"
+            className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-200"
           >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
           </Button>
 
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 hover:scale-110 border border-white/20 dark:border-gray-600/30 text-white relative transition-all duration-200 hover:shadow-lg"
-              >
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs animate-pulse"
-                  >
-                    {notificationCount}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notifications</span>
-                <Badge variant="secondary">{notificationCount} new</Badge>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Campaign Performance Alert</p>
-                  <p className="text-xs text-muted-foreground">Your "Summer Sale" campaign CTR increased by 15%</p>
-                  <p className="text-xs text-muted-foreground mt-1">2 minutes ago</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Budget Optimization</p>
-                  <p className="text-xs text-muted-foreground">AI suggested budget reallocation available</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">System Update</p>
-                  <p className="text-xs text-muted-foreground">New analytics features are now available</p>
-                  <p className="text-xs text-muted-foreground mt-1">3 hours ago</p>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Notifications - Visible on mobile */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-200"
+            >
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white"
+                >
+                  {notificationCount}
+                </motion.div>
+              )}
+            </Button>
+          </div>
 
-          {/* Profile Dropdown */}
+          {/* User Dropdown */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-12 w-auto rounded-full bg-white/10 hover:bg-white/20 border border-white/20 dark:border-gray-600/30 pl-2 pr-3 transition-all duration-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <Avatar className="h-8 w-8 border-2 border-white/30 dark:border-gray-600/30">
-                        <AvatarImage 
-                          src={getGravatarUrl(user.userName)} 
-                          alt={user.userName ? user.userName : 'User'} 
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-sm">
-                          {getInitials(user.userName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border border-white dark:border-gray-800 shadow-sm">
-                        <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
-                      </div>
-                    </div>
-                    <div className="hidden lg:block text-left">
-                      <p className="text-sm font-medium text-white leading-none">
+                <Button
+                  variant="ghost"
+                  className="h-10 sm:h-12 px-2 sm:px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white/30 focus:outline-none"
+                >
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Avatar className="h-6 w-6 sm:h-8 sm:w-8 border-2 border-white/30">
+                      <AvatarImage 
+                        src={getGravatarUrl(user.userName)} 
+                        alt={user.userName ? user.userName : 'User'} 
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-xs sm:text-sm">
+                        {getInitials(user.userName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="hidden sm:flex items-center space-x-1">
+                      <span className="text-sm font-medium text-white truncate max-w-24">
                         {user.userName}
-                      </p>
-                      <p className="text-xs text-blue-100 dark:text-gray-300 mt-0.5">
-                        {user.type === 0 ? 'Admin' : 'User'} • Online
-                      </p>
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-white/80" />
                     </div>
-                    <ChevronDown className="h-5 w-5 text-white/60" />
+                    
+                    {/* Mobile view - only show chevron */}
+                    <ChevronDown className="h-4 w-4 text-white/80 sm:hidden" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1">
+              <DropdownMenuContent align="end" className="w-56 sm:w-64 p-1 mt-2">
                 <div className="px-3 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-12 w-12 border-2 border-gray-100 dark:border-gray-700">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-gray-100 dark:border-gray-700">
                       <AvatarImage 
                         src={getGravatarUrl(user.userName)} 
                         alt={user.userName ? user.userName : 'User'} 
@@ -220,55 +210,48 @@ export function Header() {
                         {getInitials(user.userName)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 leading-none">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100 leading-none truncate">
                         {user.userName}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                         {user.type === 0 ? 'Administrator' : 'User'}
                       </p>
-                      <div className="flex items-center space-x-1 mt-1">
-                        <Activity className="h-3 w-3 text-green-500" />
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">Online</span>
-                      </div>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <Activity className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">Online</span>
                     </div>
                   </div>
                 </div>
-                
-                <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <UserIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span>View Profile</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span>Account Settings</span>
-                </DropdownMenuItem>
-                
-                {user.type === 0 && (
-                  <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                    <Shield className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-                    <span>Admin Panel</span>
-                  </DropdownMenuItem>
-                )}
-                
-                <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
-                  <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span>Help & Support</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
-                
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="flex items-center space-x-2 p-3 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-700"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </div>
+              
+              <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
+                <UserIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <span>View Profile</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
+                <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem className="flex items-center space-x-2 p-3 cursor-pointer">
+                <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <span>Help & Support</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                className="flex items-center space-x-2 p-3 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+              >
+                <LogOut className="h-5 w-5" />
+                                 <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+               </DropdownMenuItem>
+             </DropdownMenuContent>
+           </DropdownMenu>
           )}
         </motion.div>
       </div>
