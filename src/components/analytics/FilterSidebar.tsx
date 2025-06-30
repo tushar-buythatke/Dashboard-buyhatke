@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Filter, X, Calendar, Users, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
