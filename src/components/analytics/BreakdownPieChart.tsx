@@ -60,7 +60,7 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
     return ''; // Disable labels completely to prevent overflow
   }, []);
 
-  const handleMouseEnter = (_, index: number) => {
+  const handleMouseEnter = (_: any, index: number) => {
     setHoveredIndex(index);
   };
 

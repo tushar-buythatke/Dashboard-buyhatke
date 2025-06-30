@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Filter, X, Calendar, Users, Monitor, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,7 +7,6 @@ import { useFilters } from '@/context/FilterContext';
 import { mockCampaigns, platforms } from '@/data/mockData';
 
 const genderOptions = ['Male', 'Female'];
-const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55+'];
 
 export function FilterDropdown() {
   const { filters, updateFilters, resetFilters } = useFilters();
@@ -109,13 +107,13 @@ export function FilterDropdown() {
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {mockCampaigns.slice(0, 4).map((campaign: any) => (
                   <label
-                    key={campaign.id}
+                    key={campaign.campaignId}
                     className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
                   >
                     <input
                       type="checkbox"
-                      checked={filters.campaigns.includes(campaign.id)}
-                      onChange={(e) => handleFilterChange('campaigns', campaign.id, e.target.checked)}
+                      checked={filters.campaigns.includes(campaign.campaignId.toString())}
+                      onChange={(e) => handleFilterChange('campaigns', campaign.campaignId.toString(), e.target.checked)}
                       className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
                       style={{
                         accentColor: '#9333ea'

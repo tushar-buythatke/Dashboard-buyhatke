@@ -13,7 +13,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { LocationAutoSuggest, CategoryAutoSuggest, BrandInput } from '@/components/ui/auto-suggest';
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
-import { categories } from '@/data/mockData';
 import { toast } from 'sonner';
 import { Slot } from '@/types';
 import { motion } from 'framer-motion';
