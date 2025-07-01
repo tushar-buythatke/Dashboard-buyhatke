@@ -236,8 +236,11 @@ export function AdForm() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check if a slot is selected
-      if (!selectedSlot) {
+      // Check if a slot is selected - use form value as fallback
+      const currentSlotId = form.getValues('slotId');
+      const currentSlot = selectedSlot || slots.find(s => s.slotId === currentSlotId);
+      
+      if (!currentSlot) {
         toast.error('Please select an ad slot first to determine required dimensions');
         event.target.value = ''; // Clear the file input
         return;
@@ -245,8 +248,8 @@ export function AdForm() {
 
       const img = new Image();
       img.onload = async () => {
-        const requiredWidth = parseFloat(selectedSlot.width);
-        const requiredHeight = parseFloat(selectedSlot.height);
+        const requiredWidth = parseFloat(currentSlot.width);
+        const requiredHeight = parseFloat(currentSlot.height);
         
         // Check if image dimensions match the selected slot
         if (img.width !== requiredWidth || img.height !== requiredHeight) {
@@ -260,7 +263,7 @@ export function AdForm() {
         // Upload to server using the API
         try {
           setLoading(true);
-          const result = await adService.uploadCreative(file, selectedSlot.slotId);
+          const result = await adService.uploadCreative(file, currentSlot.slotId);
           
           if (result.success && result.creativeUrl) {
             setPreviewUrl(result.creativeUrl);
@@ -296,12 +299,9 @@ export function AdForm() {
       if (result.status === 1 && result.data?.slotList) {
         setSlots(result.data.slotList);
         
-        // If editing and we have an adId, set the selected slot
-        if (isEditMode && adId && form.getValues('slotId')) {
-          const slot = result.data.slotList.find(
-            (s: Slot) => s.slotId === form.getValues('slotId')
-          );
-          if (slot) setSelectedSlot(slot);
+        // If editing and we have an adId, set the selected slot after form data is loaded
+        if (isEditMode && adId) {
+          // We'll set the selected slot after the ad data is loaded in the fetchAd function
         }
       }
     } catch (error) {
@@ -353,6 +353,17 @@ export function AdForm() {
                 startTime: adData.startTime ? adData.startTime.slice(0, 5) : '09:00',
                 endTime: adData.endTime ? adData.endTime.slice(0, 5) : '21:00',
               });
+
+              // Set the selected slot for editing mode
+              if (adData.slotId && slots.length > 0) {
+                const slot = slots.find(s => s.slotId === adData.slotId);
+                if (slot) setSelectedSlot(slot);
+              }
+
+              // Set preview URL if creative exists
+              if (adData.creativeUrl) {
+                setPreviewUrl(adData.creativeUrl);
+              }
             }
           } catch (error) {
             console.error('Error fetching ad:', error);
@@ -380,6 +391,15 @@ export function AdForm() {
     const maxAge = form.getValues('ageRangeMax') || 65;
     setAgeRange([minAge, maxAge]);
   }, [form.getValues('ageRangeMin'), form.getValues('ageRangeMax')]);
+
+  // Watch for slot changes and update selectedSlot
+  useEffect(() => {
+    const currentSlotId = form.watch('slotId');
+    if (currentSlotId && slots.length > 0 && (!selectedSlot || selectedSlot.slotId !== currentSlotId)) {
+      const slot = slots.find(s => s.slotId === currentSlotId);
+      if (slot) setSelectedSlot(slot);
+    }
+  }, [form.watch('slotId'), slots, selectedSlot]);
 
   const onSubmit = async (data: AdFormData) => {
     try {
@@ -643,11 +663,14 @@ export function AdForm() {
                     <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                     Creative
                   </FormLabel>
-                  {selectedSlot && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      Required: {selectedSlot.width} x {selectedSlot.height}px
-                    </span>
-                  )}
+                  {(() => {
+                    const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
+                    return currentSlot ? (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Required: {currentSlot.width} x {currentSlot.height}px
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
                 
                 <div className="flex items-center space-x-4">
@@ -918,17 +941,17 @@ export function AdForm() {
                       
                       if (checked) {
                         // If enabling master toggle, set default values and highlight price range
-                        form.setValue('gender', '', { shouldValidate: true });
+                        form.setValue('gender', 'NA', { shouldValidate: true });
                         form.setValue('ageRangeMin', 13, { shouldValidate: true });
                         form.setValue('ageRangeMax', 100, { shouldValidate: true });
                         setAgeRange([13, 100]);
                         setPriceRangeHighlighted(true);
                         
-                        // Set no-specificity for all target sections
-                        form.setValue('sites', { 'no-specificity': 1 }, { shouldValidate: true });
-                        form.setValue('brandTargets', { 'no-specificity': 1 }, { shouldValidate: true });
-                        form.setValue('location', { 'no-specificity': 1 }, { shouldValidate: true });
-                        form.setValue('categories', { 'no-specificity': 1 }, { shouldValidate: true });
+                        // Set empty objects for all target sections (no specificity)
+                        form.setValue('sites', {}, { shouldValidate: true });
+                        form.setValue('brandTargets', {}, { shouldValidate: true });
+                        form.setValue('location', {}, { shouldValidate: true });
+                        form.setValue('categories', {}, { shouldValidate: true });
                         
                         // Show highlighting for 3 seconds
                         setTimeout(() => setPriceRangeHighlighted(false), 3000);
@@ -966,7 +989,7 @@ export function AdForm() {
                         <Select 
                           onValueChange={(value) => {
                             field.onChange(value);
-                            if (value === 'N/A') {
+                            if (value === 'NA') {
                               form.setValue('noGenderSpecificity', true, { shouldValidate: true });
                             }
                           }} 
@@ -980,7 +1003,7 @@ export function AdForm() {
                             <SelectItem value="Male">Male</SelectItem>
                             <SelectItem value="Female">Female</SelectItem>
                             <SelectItem value="Other">Other</SelectItem>
-                            <SelectItem value="N/A">All Genders</SelectItem>
+                            <SelectItem value="NA">All Genders</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -990,7 +1013,7 @@ export function AdForm() {
                         onChange={(checked) => {
                           form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
                           if (checked) {
-                            form.setValue('gender', '', { shouldValidate: true });
+                            form.setValue('gender', 'NA', { shouldValidate: true });
                           } else {
                             form.setValue('gender', 'Male', { shouldValidate: true });
                           }

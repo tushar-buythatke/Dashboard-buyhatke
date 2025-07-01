@@ -48,6 +48,25 @@ export const mockCampaigns: Campaign[] = [
   }
 ];
 
+// Mock slots data
+export const mockSlots = [
+  { slotId: 1, name: 'Header Banner', platform: 'Web' },
+  { slotId: 2, name: 'Sidebar Ad', platform: 'Web' },
+  { slotId: 3, name: 'Footer Banner', platform: 'Web' },
+  { slotId: 4, name: 'Mobile Banner', platform: 'Mobile' },
+  { slotId: 5, name: 'In-Feed Ad', platform: 'Mobile' },
+  { slotId: 6, name: 'Extension Popup', platform: 'Extension' }
+];
+
+// Mock POS data
+export const mockPOS = [
+  { posId: 1, name: 'Amazon' },
+  { posId: 2, name: 'Flipkart' },
+  { posId: 3, name: 'Myntra' },
+  { posId: 4, name: 'Nykaa' },
+  { posId: 5, name: 'BigBasket' }
+];
+
 // Mock data for analytics and dashboard charts
 export const mockTrendData: TrendDataPoint[] = [
   { date: '2024-01-01', impressions: 12000, clicks: 300, conversions: 18, revenue: 1800 },
@@ -57,6 +76,164 @@ export const mockTrendData: TrendDataPoint[] = [
   { date: '2024-01-05', impressions: 15600, clicks: 390, conversions: 26, revenue: 2600 },
   { date: '2024-01-06', impressions: 13900, clicks: 347, conversions: 19, revenue: 1900 },
   { date: '2024-01-07', impressions: 16200, clicks: 405, conversions: 28, revenue: 2800 }
+];
+
+// Slot-wise analytics data
+export const mockSlotAnalytics = {
+  'Header Banner': [
+    { date: '2024-01-01', impressions: 4500, clicks: 135, conversions: 8, ctr: 3.0, conversionRate: 5.9 },
+    { date: '2024-01-02', impressions: 4800, clicks: 144, conversions: 9, ctr: 3.0, conversionRate: 6.3 },
+    { date: '2024-01-03', impressions: 4200, clicks: 126, conversions: 6, ctr: 3.0, conversionRate: 4.8 },
+    { date: '2024-01-04', impressions: 5100, clicks: 153, conversions: 10, ctr: 3.0, conversionRate: 6.5 },
+    { date: '2024-01-05', impressions: 5600, clicks: 168, conversions: 12, ctr: 3.0, conversionRate: 7.1 },
+    { date: '2024-01-06', impressions: 4900, clicks: 147, conversions: 8, ctr: 3.0, conversionRate: 5.4 },
+    { date: '2024-01-07', impressions: 5800, clicks: 174, conversions: 13, ctr: 3.0, conversionRate: 7.5 }
+  ],
+  'Sidebar Ad': [
+    { date: '2024-01-01', impressions: 3200, clicks: 80, conversions: 4, ctr: 2.5, conversionRate: 5.0 },
+    { date: '2024-01-02', impressions: 3600, clicks: 90, conversions: 5, ctr: 2.5, conversionRate: 5.6 },
+    { date: '2024-01-03', impressions: 3100, clicks: 78, conversions: 3, ctr: 2.5, conversionRate: 3.8 },
+    { date: '2024-01-04', impressions: 3800, clicks: 95, conversions: 6, ctr: 2.5, conversionRate: 6.3 },
+    { date: '2024-01-05', impressions: 4200, clicks: 105, conversions: 7, ctr: 2.5, conversionRate: 6.7 },
+    { date: '2024-01-06', impressions: 3700, clicks: 93, conversions: 4, ctr: 2.5, conversionRate: 4.3 },
+    { date: '2024-01-07', impressions: 4300, clicks: 108, conversions: 8, ctr: 2.5, conversionRate: 7.4 }
+  ],
+  'Mobile Banner': [
+    { date: '2024-01-01', impressions: 4300, clicks: 86, conversions: 6, ctr: 2.0, conversionRate: 7.0 },
+    { date: '2024-01-02', impressions: 5100, clicks: 102, conversions: 7, ctr: 2.0, conversionRate: 6.9 },
+    { date: '2024-01-03', impressions: 4500, clicks: 90, conversions: 7, ctr: 2.0, conversionRate: 7.8 },
+    { date: '2024-01-04', impressions: 5300, clicks: 106, conversions: 7, ctr: 2.0, conversionRate: 6.6 },
+    { date: '2024-01-05', impressions: 5800, clicks: 116, conversions: 7, ctr: 2.0, conversionRate: 6.0 },
+    { date: '2024-01-06', impressions: 5300, clicks: 106, conversions: 7, ctr: 2.0, conversionRate: 6.6 },
+    { date: '2024-01-07', impressions: 6100, clicks: 122, conversions: 7, ctr: 2.0, conversionRate: 5.7 }
+  ]
+};
+
+// Campaign-wise analytics data
+export const mockCampaignAnalytics = {
+  'TechGear Pro': [
+    { date: '2024-01-01', impressions: 5200, clicks: 156, conversions: 12, ctr: 3.0, conversionRate: 7.7 },
+    { date: '2024-01-02', impressions: 5800, clicks: 174, conversions: 14, ctr: 3.0, conversionRate: 8.0 },
+    { date: '2024-01-03', impressions: 5100, clicks: 153, conversions: 10, ctr: 3.0, conversionRate: 6.5 },
+    { date: '2024-01-04', impressions: 6200, clicks: 186, conversions: 16, ctr: 3.0, conversionRate: 8.6 },
+    { date: '2024-01-05', impressions: 6800, clicks: 204, conversions: 18, ctr: 3.0, conversionRate: 8.8 },
+    { date: '2024-01-06', impressions: 6100, clicks: 183, conversions: 13, ctr: 3.0, conversionRate: 7.1 },
+    { date: '2024-01-07', impressions: 7200, clicks: 216, conversions: 19, ctr: 3.0, conversionRate: 8.8 }
+  ],
+  'Fashion Forward': [
+    { date: '2024-01-01', impressions: 3800, clicks: 95, conversions: 4, ctr: 2.5, conversionRate: 4.2 },
+    { date: '2024-01-02', impressions: 4200, clicks: 105, conversions: 5, ctr: 2.5, conversionRate: 4.8 },
+    { date: '2024-01-03', impressions: 3600, clicks: 90, conversions: 4, ctr: 2.5, conversionRate: 4.4 },
+    { date: '2024-01-04', impressions: 4400, clicks: 110, conversions: 5, ctr: 2.5, conversionRate: 4.5 },
+    { date: '2024-01-05', impressions: 4800, clicks: 120, conversions: 6, ctr: 2.5, conversionRate: 5.0 },
+    { date: '2024-01-06', impressions: 4300, clicks: 108, conversions: 4, ctr: 2.5, conversionRate: 3.7 },
+    { date: '2024-01-07', impressions: 5000, clicks: 125, conversions: 7, ctr: 2.5, conversionRate: 5.6 }
+  ],
+  'Sports Elite': [
+    { date: '2024-01-01', impressions: 3000, clicks: 49, conversions: 2, ctr: 1.8, conversionRate: 4.1 },
+    { date: '2024-01-02', impressions: 3500, clicks: 59, conversions: 2, ctr: 1.8, conversionRate: 3.4 },
+    { date: '2024-01-03', impressions: 3100, clicks: 52, conversions: 2, ctr: 1.8, conversionRate: 3.8 },
+    { date: '2024-01-04', impressions: 3600, clicks: 59, conversions: 2, ctr: 1.8, conversionRate: 3.4 },
+    { date: '2024-01-05', impressions: 4000, clicks: 66, conversions: 2, ctr: 1.8, conversionRate: 3.0 },
+    { date: '2024-01-06', impressions: 3500, clicks: 58, conversions: 2, ctr: 1.8, conversionRate: 3.4 },
+    { date: '2024-01-07', impressions: 4000, clicks: 64, conversions: 2, ctr: 1.8, conversionRate: 3.1 }
+  ]
+};
+
+// Top 5 Locations by Impressions
+export const mockTopLocations = [
+  { location: 'Mumbai', impressions: 28450, clicks: 1422, conversions: 85 },
+  { location: 'Delhi', impressions: 24680, clicks: 1234, conversions: 74 },
+  { location: 'Bangalore', impressions: 18920, clicks: 946, conversions: 57 },
+  { location: 'Chennai', impressions: 15670, clicks: 783, conversions: 47 },
+  { location: 'Pune', impressions: 12890, clicks: 644, conversions: 39 }
+];
+
+// Top 5 Landing URLs by Clicks
+export const mockTopLandingUrls = [
+  { landingUrl: '/product/electronics/smartphones', clicks: 2450, impressions: 45600, conversions: 147 },
+  { landingUrl: '/product/fashion/mens-clothing', clicks: 2180, impressions: 42300, conversions: 131 },
+  { landingUrl: '/product/home/furniture', clicks: 1950, impressions: 38900, conversions: 117 },
+  { landingUrl: '/product/sports/fitness-equipment', clicks: 1720, impressions: 35400, conversions: 103 },
+  { landingUrl: '/product/beauty/skincare', clicks: 1560, impressions: 32100, conversions: 94 }
+];
+
+// Top Slots Performance
+export const mockTopSlots = [
+  { slotName: 'Header Banner', impressions: 34200, clicks: 1026, conversionRate: 6.5 },
+  { slotName: 'Mobile Banner', impressions: 36200, clicks: 724, conversionRate: 6.8 },
+  { slotName: 'Sidebar Ad', impressions: 25900, clicks: 649, conversionRate: 5.4 },
+  { slotName: 'Footer Banner', impressions: 18600, clicks: 372, conversionRate: 4.2 },
+  { slotName: 'In-Feed Ad', impressions: 15800, clicks: 316, conversionRate: 5.8 },
+  { slotName: 'Extension Popup', impressions: 12400, clicks: 248, conversionRate: 7.2 }
+];
+
+// Device/Platform breakdown with KPIs
+export const mockDeviceBreakdown = [
+  { 
+    name: 'Mobile', 
+    value: 48920, 
+    percentage: 55.2,
+    impressions: 48920,
+    clicks: 1468,
+    conversions: 103,
+    ctr: 3.0,
+    conversionRate: 7.0
+  },
+  { 
+    name: 'Desktop', 
+    value: 32450, 
+    percentage: 36.6,
+    impressions: 32450,
+    clicks: 973,
+    conversions: 58,
+    ctr: 3.0,
+    conversionRate: 6.0
+  },
+  { 
+    name: 'Tablet', 
+    value: 7230, 
+    percentage: 8.2,
+    impressions: 7230,
+    clicks: 217,
+    conversions: 12,
+    ctr: 3.0,
+    conversionRate: 5.5
+  }
+];
+
+// Age-wise distribution with multiple metrics
+export const mockAgeAnalytics = [
+  { ageGroup: '18-24', impressions: 15234, clicks: 457, conversions: 32, percentage: 17.4 },
+  { ageGroup: '25-34', impressions: 28945, clicks: 868, conversions: 61, percentage: 33.1 },
+  { ageGroup: '35-44', impressions: 23567, clicks: 707, conversions: 49, percentage: 27.0 },
+  { ageGroup: '45-54', impressions: 14876, clicks: 446, conversions: 31, percentage: 17.0 },
+  { ageGroup: '55+', impressions: 4778, clicks: 143, conversions: 10, percentage: 5.5 }
+];
+
+// Per-Brand Age-wise data
+export const mockBrandAgeData = [
+  { ageGroup: '18-24', 'TechGear Pro': 245, 'Fashion Forward': 189, 'Sports Elite': 123, 'Home & Garden': 98 },
+  { ageGroup: '25-34', 'TechGear Pro': 456, 'Fashion Forward': 378, 'Sports Elite': 234, 'Home & Garden': 189 },
+  { ageGroup: '35-44', 'TechGear Pro': 378, 'Fashion Forward': 298, 'Sports Elite': 198, 'Home & Garden': 156 },
+  { ageGroup: '45-54', 'TechGear Pro': 234, 'Fashion Forward': 167, 'Sports Elite': 134, 'Home & Garden': 123 },
+  { ageGroup: '55+', 'TechGear Pro': 89, 'Fashion Forward': 56, 'Sports Elite': 45, 'Home & Garden': 67 }
+];
+
+// Combo chart data (Impressions vs Conversions)
+export const mockImpressionsVsConversions = [
+  { period: 'Week 1', impressions: 42500, conversions: 89 },
+  { period: 'Week 2', impressions: 38900, conversions: 94 },
+  { period: 'Week 3', impressions: 45600, conversions: 112 },
+  { period: 'Week 4', impressions: 51200, conversions: 128 }
+];
+
+// Combo chart data (Impressions vs CTR)
+export const mockImpressionsVsCTR = [
+  { period: 'Week 1', impressions: 42500, ctr: 2.8 },
+  { period: 'Week 2', impressions: 38900, ctr: 3.1 },
+  { period: 'Week 3', impressions: 45600, ctr: 2.9 },
+  { period: 'Week 4', impressions: 51200, ctr: 3.2 }
 ];
 
 export const mockGenderBreakdown: BreakdownData[] = [
