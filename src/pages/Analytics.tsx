@@ -4,6 +4,7 @@ import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, Chevron
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 // Analytics Components
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
@@ -14,36 +15,28 @@ import { DataTable } from '@/components/analytics/DataTable';
 import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
 
-// Mock Data
+// Analytics Service
 import { 
-  mockTrendData,
-  mockSlots,
-  mockCampaigns,
-  mockPOS,
-  mockSlotAnalytics,
-  mockCampaignAnalytics,
-  mockTopLocations,
-  mockTopLandingUrls,
-  mockTopSlots,
-  mockDeviceBreakdown,
-  mockAgeAnalytics,
-  mockBrandAgeData,
-  mockImpressionsVsConversions,
-  mockImpressionsVsCTR,
-  mockGenderBreakdown,
-  mockAgeBreakdown,
-  mockPlatformBreakdown,
-  mockLocationBreakdown
-} from '@/data/mockData';
+  analyticsService, 
+  MetricsPayload 
+} from '@/services/analyticsService';
 
-const mockMetrics = {
-  impressions: 187400,
-  clicks: 4692,
-  ctr: 2.47,
-  conversions: 258,
-  revenue: 25800,
-  roi: 186.5
-};
+// Types
+import { 
+  Campaign, 
+  Slot, 
+  MetricsData, 
+  TrendDataPoint, 
+  BreakdownData 
+} from '@/types';
+
+// Type definitions for sites (specific to analytics)
+interface Site {
+  posId: string;
+  name: string;
+  domain: string[];
+  image: string;
+}
 
 const timeRanges = [
   { value: '1d', label: '24 Hours' },
@@ -72,31 +65,122 @@ export function Analytics() {
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
   const [selectedKPIs, setSelectedKPIs] = useState<(string | number)[]>(['impressions', 'clicks']);
 
+  // Data states
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [breakdownData, setBreakdownData] = useState<{
+    gender: BreakdownData[];
+    age: BreakdownData[];
+    platform: BreakdownData[];
+    location: BreakdownData[];
+  }>({
+    gender: [],
+    age: [],
+    platform: [],
+    location: []
+  });
+
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  // Fetch dropdown data on component mount
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
+
+  // Fetch analytics data when filters change
+  useEffect(() => {
+    if (campaigns.length > 0 || slots.length > 0) {
+      fetchAnalyticsData();
+    }
+  }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, activeView]);
+
+  const fetchDropdownData = async () => {
+    try {
+      setLoading(true);
+      const [campaignsResult, slotsResult, sitesResult] = await Promise.all([
+        analyticsService.getCampaigns(),
+        analyticsService.getSlots(),
+        analyticsService.getSites()
+      ]);
+
+      if (campaignsResult.success && campaignsResult.data) {
+        setCampaigns(campaignsResult.data);
+      }
+
+      if (slotsResult.success && slotsResult.data) {
+        setSlots(slotsResult.data);
+      }
+
+      if (sitesResult.success && sitesResult.data) {
+        setSites(sitesResult.data);
+      }
+    } catch (error) {
+      console.error('Error fetching dropdown data:', error);
+      toast.error('Failed to load dropdown data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setDataLoading(true);
+      
+      const dateRange = analyticsService.getDateRange(selectedTimeRange);
+      const basePayload: MetricsPayload = {
+        ...dateRange,
+        campaignId: selectedCampaigns.length > 0 ? Number(selectedCampaigns[0]) : undefined,
+      };
+
+      // Fetch metrics, trend data, and breakdowns in parallel
+      const [metricsResult, trendResult, ...breakdownResults] = await Promise.all([
+        analyticsService.getMetrics(basePayload),
+        analyticsService.getTrendData(basePayload),
+        analyticsService.getBreakdownData({ ...basePayload, by: 'gender' }),
+        analyticsService.getBreakdownData({ ...basePayload, by: 'age' }),
+        analyticsService.getBreakdownData({ ...basePayload, by: 'platform' }),
+        analyticsService.getBreakdownData({ ...basePayload, by: 'location' })
+      ]);
+
+      if (metricsResult.success && metricsResult.data) {
+        setMetricsData(metricsResult.data);
+      }
+
+      if (trendResult.success && trendResult.data) {
+        setTrendData(trendResult.data);
+      }
+
+      // Process breakdown data
+      const [genderResult, ageResult, platformResult, locationResult] = breakdownResults;
+      setBreakdownData({
+        gender: genderResult.success ? genderResult.data || [] : [],
+        age: ageResult.success ? ageResult.data || [] : [],
+        platform: platformResult.success ? platformResult.data || [] : [],
+        location: locationResult.success ? locationResult.data || [] : []
+      });
+
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await fetchAnalyticsData();
     setIsRefreshing(false);
   };
 
   const handleExport = () => {
     console.log('Exporting analytics data...');
-  };
-
-  // Get current analytics data based on active view
-  const getCurrentAnalyticsData = () => {
-    if (activeView === 'slot') {
-      if (selectedSlots.length > 0) {
-        const slotName = mockSlots.find(slot => slot.slotId === selectedSlots[0])?.name;
-        return slotName ? (mockSlotAnalytics as any)[slotName] || mockTrendData : mockTrendData;
-      }
-      return mockSlotAnalytics['Header Banner'] || mockTrendData;
-    } else {
-      if (selectedCampaigns.length > 0) {
-        const campaignName = mockCampaigns.find(campaign => campaign.campaignId === selectedCampaigns[0])?.brandName;
-        return campaignName ? (mockCampaignAnalytics as any)[campaignName] || mockTrendData : mockTrendData;
-      }
-      return mockCampaignAnalytics['TechGear Pro'] || mockTrendData;
-    }
+    toast.success('Export started');
   };
 
   const getFilterSummary = () => {
@@ -107,6 +191,84 @@ export function Analytics() {
     
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
+
+  // Get default metrics for loading state
+  const getDefaultMetrics = (): MetricsData => ({
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    conversions: 0,
+    revenue: 0,
+    roi: 0
+  });
+
+  // Mock data for tables while implementing real API for table data
+  const mockTopLocations = [
+    { location: 'Mumbai', impressions: 45000, clicks: 1350, conversions: 81 },
+    { location: 'Delhi', impressions: 38000, clicks: 1140, conversions: 68 },
+    { location: 'Bangalore', impressions: 32000, clicks: 960, conversions: 58 },
+    { location: 'Chennai', impressions: 28000, clicks: 840, conversions: 50 },
+    { location: 'Hyderabad', impressions: 25000, clicks: 750, conversions: 45 }
+  ];
+
+  const mockTopLandingUrls = [
+    { landingUrl: 'https://example.com/product-1', clicks: 850, impressions: 28000, conversions: 51 },
+    { landingUrl: 'https://example.com/product-2', clicks: 720, impressions: 24000, conversions: 43 },
+    { landingUrl: 'https://example.com/product-3', clicks: 650, impressions: 21000, conversions: 39 },
+    { landingUrl: 'https://example.com/product-4', clicks: 580, impressions: 19000, conversions: 35 },
+    { landingUrl: 'https://example.com/product-5', clicks: 520, impressions: 17000, conversions: 31 }
+  ];
+
+  const mockTopSlots = [
+    { slotName: 'Header Banner', impressions: 52000, clicks: 1560, conversionRate: 5.8 },
+    { slotName: 'Sidebar Ad', impressions: 41000, clicks: 1230, conversionRate: 4.2 },
+    { slotName: 'Mobile Banner', impressions: 38000, clicks: 1140, conversionRate: 6.1 },
+    { slotName: 'Footer Banner', impressions: 28000, clicks: 840, conversionRate: 3.9 },
+    { slotName: 'In-Feed Ad', impressions: 25000, clicks: 750, conversionRate: 7.2 }
+  ];
+
+  const mockImpressionsVsConversions = [
+    { date: '2024-01-01', impressions: 12000, conversions: 18 },
+    { date: '2024-01-02', impressions: 13500, conversions: 21 },
+    { date: '2024-01-03', impressions: 11800, conversions: 16 },
+    { date: '2024-01-04', impressions: 14200, conversions: 23 },
+    { date: '2024-01-05', impressions: 15600, conversions: 26 },
+    { date: '2024-01-06', impressions: 13900, conversions: 19 },
+    { date: '2024-01-07', impressions: 16200, conversions: 28 }
+  ];
+
+  const mockImpressionsVsCTR = [
+    { date: '2024-01-01', impressions: 12000, ctr: 2.5 },
+    { date: '2024-01-02', impressions: 13500, ctr: 2.6 },
+    { date: '2024-01-03', impressions: 11800, ctr: 2.4 },
+    { date: '2024-01-04', impressions: 14200, ctr: 2.7 },
+    { date: '2024-01-05', impressions: 15600, ctr: 2.8 },
+    { date: '2024-01-06', impressions: 13900, ctr: 2.5 },
+    { date: '2024-01-07', impressions: 16200, ctr: 2.9 }
+  ];
+
+  const mockBrandAgeData = [
+    { ageGroup: '18-24', 'TechGear Pro': 145, 'Fashion Forward': 120, 'Sports Elite': 98, 'Home & Garden': 76 },
+    { ageGroup: '25-34', 'TechGear Pro': 289, 'Fashion Forward': 245, 'Sports Elite': 178, 'Home & Garden': 134 },
+    { ageGroup: '35-44', 'TechGear Pro': 234, 'Fashion Forward': 198, 'Sports Elite': 145, 'Home & Garden': 167 },
+    { ageGroup: '45-54', 'TechGear Pro': 156, 'Fashion Forward': 134, 'Sports Elite': 89, 'Home & Garden': 198 },
+    { ageGroup: '55+', 'TechGear Pro': 67, 'Fashion Forward': 45, 'Sports Elite': 34, 'Home & Garden': 123 }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.2s' }}></div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">Loading Analytics Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
@@ -225,7 +387,7 @@ export function Analytics() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MultiSelectDropdown
                   label="Campaigns"
-                  options={mockCampaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
+                  options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
                   selectedValues={selectedCampaigns}
                   onChange={setSelectedCampaigns}
                   placeholder="Select campaigns..."
@@ -233,7 +395,7 @@ export function Analytics() {
                 
                 <MultiSelectDropdown
                   label="Slots"
-                  options={mockSlots.map(slot => ({ value: slot.slotId, label: slot.name }))}
+                  options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
                   selectedValues={selectedSlots}
                   onChange={setSelectedSlots}
                   placeholder="Select slots..."
@@ -241,7 +403,7 @@ export function Analytics() {
                 
                 <MultiSelectDropdown
                   label="Marketplaces (POS)"
-                  options={mockPOS.map(pos => ({ value: pos.posId, label: pos.name }))}
+                  options={sites.map(site => ({ value: site.posId, label: site.name }))}
                   selectedValues={selectedPOS}
                   onChange={setSelectedPOS}
                   placeholder="Select marketplaces..."
@@ -306,7 +468,7 @@ export function Analytics() {
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Key Metrics</h2>
             </div>
-            <MetricsDashboard data={mockMetrics} />
+            <MetricsDashboard data={metricsData || getDefaultMetrics()} />
           </motion.div>
           
           {/* Main Analytics Chart */}
@@ -316,10 +478,19 @@ export function Analytics() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-shadow duration-200"
           >
-            <TrendChart 
-              data={getCurrentAnalyticsData()} 
-              title={`${activeView === 'slot' ? 'Slot' : 'Campaign'} Performance Over Time`} 
-            />
+            {dataLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.2s' }}></div>
+                <span className="ml-3 text-base font-medium">Loading chart data...</span>
+              </div>
+            ) : (
+              <TrendChart 
+                data={trendData} 
+                title={`${activeView === 'slot' ? 'Slot' : 'Campaign'} Performance Over Time`} 
+              />
+            )}
           </motion.div>
 
           {/* Data Tables Section */}
@@ -426,7 +597,7 @@ export function Analytics() {
               transition={{ duration: 0.5, delay: 0.8 }}
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
-              <BreakdownPieChart data={mockGenderBreakdown} title="Gender Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" height={250} />
             </motion.div>
             
             <motion.div
@@ -435,7 +606,7 @@ export function Analytics() {
               transition={{ duration: 0.5, delay: 0.9 }}
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
-              <BreakdownPieChart data={mockAgeBreakdown} title="Age Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.age} title="Age Distribution" height={250} />
             </motion.div>
 
             <motion.div
@@ -444,7 +615,7 @@ export function Analytics() {
               transition={{ duration: 0.5, delay: 1.0 }}
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
-              <BreakdownPieChart data={mockPlatformBreakdown} title="Platform Breakdown" height={250} />
+              <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" height={250} />
             </motion.div>
             
             <motion.div
@@ -453,7 +624,7 @@ export function Analytics() {
               transition={{ duration: 0.5, delay: 1.1 }}
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
-              <BreakdownPieChart data={mockLocationBreakdown} title="Location Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.location} title="Location Distribution" height={250} />
             </motion.div>
           </div>
 

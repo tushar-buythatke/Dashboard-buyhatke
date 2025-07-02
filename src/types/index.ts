@@ -83,13 +83,18 @@ export interface TrendDataPoint {
   impressions: number;
   clicks: number;
   conversions: number;
-  revenue: number;
+  ctr: number;
+  conversionRate: number;
+  revenue?: number;
 }
 
 export interface BreakdownData {
   name: string;
   value: number;
   percentage: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
 }
 
 export interface FilterState {
