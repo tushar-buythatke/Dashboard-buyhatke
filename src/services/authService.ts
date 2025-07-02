@@ -5,6 +5,7 @@ const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/users';
 export interface User {
   userName: string;
   type: number;
+  userId?: number;
 }
 
 export interface LoginCredentials {
@@ -71,11 +72,11 @@ class AuthService {
    */
   private endpointSupportsCredentials(endpoint?: string): boolean {
     // Based on testing, isLoggedIn works with credentials
-    // validateLogin might not work yet - let's be smart about it
+    // validateLogin also works - adding it to whitelist
     const supportedEndpoints = [
       'isLoggedIn',
-      'logout'
-      // Add 'validateLogin' once backend team fixes CORS for it
+      'logout',
+      'validateLogin'  // ✅ Now enabled - cookies work!
     ];
     
     return endpoint ? supportedEndpoints.some(ep => endpoint.includes(ep)) : false;
@@ -140,19 +141,27 @@ class AuthService {
       
       console.debug('Backend session check result:', result);
       
-      if (result.status === 1 && result.isLoggedIn && result.user) {
+      // Handle actual backend response format: {"status":1,"message":"Success!","data":{"userId":4}}
+      if (result.status === 1 && result.data && result.data.userId) {
+        // Create user object from backend response
+        const user = {
+          userName: result.data.userName || `User${result.data.userId}`,
+          type: result.data.type || 0,
+          userId: result.data.userId
+        };
+        
         // Update session cache
         this.sessionInfo = {
-          user: result.user,
+          user: user,
           lastChecked: now,
           isValid: true
         };
-        this.currentUser = result.user;
+        this.currentUser = user;
         
-        console.debug('✅ Session valid');
-        return { isLoggedIn: true, user: result.user };
+        console.debug('✅ Session valid - User ID:', result.data.userId);
+        return { isLoggedIn: true, user: user };
       } else {
-        // Clear session cache
+        // Clear session cache - only when status !== 1
         this.sessionInfo = {
           user: null,
           lastChecked: now,
@@ -160,7 +169,7 @@ class AuthService {
         };
         this.currentUser = null;
         
-        console.debug('❌ Session invalid or expired');
+        console.debug('❌ Session invalid or expired - Status:', result.status);
         return { isLoggedIn: false };
       }
     } catch (error) {
@@ -429,10 +438,10 @@ if (typeof window !== 'undefined') {
       console.log('Backend Response:', result);
       console.log('Cookies Sent:', document.cookie);
       
-      if (result.status === 1 && result.isLoggedIn) {
-        console.log('✅ Backend session is VALID');
+      if (result.status === 1 && result.data && result.data.userId) {
+        console.log('✅ Backend session is VALID - User ID:', result.data.userId);
       } else {
-        console.log('❌ Backend session is INVALID');
+        console.log('❌ Backend session is INVALID - Status:', result.status);
       }
       
       console.groupEnd();
