@@ -69,13 +69,13 @@ export const mockPOS = [
 
 // Mock data for analytics and dashboard charts
 export const mockTrendData: TrendDataPoint[] = [
-  { date: '2024-01-01', impressions: 12000, clicks: 300, conversions: 18, revenue: 1800 },
-  { date: '2024-01-02', impressions: 13500, clicks: 338, conversions: 21, revenue: 2100 },
-  { date: '2024-01-03', impressions: 11800, clicks: 295, conversions: 16, revenue: 1600 },
-  { date: '2024-01-04', impressions: 14200, clicks: 355, conversions: 23, revenue: 2300 },
-  { date: '2024-01-05', impressions: 15600, clicks: 390, conversions: 26, revenue: 2600 },
-  { date: '2024-01-06', impressions: 13900, clicks: 347, conversions: 19, revenue: 1900 },
-  { date: '2024-01-07', impressions: 16200, clicks: 405, conversions: 28, revenue: 2800 }
+  { date: '2024-01-01', impressions: 12000, clicks: 300, conversions: 18, ctr: 2.5, conversionRate: 6.0, revenue: 1800 },
+  { date: '2024-01-02', impressions: 13500, clicks: 338, conversions: 21, ctr: 2.5, conversionRate: 6.2, revenue: 2100 },
+  { date: '2024-01-03', impressions: 11800, clicks: 295, conversions: 16, ctr: 2.5, conversionRate: 5.4, revenue: 1600 },
+  { date: '2024-01-04', impressions: 14200, clicks: 355, conversions: 23, ctr: 2.5, conversionRate: 6.5, revenue: 2300 },
+  { date: '2024-01-05', impressions: 15600, clicks: 390, conversions: 26, ctr: 2.5, conversionRate: 6.7, revenue: 2600 },
+  { date: '2024-01-06', impressions: 13900, clicks: 347, conversions: 19, ctr: 2.5, conversionRate: 5.5, revenue: 1900 },
+  { date: '2024-01-07', impressions: 16200, clicks: 405, conversions: 28, ctr: 2.5, conversionRate: 6.9, revenue: 2800 }
 ];
 
 // Slot-wise analytics data
@@ -237,30 +237,30 @@ export const mockImpressionsVsCTR = [
 ];
 
 export const mockGenderBreakdown: BreakdownData[] = [
-  { name: 'Male', value: 45680, percentage: 52.3 },
-  { name: 'Female', value: 41720, percentage: 47.7 }
+  { name: 'Male', value: 45680, percentage: 52.3, impressions: 45680, clicks: 1370, conversions: 82 },
+  { name: 'Female', value: 41720, percentage: 47.7, impressions: 41720, clicks: 1252, conversions: 75 }
 ];
 
 export const mockAgeBreakdown: BreakdownData[] = [
-  { name: '18-24', value: 15234, percentage: 17.4 },
-  { name: '25-34', value: 28945, percentage: 33.1 },
-  { name: '35-44', value: 23567, percentage: 27.0 },
-  { name: '45-54', value: 14876, percentage: 17.0 },
-  { name: '55+', value: 4778, percentage: 5.5 }
+  { name: '18-24', value: 15234, percentage: 17.4, impressions: 15234, clicks: 457, conversions: 32 },
+  { name: '25-34', value: 28945, percentage: 33.1, impressions: 28945, clicks: 868, conversions: 61 },
+  { name: '35-44', value: 23567, percentage: 27.0, impressions: 23567, clicks: 707, conversions: 49 },
+  { name: '45-54', value: 14876, percentage: 17.0, impressions: 14876, clicks: 446, conversions: 31 },
+  { name: '55+', value: 4778, percentage: 5.5, impressions: 4778, clicks: 143, conversions: 10 }
 ];
 
 export const mockPlatformBreakdown: BreakdownData[] = [
-  { name: 'Web', value: 42350, percentage: 48.5 },
-  { name: 'Mobile', value: 38920, percentage: 44.5 },
-  { name: 'Extension', value: 6130, percentage: 7.0 }
+  { name: 'Web', value: 42350, percentage: 48.5, impressions: 42350, clicks: 1270, conversions: 76 },
+  { name: 'Mobile', value: 38920, percentage: 44.5, impressions: 38920, clicks: 1168, conversions: 70 },
+  { name: 'Extension', value: 6130, percentage: 7.0, impressions: 6130, clicks: 184, conversions: 11 }
 ];
 
 export const mockLocationBreakdown: BreakdownData[] = [
-  { name: 'Mumbai', value: 28450, percentage: 32.6 },
-  { name: 'Delhi', value: 24680, percentage: 28.3 },
-  { name: 'Bangalore', value: 18920, percentage: 21.7 },
-  { name: 'Chennai', value: 9870, percentage: 11.3 },
-  { name: 'Others', value: 5480, percentage: 6.1 }
+  { name: 'Mumbai', value: 28450, percentage: 32.6, impressions: 28450, clicks: 854, conversions: 51 },
+  { name: 'Delhi', value: 24680, percentage: 28.3, impressions: 24680, clicks: 740, conversions: 44 },
+  { name: 'Bangalore', value: 18920, percentage: 21.7, impressions: 18920, clicks: 568, conversions: 34 },
+  { name: 'Chennai', value: 9870, percentage: 11.3, impressions: 9870, clicks: 296, conversions: 18 },
+  { name: 'Others', value: 5480, percentage: 6.1, impressions: 5480, clicks: 164, conversions: 10 }
 ];
 
 // Static data for forms, filters and dropdowns
