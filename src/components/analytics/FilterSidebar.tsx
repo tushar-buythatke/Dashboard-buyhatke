@@ -1,7 +1,5 @@
 import { Filter, X, Calendar, Users, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { useFilters } from '@/context/FilterContext';
 import { mockCampaigns, platforms } from '@/data/mockData';
 
@@ -48,34 +46,59 @@ export function FilterSidebar() {
             <h4 className="font-medium text-gray-900 dark:text-white">Date Range</h4>
           </div>
           
-          <div className="space-y-2">
-            <div>
-              <Label htmlFor="date-from" className="text-xs text-gray-600 dark:text-gray-400">
-                From
-              </Label>
-              <Input
-                id="date-from"
-                type="date"
-                value={filters.dateRange.from}
-                onChange={(e) => updateFilters({
-                  dateRange: { ...filters.dateRange, from: e.target.value }
-                })}
-                className="text-sm h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-              />
+          <div className="space-y-3">
+            {/* Period Type Toggle */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+              {['Daily', 'Weekly', 'Monthly'].map((period) => (
+                <button
+                  key={period}
+                  className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
+                    filters.periodType === period.toLowerCase()
+                      ? 'bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                  onClick={() => updateFilters({ periodType: period.toLowerCase() })}
+                >
+                  {period}
+                </button>
+              ))}
             </div>
-            <div>
-              <Label htmlFor="date-to" className="text-xs text-gray-600 dark:text-gray-400">
-                To
-              </Label>
-              <Input
-                id="date-to"
-                type="date"
-                value={filters.dateRange.to}
-                onChange={(e) => updateFilters({
-                  dateRange: { ...filters.dateRange, to: e.target.value }
-                })}
-                className="text-sm h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-              />
+
+            {/* Date Range Dropdown */}
+            <select
+              value={`${filters.dateRange.from}-${filters.dateRange.to}`}
+              onChange={(e) => {
+                const [from, to] = e.target.value.split('-');
+                updateFilters({ dateRange: { from, to } });
+              }}
+              className="w-full text-sm h-8 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-md px-2"
+            >
+              <option value={`${new Date().toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
+                Today
+              </option>
+              <option value={`${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
+                Yesterday
+              </option>
+              <option value={`${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
+                Last 7 Days
+              </option>
+              <option value={`${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
+                Previous 7 Days
+              </option>
+              <option value={`${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
+                Last 30 Days
+              </option>
+              <option value={`${new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
+                Previous 30 Days
+              </option>
+              <option value={`${new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
+                Last 90 Days
+              </option>
+            </select>
+
+            {/* Selected Date Range Display */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border">
+              {new Date(filters.dateRange.from).toLocaleDateString()} - {new Date(filters.dateRange.to).toLocaleDateString()}
             </div>
           </div>
         </div>
@@ -214,12 +237,27 @@ export function FilterSidebar() {
             className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
             onClick={() => updateFilters({ 
               dateRange: { 
-                from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                from: new Date().toISOString().split('T')[0],
                 to: new Date().toISOString().split('T')[0]
-              }
+              },
+              periodType: 'daily'
             })}
           >
-            Last 7 Days
+            Today
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+            onClick={() => updateFilters({ 
+              dateRange: { 
+                from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                to: new Date().toISOString().split('T')[0]
+              },
+              periodType: 'weekly'
+            })}
+          >
+            This Week
           </Button>
           <Button 
             variant="outline" 
@@ -229,10 +267,11 @@ export function FilterSidebar() {
               dateRange: { 
                 from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 to: new Date().toISOString().split('T')[0]
-              }
+              },
+              periodType: 'monthly'
             })}
           >
-            Last 30 Days
+            This Month
           </Button>
           <Button 
             variant="outline" 

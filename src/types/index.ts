@@ -49,6 +49,7 @@ export interface Ad {
   creativeUrl: string;
   gender: string;
   isTestPhase: boolean;
+  serveStrategy: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +103,7 @@ export interface FilterState {
     from: string;
     to: string;
   };
+  periodType: string;
   campaigns: string[];
   platforms: string[];
   gender: string[];

@@ -141,14 +141,15 @@ const adSchema = z.object({
   priority: z.number().min(0, 'Priority must be at least 0').max(1000, 'Priority cannot exceed 1000'),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
-  startTime: z.string().min(1, 'Start time is required'),
-  endTime: z.string().min(1, 'End time is required'),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   creativeUrl: z.string().url('Creative URL must be valid'),
   gender: z.string().optional(),
   noGenderSpecificity: z.boolean().optional(),
   noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1),
-  isTestPhase: z.number().min(0).max(1)
+  isTestPhase: z.number().min(0).max(1),
+  serveStrategy: z.number().min(0).max(1)
 }).refine((data) => {
   // Validate impression target >= click target
   if (data.impressionTarget && data.clickTarget) {
@@ -223,14 +224,15 @@ export function AdForm() {
       priority: 500,
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      startTime: '09:00',
-      endTime: '21:00',
+      startTime: '', // Blank by default
+      endTime: '', // Blank by default
       creativeUrl: '',
       gender: 'Male',
       noGenderSpecificity: false,
       noSpecificity: false,
       status: 1,
-      isTestPhase: 0
+      isTestPhase: 0,
+      serveStrategy: 0
     }
   });
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,8 +352,8 @@ export function AdForm() {
                 ...adData,
                 startDate: adData.startDate ? adData.startDate.split('T')[0] : undefined,
                 endDate: adData.endDate ? adData.endDate.split('T')[0] : undefined,
-                startTime: adData.startTime ? adData.startTime.slice(0, 5) : '09:00',
-                endTime: adData.endTime ? adData.endTime.slice(0, 5) : '21:00',
+                startTime: '', // Blank by default on edit/update
+                endTime: '', // Blank by default on edit/update
               });
 
               // Set the selected slot for editing mode
@@ -575,7 +577,7 @@ export function AdForm() {
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Button 
                 variant="ghost"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
                 className="h-100 w-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -899,6 +901,76 @@ export function AdForm() {
                             </span>
                           </div>
                         )}
+                      </div>
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="serveStrategy"
+                render={({ field }) => {
+                  const isUserBased = field.value === 1;
+                  return (
+                    <FormItem>
+                      <div
+                        onClick={() => field.onChange(isUserBased ? 0 : 1)}
+                        className={`
+                          flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                          ${isUserBased 
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
+                            : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
+                          }
+                        `}
+                      >
+                        <div className={`
+                          relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
+                          ${isUserBased 
+                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800' 
+                            : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
+                          }
+                        `}>
+                          <div className={`
+                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
+                            ${isUserBased 
+                              ? 'translate-x-6' 
+                              : 'translate-x-0.5'
+                            }
+                          `}>
+                            {isUserBased && (
+                              <div className="flex items-center justify-center h-full">
+                                <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                            {!isUserBased && (
+                              <div className="flex items-center justify-center h-full">
+                                <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
+                            Serve Strategy
+                          </FormLabel>
+                          <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                            {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
+                          </FormDescription>
+                        </div>
+                        <div className="ml-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${
+                            isUserBased 
+                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700' 
+                              : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+                          }`}>
+                            {isUserBased ? 'User-based' : 'Product-based'}
+                          </span>
+                        </div>
                       </div>
                     </FormItem>
                   );
@@ -1566,7 +1638,7 @@ export function AdForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
               disabled={loading}
               className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
             >

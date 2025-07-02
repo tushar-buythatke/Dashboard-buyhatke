@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Eye, MousePointerClick, DollarSign, TrendingDown } from 'lucide-react';
+import { TrendingUp, Eye, MousePointerClick, Banknote, TrendingDown, Target } from 'lucide-react';
 import { MetricsData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -57,7 +57,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'CTR',
       value: formatPercentage(data.ctr),
       rawValue: data.ctr,
-      icon: DollarSign,
+      icon: TrendingUp,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       change: '+0.3%'
@@ -66,7 +66,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'Conversions',
       value: formatNumber(data.conversions),
       rawValue: data.conversions,
-      icon: TrendingUp,
+      icon: Target,
       color: 'text-orange-600 dark:text-orange-400',
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
       change: '+15.7%'
@@ -75,7 +75,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       title: 'Revenue',
       value: formatCurrency(data.revenue),
       rawValue: data.revenue,
-      icon: DollarSign,
+      icon: Banknote,
       color: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
       change: '+22.1%'

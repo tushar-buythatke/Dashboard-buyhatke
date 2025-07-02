@@ -1,4 +1,4 @@
-import { encryptAES } from '../utils/encryption';
+import { encryptAES } from '@/utils/encryption';
 
 const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/users';
 
@@ -12,183 +12,213 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface AddUserData {
-  userName: string;
-  password: string;
-  type: number;
-}
-
-interface SessionData {
-  user: User;
-  sessionId: string;
-  loginTime: number;
-  lastValidated: number;
+interface SessionInfo {
+  user: User | null;
+  lastChecked: number;
+  isValid: boolean;
 }
 
 class AuthService {
   private currentUser: User | null = null;
-  private sessionData: SessionData | null = null;
-  private readonly USER_STORAGE_KEY = 'bhk_user_data';
-  private readonly SESSION_STORAGE_KEY = 'bhk_session_data';
-
+  private sessionInfo: SessionInfo | null = null;
+  private sessionCheckInProgress = false;
+  private readonly SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  private useCookies = true; // ✅ CORS is now fixed - enable cookies!
+  
   constructor() {
-    // Load user and session from localStorage on initialization
-    this.loadSessionFromStorage();
+    // Initialize session info
+    this.sessionInfo = {
+      user: null,
+      lastChecked: 0,
+      isValid: false
+    };
   }
 
-  private saveSessionToStorage(sessionData: SessionData | null): void {
-    try {
-      if (sessionData) {
-        localStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-        localStorage.setItem(this.USER_STORAGE_KEY, JSON.stringify(sessionData.user));
-      } else {
-        localStorage.removeItem(this.SESSION_STORAGE_KEY);
-        localStorage.removeItem(this.USER_STORAGE_KEY);
-      }
-    } catch (error) {
-      console.warn('Failed to save session data to localStorage:', error);
+  /**
+   * Configure request options with smart fallback
+   * Some endpoints may have CORS fixed, others may not
+   */
+  private getRequestOptions(body?: any, endpoint?: string): RequestInit {
+    // Check if this endpoint supports credentials
+    const supportsCredentials = this.useCookies && this.endpointSupportsCredentials(endpoint);
+    
+    const options: RequestInit = {
+      method: 'POST',
+      mode: 'cors',
+      credentials: supportsCredentials ? 'include' : 'omit',
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      headers: {
+        'Accept': '*/*',
+        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site'
+      },
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
     }
+
+    return options;
   }
 
-  private loadSessionFromStorage(): void {
-    try {
-      const storedSession = localStorage.getItem(this.SESSION_STORAGE_KEY);
-      const storedUser = localStorage.getItem(this.USER_STORAGE_KEY);
-      
-      if (storedSession && storedUser) {
-        this.sessionData = JSON.parse(storedSession);
-        this.currentUser = JSON.parse(storedUser);
-        
-        // Check if session is not too old (24 hours max)
-        const sessionAge = Date.now() - (this.sessionData?.loginTime || 0);
-        if (sessionAge > 24 * 60 * 60 * 1000) { // 24 hours
-          console.log('Session too old, clearing');
-          this.clearSession();
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load session data from localStorage:', error);
-      this.clearSession();
-    }
+  /**
+   * Check which endpoints support credentials based on testing
+   */
+  private endpointSupportsCredentials(endpoint?: string): boolean {
+    // Based on testing, isLoggedIn works with credentials
+    // validateLogin might not work yet - let's be smart about it
+    const supportedEndpoints = [
+      'isLoggedIn',
+      'logout'
+      // Add 'validateLogin' once backend team fixes CORS for it
+    ];
+    
+    return endpoint ? supportedEndpoints.some(ep => endpoint.includes(ep)) : false;
   }
 
-  private generateSessionId(): string {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-  }
-
-  // Check if user is logged in
+  /**
+   * Check if user is logged in with smart caching
+   */
   async isLoggedIn(): Promise<{ isLoggedIn: boolean; user?: User }> {
-    try {
-      // If we have a recent session, validate it with the server
-      if (this.sessionData && this.currentUser) {
-        const timeSinceLastValidation = Date.now() - this.sessionData.lastValidated;
-        
-        // Extended: If validated within the last 15 minutes, trust the local session
-        // This reduces server calls and prevents premature logouts due to backend session expiry
-        if (timeSinceLastValidation < 15 * 60 * 1000) {
-          console.debug(`Session trusted locally (last validated ${Math.round(timeSinceLastValidation / 1000 / 60)} minutes ago)`);
-          return { isLoggedIn: true, user: this.currentUser };
-        }
-        
-        console.debug(`Session validation required (last validated ${Math.round(timeSinceLastValidation / 1000 / 60)} minutes ago)`);
-      }
+    const now = Date.now();
+    
+    // Use cached result if recent and valid
+    if (this.sessionInfo && 
+        this.sessionInfo.isValid && 
+        (now - this.sessionInfo.lastChecked) < this.SESSION_CACHE_DURATION) {
+      
+      console.debug(`Session cached: valid for ${Math.round((this.SESSION_CACHE_DURATION - (now - this.sessionInfo.lastChecked)) / 1000)}s more`);
+      return { 
+        isLoggedIn: !!this.sessionInfo.user, 
+        user: this.sessionInfo.user || undefined 
+      };
+    }
 
-      console.debug('Calling server to validate session...');
-      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
-        method: 'POST',
-        credentials: 'omit', // Don't send cookies to avoid CORS issues
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    // Prevent multiple simultaneous checks
+    if (this.sessionCheckInProgress) {
+      console.debug('Session check already in progress, waiting...');
+      await this.waitForSessionCheck();
+      return this.isLoggedIn(); // Retry after the ongoing check completes
+    }
+
+    return this.performSessionCheck();
+  }
+
+  /**
+   * Wait for ongoing session check to complete
+   */
+  private async waitForSessionCheck(): Promise<void> {
+    let attempts = 0;
+    while (this.sessionCheckInProgress && attempts < 30) { // 3 second timeout
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+  }
+
+  /**
+   * Perform actual session check with backend
+   */
+  private async performSessionCheck(): Promise<{ isLoggedIn: boolean; user?: User }> {
+    this.sessionCheckInProgress = true;
+    
+    try {
+      console.debug('Checking session with backend...');
+      
+      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.debug('Server session validation result:', result);
+      const now = Date.now();
+      
+      console.debug('Backend session check result:', result);
       
       if (result.status === 1 && result.isLoggedIn && result.user) {
-        // Update session data with successful validation
-        if (this.sessionData) {
-          this.sessionData.lastValidated = Date.now();
-          this.sessionData.user = result.user;
-        } else {
-          // Create new session if we got a valid response but no local session
-          this.sessionData = {
-            user: result.user,
-            sessionId: this.generateSessionId(),
-            loginTime: Date.now(),
-            lastValidated: Date.now()
-          };
-        }
-        
+        // Update session cache
+        this.sessionInfo = {
+          user: result.user,
+          lastChecked: now,
+          isValid: true
+        };
         this.currentUser = result.user;
-        this.saveSessionToStorage(this.sessionData);
-        console.debug('Session validated successfully');
+        
+        console.debug('✅ Session valid');
         return { isLoggedIn: true, user: result.user };
+      } else {
+        // Clear session cache
+        this.sessionInfo = {
+          user: null,
+          lastChecked: now,
+          isValid: false
+        };
+        this.currentUser = null;
+        
+        console.debug('❌ Session invalid or expired');
+        return { isLoggedIn: false };
       }
-      
-      // Server says not logged in, clear local session
-      console.debug('Server says session invalid, clearing local session');
-      this.clearSession();
-      return { isLoggedIn: false };
     } catch (error) {
-      console.error('Error checking login status:', error);
+      console.error('Session check failed:', error);
       
-      // On network error, trust local session if it exists and is recent
-      if (this.sessionData && this.currentUser) {
-        const sessionAge = Date.now() - this.sessionData.loginTime;
-        if (sessionAge < 60 * 60 * 1000) { // Extended to 1 hour grace period for network errors
-          console.debug('Network error, but trusting recent local session');
-          return { isLoggedIn: true, user: this.currentUser };
-        }
-      }
+      // On network error, mark session as invalid
+      this.sessionInfo = {
+        user: null,
+        lastChecked: Date.now(),
+        isValid: false
+      };
+      this.currentUser = null;
       
-      console.debug('Network error and no valid local session, clearing session');
-      this.clearSession();
       return { isLoggedIn: false };
+    } finally {
+      this.sessionCheckInProgress = false;
     }
   }
 
-  // Validate login credentials
+  /**
+   * Validate login credentials
+   */
   async validateLogin(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
+      console.debug('Attempting login for:', credentials.userName);
+      
+      const supportsCredentials = this.endpointSupportsCredentials('validateLogin');
+      if (!supportsCredentials) {
+        console.debug('⚠️ validateLogin endpoint not in credentials whitelist - using fallback mode');
+        console.debug('📝 Ask backend team to fix CORS for /validateLogin endpoint');
+      }
+      
       const encryptedPassword = await encryptAES(credentials.password);
       
-      const response = await fetch(`${API_BASE_URL}/validateLogin`, {
-        method: 'POST',
-        credentials: 'omit', // Don't send cookies to avoid CORS issues
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName: credentials.userName,
-          password: encryptedPassword,
-        }),
-      });
+      const response = await fetch(`${API_BASE_URL}/validateLogin`, this.getRequestOptions({
+        userName: credentials.userName,
+        password: encryptedPassword,
+      }, 'validateLogin'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.debug('Login response:', result);
       
       if (result.status === 1) {
         const user = result.user || { userName: credentials.userName, type: 0 };
         
-        // Create new session data
-        this.sessionData = {
+        // Update session cache immediately
+        this.sessionInfo = {
           user,
-          sessionId: this.generateSessionId(),
-          loginTime: Date.now(),
-          lastValidated: Date.now()
+          lastChecked: Date.now(),
+          isValid: true
         };
-        
         this.currentUser = user;
-        this.saveSessionToStorage(this.sessionData);
         
+        console.debug('✅ Login successful');
         return { 
           success: true, 
           user,
@@ -196,12 +226,13 @@ class AuthService {
         };
       }
       
+      console.debug('❌ Login failed:', result.message);
       return { 
         success: false, 
         message: result.message || 'Invalid credentials' 
       };
     } catch (error) {
-      console.error('Error validating login:', error);
+      console.error('Login error:', error);
       return { 
         success: false, 
         message: error instanceof Error && error.message.includes('HTTP') 
@@ -211,52 +242,52 @@ class AuthService {
     }
   }
 
-  // Logout user
+  /**
+   * Logout user and clear session
+   */
   async logout(): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/logout`, {
-        method: 'POST',
-        credentials: 'omit', // Don't send cookies to avoid CORS issues
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
+      console.debug('Logging out...');
       
+      // Call backend logout to clear server-side session/cookies
+      const response = await fetch(`${API_BASE_URL}/logout`, this.getRequestOptions(null, 'logout'));
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.debug('Backend logout result:', result);
+      }
+      
+      // Always clear local session regardless of backend response
       this.clearSession();
       
+      console.debug('✅ Logout completed');
       return { 
         success: true, 
-        message: result.message || 'Logged out successfully' 
+        message: 'Logged out successfully' 
       };
     } catch (error) {
-      console.error('Error logging out:', error);
-      this.clearSession(); // Clear session anyway
+      console.error('Logout error:', error);
+      // Clear local session anyway
+      this.clearSession();
       return { 
-        success: true, // Return success even if API fails
-        message: 'Logged out locally' 
+        success: true, 
+        message: 'Logged out successfully' 
       };
     }
   }
 
-  // Add new user (admin function)
-  async addUser(userData: AddUserData): Promise<{ success: boolean; message?: string }> {
+  /**
+   * Add new user (admin function)
+   */
+  async addUser(userData: { userName: string; password: string; type: number }): Promise<{ success: boolean; message?: string }> {
     try {
       const encryptedPassword = await encryptAES(userData.password);
       
-      const response = await fetch(`${API_BASE_URL}/addUsers`, {
-        method: 'POST',
-        credentials: 'omit', // Don't send cookies to avoid CORS issues
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName: userData.userName,
-          password: encryptedPassword,
-          type: userData.type,
-        }),
-      });
+      const response = await fetch(`${API_BASE_URL}/addUsers`, this.getRequestOptions({
+        userName: userData.userName,
+        password: encryptedPassword,
+        type: userData.type
+      }, 'addUsers'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -264,155 +295,323 @@ class AuthService {
 
       const result = await response.json();
       
-      if (result.status === 1) {
-        return { 
-          success: true, 
-          message: result.message || 'User added successfully' 
-        };
-      }
-      
       return { 
-        success: false, 
-        message: result.message || 'Failed to add user' 
+        success: result.status === 1, 
+        message: result.message 
       };
     } catch (error) {
-      console.error('Error adding user:', error);
+      console.error('Add user error:', error);
       return { 
         success: false, 
-        message: error instanceof Error && error.message.includes('HTTP') 
-          ? 'Server connection failed. Please try again.' 
-          : 'Failed to add user. Please try again.'
+        message: 'Failed to add user. Please try again.' 
       };
     }
   }
 
-  // Get current user
+  /**
+   * Get current user
+   */
   getCurrentUser(): User | null {
     return this.currentUser;
   }
 
-  // Set current user (for context updates)
-  setCurrentUser(user: User | null): void {
-    this.currentUser = user;
-    if (user && this.sessionData) {
-      this.sessionData.user = user;
-      this.saveSessionToStorage(this.sessionData);
-    } else if (!user) {
-      this.clearSession();
-    }
-  }
-
-  // Clear all session data
+  /**
+   * Clear all session data
+   */
   clearSession(): void {
     this.currentUser = null;
-    this.sessionData = null;
-    this.saveSessionToStorage(null);
+    this.sessionInfo = {
+      user: null,
+      lastChecked: 0,
+      isValid: false
+    };
+    console.debug('Session cleared');
   }
 
-  // Check if session is valid (for periodic checks)
-  async validateSession(): Promise<boolean> {
+  /**
+   * Force refresh session (bypass cache)
+   */
+  async refreshSession(): Promise<boolean> {
+    console.debug('Force refreshing session...');
+    
+    // Clear cache to force fresh check
+    if (this.sessionInfo) {
+      this.sessionInfo.lastChecked = 0;
+    }
+    
     const { isLoggedIn } = await this.isLoggedIn();
     return isLoggedIn;
   }
 
-  // Get session info for debugging
-  getSessionInfo(): { hasSession: boolean; sessionAge?: number; lastValidated?: number } {
-    if (!this.sessionData) {
-      return { hasSession: false };
-    }
-    
-    return {
-      hasSession: true,
-      sessionAge: Date.now() - this.sessionData.loginTime,
-      lastValidated: this.sessionData.lastValidated
-    };
+  /**
+   * Enable cookie-based authentication (after CORS is fixed)
+   */
+  enableCookieAuth(): void {
+    this.useCookies = true;
+    console.log('✅ Cookie authentication enabled');
+    console.log('🔄 Clear session cache and login again to use cookies');
   }
 
-  // Comprehensive debug information
+  /**
+   * Disable cookie-based authentication (fallback mode)
+   */
+  disableCookieAuth(): void {
+    this.useCookies = false;
+    console.log('❌ Cookie authentication disabled (fallback mode)');
+  }
+
+  /**
+   * Get debug information
+   */
   getDebugInfo(): any {
-    const sessionInfo = this.getSessionInfo();
     const now = Date.now();
     
     return {
       currentUser: this.currentUser,
-      hasSession: sessionInfo.hasSession,
-      sessionData: this.sessionData,
-      sessionAge: sessionInfo.sessionAge ? {
-        ms: sessionInfo.sessionAge,
-        minutes: Math.round(sessionInfo.sessionAge / 1000 / 60),
-        hours: Math.round(sessionInfo.sessionAge / 1000 / 60 / 60)
+      sessionInfo: this.sessionInfo,
+      cacheStatus: this.sessionInfo ? {
+        isValid: this.sessionInfo.isValid,
+        ageMs: now - this.sessionInfo.lastChecked,
+        ageMinutes: Math.round((now - this.sessionInfo.lastChecked) / 1000 / 60),
+        expiresInMs: Math.max(0, this.SESSION_CACHE_DURATION - (now - this.sessionInfo.lastChecked)),
+        expiresInMinutes: Math.max(0, Math.round((this.SESSION_CACHE_DURATION - (now - this.sessionInfo.lastChecked)) / 1000 / 60))
       } : null,
-      lastValidated: sessionInfo.lastValidated ? {
-        timestamp: sessionInfo.lastValidated,
-        ago: now - sessionInfo.lastValidated,
-        agoMinutes: Math.round((now - sessionInfo.lastValidated) / 1000 / 60)
-      } : null,
-      localStorageData: {
-        user: localStorage.getItem(this.USER_STORAGE_KEY),
-        session: localStorage.getItem(this.SESSION_STORAGE_KEY)
+      settings: {
+        useCookies: this.useCookies,
+        cookieStatus: this.useCookies ? '✅ ENABLED' : '❌ DISABLED',
+        cacheDurationMs: this.SESSION_CACHE_DURATION,
+        cacheDurationMinutes: this.SESSION_CACHE_DURATION / 1000 / 60,
+        checkInProgress: this.sessionCheckInProgress
       },
-      validation: {
-        nextValidationDue: sessionInfo.lastValidated ? 
-          Math.max(0, 15 * 60 * 1000 - (now - sessionInfo.lastValidated)) : null,
-        willTrustLocal: sessionInfo.lastValidated ? 
-          (now - sessionInfo.lastValidated) < 15 * 60 * 1000 : false
+      browser: {
+        hasCookies: document.cookie ? 'Yes' : 'None found',
+        cookieCount: document.cookie.split(';').filter(c => c.trim()).length,
+        userAgent: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'
       }
     };
   }
 }
 
+// Create singleton instance
 export const authService = new AuthService();
 
-// Expose debug function globally for troubleshooting
+// Global debug functions
 if (typeof window !== 'undefined') {
   (window as any).debugAuth = () => {
     const debugInfo = authService.getDebugInfo();
     console.group('🔍 Auth Debug Information');
-    console.log('Current User:', debugInfo.currentUser);
-    console.log('Has Active Session:', debugInfo.hasSession);
-    console.log('Session Age:', debugInfo.sessionAge?.minutes, 'minutes');
-    console.log('Last Validated:', debugInfo.lastValidated?.agoMinutes, 'minutes ago');
-    console.log('Will Trust Local Session:', debugInfo.validation.willTrustLocal);
-    console.log('Next Server Check In:', debugInfo.validation.nextValidationDue ? 
-      Math.round(debugInfo.validation.nextValidationDue / 1000 / 60) + ' minutes' : 'Now');
-    console.log('Full Debug Data:', debugInfo);
+    console.log('🍪 Cookie Status:', debugInfo.settings.cookieStatus);
+    console.log('👤 Current User:', debugInfo.currentUser);
+    console.log('✅ Session Valid:', debugInfo.sessionInfo?.isValid);
+    console.log('⏰ Cache Age:', debugInfo.cacheStatus?.ageMinutes, 'minutes');
+    console.log('⏳ Cache Expires In:', debugInfo.cacheStatus?.expiresInMinutes, 'minutes');
+    console.log('🔄 Session Check In Progress:', debugInfo.settings.checkInProgress);
+    console.log('🌐 Browser Cookies:', debugInfo.browser.hasCookies, `(${debugInfo.browser.cookieCount} cookies)`);
+    console.log('📊 Full Debug Data:', debugInfo);
     console.groupEnd();
     return debugInfo;
   };
 
   (window as any).testBackendSession = async () => {
     console.group('🔍 Testing Backend Session');
-    console.log('Calling backend isLoggedIn endpoint...');
-    
     try {
       const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
         method: 'POST',
-        credentials: 'omit',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
       });
 
       const result = await response.json();
       console.log('Backend Response Status:', response.status);
       console.log('Backend Response:', result);
+      console.log('Cookies Sent:', document.cookie);
       
       if (result.status === 1 && result.isLoggedIn) {
-        console.log('✅ Backend says session is VALID');
+        console.log('✅ Backend session is VALID');
       } else {
-        console.log('❌ Backend says session is INVALID or EXPIRED');
+        console.log('❌ Backend session is INVALID');
       }
       
       console.groupEnd();
       return result;
     } catch (error) {
-      console.error('❌ Error calling backend:', error);
+      console.error('❌ Backend test failed:', error);
       console.groupEnd();
       throw error;
     }
   };
 
-  console.log('🛠️ Auth debugging enabled.');
-  console.log('• Type debugAuth() to check session status');
-  console.log('• Type testBackendSession() to test backend directly');
+  (window as any).clearAuthCache = () => {
+    authService.clearSession();
+    console.log('🗑️ Auth cache cleared');
+  };
+
+  (window as any).testCORS = async () => {
+    console.group('🔍 Testing CORS Configuration');
+    
+    try {
+      // Test with credentials: 'include'
+      console.log('Testing with credentials: "include"...');
+      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+      console.log('✅ CORS with credentials works!');
+      console.log('Response:', result);
+      console.log('🎉 Cookie authentication is already enabled and working!');
+      
+      return { success: true, result };
+    } catch (error) {
+      console.log('❌ CORS with credentials failed');
+      console.log('Error:', error);
+      console.log('📋 Backend team needs to fix CORS configuration');
+      console.log('📄 Share CORS_FIX_URGENT.md with backend team');
+      
+      return { success: false, error };
+    } finally {
+      console.groupEnd();
+    }
+  };
+
+  (window as any).enableCookies = () => {
+    authService.enableCookieAuth();
+  };
+
+  (window as any).disableCookies = () => {
+    authService.disableCookieAuth();
+  };
+
+  (window as any).testExactRequest = async () => {
+    console.group('🧪 Testing Exact Request (Your Working Version)');
+    try {
+      const response = await fetch("https://ext1.buyhatke.com/buhatkeAdDashboard-test/users/isLoggedIn", {
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+          "cache-control": "no-cache, no-store, must-revalidate",
+          "content-type": "application/json",
+          "pragma": "no-cache",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site"
+        },
+        "referrer": "http://localhost:5174/",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "body": null,
+        "method": "POST",
+        "mode": "cors",
+        "credentials": "include"
+      });
+
+      const result = await response.json();
+      console.log('✅ Exact request successful!');
+      console.log('Status:', response.status);
+      console.log('Response:', result);
+      console.log('Cookies included:', document.cookie ? 'Yes' : 'None found');
+      
+      console.groupEnd();
+      return { success: true, result, status: response.status };
+    } catch (error) {
+      console.error('❌ Exact request failed:', error);
+      console.groupEnd();
+      throw error;
+    }
+  };
+
+  (window as any).testAllEndpoints = async () => {
+    console.group('🔬 Testing All Auth Endpoints');
+    
+    const endpoints = [
+      { name: 'isLoggedIn', url: `${API_BASE_URL}/isLoggedIn`, body: null },
+      { name: 'validateLogin', url: `${API_BASE_URL}/validateLogin`, body: { userName: 'test', password: 'test' } },
+      { name: 'logout', url: `${API_BASE_URL}/logout`, body: null },
+      { name: 'addUsers', url: `${API_BASE_URL}/addUsers`, body: { userName: 'test', password: 'test', type: 0 } }
+    ];
+
+    const results: Record<string, any> = {};
+
+    for (const endpoint of endpoints) {
+      console.log(`\n🧪 Testing ${endpoint.name}...`);
+      
+      try {
+        // Test with credentials: 'include'
+        const responseWithCredentials = await fetch(endpoint.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: endpoint.body ? JSON.stringify(endpoint.body) : null,
+          credentials: 'include',
+          mode: 'cors'
+        });
+
+        results[endpoint.name] = {
+          withCredentials: {
+            status: responseWithCredentials.status,
+            ok: responseWithCredentials.ok,
+            error: null
+          }
+        };
+
+        console.log(`  ✅ ${endpoint.name} with credentials: ${responseWithCredentials.status}`);
+      } catch (error) {
+        results[endpoint.name] = {
+          withCredentials: {
+            status: null,
+            ok: false,
+            error: (error as Error).message
+          }
+        };
+        console.log(`  ❌ ${endpoint.name} with credentials: CORS ERROR`);
+        
+        // Try without credentials as fallback
+        try {
+          const responseWithoutCredentials = await fetch(endpoint.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: endpoint.body ? JSON.stringify(endpoint.body) : null,
+            credentials: 'omit',
+            mode: 'cors'
+          });
+
+          results[endpoint.name].withoutCredentials = {
+            status: responseWithoutCredentials.status,
+            ok: responseWithoutCredentials.ok,
+            error: null
+          };
+
+          console.log(`  ✅ ${endpoint.name} without credentials: ${responseWithoutCredentials.status}`);
+        } catch (fallbackError) {
+          results[endpoint.name].withoutCredentials = {
+            status: null,
+            ok: false,
+            error: (fallbackError as Error).message
+          };
+          console.log(`  ❌ ${endpoint.name} without credentials: FAILED`);
+        }
+      }
+    }
+
+    console.log('\n📊 Test Results Summary:');
+    console.table(results);
+    console.groupEnd();
+    
+    return results;
+  };
+
+  console.log('🛠️ Enhanced Auth debugging enabled (🔧 Smart Fallback Mode):');
+  console.log('• debugAuth() - Check session status');
+  console.log('• testBackendSession() - Test backend directly');  
+  console.log('• clearAuthCache() - Clear session cache');
+  console.log('• testCORS() - Test CORS configuration');
+  console.log('• testExactRequest() - Test your exact working request');
+  console.log('• testAllEndpoints() - Test which endpoints support credentials');
+  console.log('• enableCookies() - Enable cookie authentication');
+  console.log('• disableCookies() - Disable cookie authentication (fallback)');
 } 

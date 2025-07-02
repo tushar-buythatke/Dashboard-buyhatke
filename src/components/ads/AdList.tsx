@@ -201,7 +201,8 @@ export function AdList() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95"
+      onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
+      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95 cursor-pointer"
     >
       <div className="flex items-start space-x-4">
         {/* Creative */}
@@ -231,11 +232,20 @@ export function AdList() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
-                <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="text-xs">
-                  {ad.status === 1 ? 'Active' : 'Inactive'}
+                <Badge 
+                  variant={ad.status === 1 ? 'success' : 'outline'} 
+                  className={`text-xs ${
+                    ad.status === 1 
+                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
+                      : ad.status === 0 
+                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700' 
+                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
                 </Badge>
                 {ad.slotName && (
                   <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
@@ -251,28 +261,59 @@ export function AdList() {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                <Button 
+                  variant="ghost" 
+                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
+                  }}
+                >
+                  <Eye className="mr-2 h-4 w-4 text-indigo-600" />
+                  <span>View Details</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
+                  }}
                 >
                   <Edit className="mr-2 h-4 w-4 text-blue-600" />
                   <span>Edit</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleCloneAd(ad.adId)}>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloneAd(ad.adId);
+                  }}
+                >
                   <Copy className="mr-2 h-4 w-4 text-purple-600" />
                   <span>Clone</span>
                 </DropdownMenuItem>
                 {ad.status === 1 ? (
-                  <DropdownMenuItem onClick={() => handleStatusChange(ad.adId, 0)}>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStatusChange(ad.adId, 0);
+                    }}
+                  >
                     <Pause className="mr-2 h-4 w-4 text-orange-600" />
                     <span>Pause</span>
                   </DropdownMenuItem>
                 ) : (
-                  <DropdownMenuItem onClick={() => handleStatusChange(ad.adId, 1)}>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStatusChange(ad.adId, 1);
+                    }}
+                  >
                     <Play className="mr-2 h-4 w-4 text-green-600" />
                     <span>Activate</span>
                   </DropdownMenuItem>
@@ -349,7 +390,7 @@ export function AdList() {
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Button 
                 variant="ghost"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/campaigns')}
                 className="h-100 w-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -464,133 +505,175 @@ export function AdList() {
         >
           {/* Desktop Table View */}
           <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 dark:border-gray-700">
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Creative</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Status</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Slot</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Impressions</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Clicks</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">CTR</TableHead>
-                  <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ads.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <div className="text-gray-500 dark:text-gray-400 p-6">
-                        <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow className="border-gray-200 dark:border-gray-700">
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20">Creative</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24">Status</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-32">Slot</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28 text-right">Impressions</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Clicks</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center">CTR</TableHead>
+                    <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold w-16">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  ads.map((ad, index) => (
-                    <motion.tr 
-                      key={ad.adId}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.1 }}
-                      className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
-                    >
-                      <TableCell>
-                        <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                          {ad.creativeUrl ? (
-                            <img 
-                              src={ad.creativeUrl} 
-                              alt="Ad creative" 
-                              className="h-full w-full object-contain rounded-lg"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (!target.dataset.fallback) {
-                                  target.dataset.fallback = 'true';
-                                  target.src = PLACEHOLDER_IMAGE;
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                              <ImageIcon className="h-5 w-5 mb-1" />
-                              <span className="text-xs font-medium">No Image</span>
-                            </div>
-                          )}
+                </TableHeader>
+                <TableBody>
+                  {ads.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center">
+                        <div className="text-gray-500 dark:text-gray-400 p-6">
+                          <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={ad.status === 1 ? 'success' : 'outline'} className="font-medium">
-                          {ad.status === 1 ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
-                        {ad.slotName && (
-                          <div className="flex flex-col">
-                            <span className="font-semibold">{ad.slotName}</span>
-                            {ad.slotWidth && ad.slotHeight && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full inline-block mt-1 w-fit">
-                                {ad.slotWidth} x {ad.slotHeight}
-                              </span>
+                    </TableRow>
+                  ) : (
+                    ads.map((ad, index) => (
+                      <motion.tr 
+                        key={ad.adId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
+                        className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 cursor-pointer"
+                      >
+                        <TableCell className="p-2">
+                          <div className="h-12 w-16 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            {ad.creativeUrl ? (
+                              <img 
+                                src={ad.creativeUrl} 
+                                alt="Ad creative" 
+                                className="h-full w-full object-contain rounded-lg"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (!target.dataset.fallback) {
+                                    target.dataset.fallback = 'true';
+                                    target.src = PLACEHOLDER_IMAGE;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                                <ImageIcon className="h-3 w-3 mb-1" />
+                                <span className="text-xs font-medium">No Image</span>
+                              </div>
                             )}
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.impressionTarget.toLocaleString()}</TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">{ad.clickTarget.toLocaleString()}</TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300 font-medium">
-                        <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-sm font-semibold">
-                          {ad.impressionTarget > 0 
-                            ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
-                            : '0.00%'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <Edit className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleCloneAd(ad.adId)}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <Copy className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
-                            </DropdownMenuItem>
-                            {ad.status === 1 ? (
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <Badge 
+                            variant={ad.status === 1 ? 'success' : 'outline'} 
+                            className={`font-medium text-xs ${
+                              ad.status === 1 
+                                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
+                                : ad.status === 0 
+                                  ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700' 
+                                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                            }`}
+                          >
+                            {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
+                          {ad.slotName && (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm truncate max-w-32">{ad.slotName}</span>
+                              {ad.slotWidth && ad.slotHeight && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-center mt-1">
+                                  {ad.slotWidth} x {ad.slotHeight}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
+                          {(ad.impressionTarget / 1000).toFixed(0)}K
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
+                          {(ad.clickTarget / 1000).toFixed(1)}K
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-center p-2">
+                          <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">
+                            {ad.impressionTarget > 0 
+                              ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) + '%' 
+                              : '0%'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right p-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                               <DropdownMenuItem
-                                onClick={() => handleStatusChange(ad.adId, 0)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
+                                }}
                                 className="hover:bg-gray-50 dark:hover:bg-gray-700"
                               >
-                                <Pause className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                <Eye className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">View Details</span>
                               </DropdownMenuItem>
-                            ) : (
                               <DropdownMenuItem
-                                onClick={() => handleStatusChange(ad.adId, 1)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
+                                }}
                                 className="hover:bg-gray-50 dark:hover:bg-gray-700"
                               >
-                                <Play className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </motion.tr>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCloneAd(ad.adId);
+                                }}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <Copy className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
+                              </DropdownMenuItem>
+                              {ad.status === 1 ? (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(ad.adId, 0);
+                                  }}
+                                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                  <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(ad.adId, 1);
+                                  }}
+                                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                  <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </motion.tr>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Mobile Card View */}

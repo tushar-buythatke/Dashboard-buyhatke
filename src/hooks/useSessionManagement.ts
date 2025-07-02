@@ -4,36 +4,52 @@ import { useAuth } from '@/context/AuthContext';
 interface UseSessionManagementOptions {
   onSessionExpired?: () => void;
   refreshOnWindowFocus?: boolean;
-  refreshInterval?: number; // in milliseconds
+  refreshInterval?: number; // in milliseconds (minimum 5 minutes recommended)
 }
 
 export function useSessionManagement(options: UseSessionManagementOptions = {}) {
   const { refreshSession, isAuthenticated, user } = useAuth();
   const {
     onSessionExpired,
-    refreshOnWindowFocus = true,
+    refreshOnWindowFocus = false, // Disabled by default for better performance
     refreshInterval
   } = options;
 
-  // Refresh session on window focus (when user returns to tab)
+  // Refresh session on window focus (throttled)
   useEffect(() => {
     if (!refreshOnWindowFocus || !isAuthenticated) return;
 
+    let lastFocusTime = 0;
+
     const handleFocus = () => {
-      refreshSession();
+      const now = Date.now();
+      // Throttle to maximum once every 5 minutes
+      if (now - lastFocusTime > 5 * 60 * 1000) {
+        console.debug('Window focus triggered session refresh');
+        lastFocusTime = now;
+        refreshSession();
+      }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [refreshSession, isAuthenticated, refreshOnWindowFocus]);
 
-  // Optional custom refresh interval
+  // Optional custom refresh interval (with minimum enforcement)
   useEffect(() => {
     if (!refreshInterval || !isAuthenticated) return;
 
+    // Enforce minimum 5-minute interval to prevent excessive API calls
+    const safeInterval = Math.max(refreshInterval, 5 * 60 * 1000);
+    
+    if (safeInterval !== refreshInterval) {
+      console.warn(`Session refresh interval increased from ${refreshInterval}ms to ${safeInterval}ms (minimum 5 minutes)`);
+    }
+
     const interval = setInterval(() => {
+      console.debug('Interval-based session refresh triggered');
       refreshSession();
-    }, refreshInterval);
+    }, safeInterval);
 
     return () => clearInterval(interval);
   }, [refreshSession, isAuthenticated, refreshInterval]);
@@ -47,6 +63,7 @@ export function useSessionManagement(options: UseSessionManagementOptions = {}) 
 
   // Manual session refresh function
   const manualRefresh = useCallback(async () => {
+    console.debug('Manual session refresh triggered');
     await refreshSession();
   }, [refreshSession]);
 

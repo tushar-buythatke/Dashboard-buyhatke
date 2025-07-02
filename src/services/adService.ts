@@ -42,6 +42,7 @@ export interface CreateAdData {
   gender?: string;
   status: number;
   isTestPhase: number;
+  serveStrategy: number;
 }
 
 export interface UpdateAdData extends CreateAdData {

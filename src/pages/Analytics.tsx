@@ -494,7 +494,7 @@ export function Analytics() {
           </motion.div>
 
           {/* Data Tables Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

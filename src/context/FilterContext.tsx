@@ -14,6 +14,7 @@ const initialState: FilterState = {
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     to: new Date().toISOString().split('T')[0]
   },
+  periodType: 'daily',
   campaigns: [],
   platforms: [],
   gender: [],

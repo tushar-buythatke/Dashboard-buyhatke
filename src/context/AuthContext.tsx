@@ -22,17 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { isLoggedIn, user: authUser } = await authService.isLoggedIn();
       if (isLoggedIn && authUser) {
         setUser(authUser);
-        authService.setCurrentUser(authUser);
         return true;
       } else {
         setUser(null);
-        authService.setCurrentUser(null);
         return false;
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
       setUser(null);
-      authService.setCurrentUser(null);
       return false;
     }
   }, []);
@@ -53,17 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, [checkAuthStatus]);
 
-  // Periodic session validation (every 10 minutes for localStorage-based sessions)
+  // Simplified periodic session validation (every 15 minutes)
   useEffect(() => {
     let sessionCheckInterval: NodeJS.Timeout;
 
     if (user) {
-      console.debug('Setting up periodic session validation (every 10 minutes)');
+      console.debug('Setting up periodic session validation (every 30 minutes)');
       sessionCheckInterval = setInterval(async () => {
         try {
           console.debug('Periodic session validation triggered');
-          const isValid = await authService.validateSession();
-          if (!isValid) {
+          const { isLoggedIn } = await authService.isLoggedIn();
+          if (!isLoggedIn) {
             console.log('Periodic validation: Session expired, logging out user');
             setUser(null);
             authService.clearSession();
@@ -71,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('Session validation error:', error);
         }
-      }, 10 * 60 * 1000); // Check every 10 minutes (reduced frequency for localStorage sessions)
+      }, 30 * 60 * 1000); // Check every 30 minutes (optimized frequency)
     }
 
     return () => {
@@ -135,7 +132,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await authService.validateLogin(credentials);
       if (result.success && result.user) {
         setUser(result.user);
-        authService.setCurrentUser(result.user);
       }
       return result;
     } catch (error) {
@@ -151,13 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authService.logout();
       setUser(null);
-      authService.setCurrentUser(null);
       return result;
     } catch (error) {
       console.error('Logout error:', error);
       // Clear local state anyway
       setUser(null);
-      authService.setCurrentUser(null);
       return { success: true, message: 'Logged out locally' };
     } finally {
       setLoading(false);
