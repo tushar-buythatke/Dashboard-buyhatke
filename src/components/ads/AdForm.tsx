@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,8 +14,10 @@ import { LocationAutoSuggest, CategoryAutoSuggest, BrandInput } from '@/componen
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
 import { toast } from 'sonner';
-import { Slot } from '@/types';
-import { motion } from 'framer-motion';
+import { Slot, Ad } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -205,6 +207,10 @@ export function AdForm() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 65]);
   const [priceRangeHighlighted, setPriceRangeHighlighted] = useState(false);
+  const [existingAdNames, setExistingAdNames] = useState<string[]>([]);
+  const [nameInputValue, setNameInputValue] = useState('');
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
+  const [openNameSuggestions, setOpenNameSuggestions] = useState(false);
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
@@ -404,6 +410,91 @@ export function AdForm() {
       if (slot) setSelectedSlot(slot);
     }
   }, [form.watch('slotId'), slots, selectedSlot]);
+
+  // Initialize nameInputValue from form value when it's loaded
+  useEffect(() => {
+    const currentName = form.getValues('name');
+    if (currentName && !nameInputValue) {
+      setNameInputValue(currentName);
+    }
+  }, [form, nameInputValue]);
+
+  // Fetch existing ad names for the current campaign
+  useEffect(() => {
+    const fetchExistingAdNames = async () => {
+      try {
+        if (!campaignId) return;
+        
+        const result = await adService.getAdNames(Number(campaignId));
+        if (result.success && result.data) {
+          setExistingAdNames(result.data);
+        } else {
+          console.error('Failed to fetch ad names:', result.message);
+        }
+      } catch (error) {
+        console.error('Error fetching existing ad names:', error);
+      }
+    };
+
+    fetchExistingAdNames();
+  }, [campaignId]);
+
+  // Generate name suggestions based on input
+  useEffect(() => {
+    console.log('Generating suggestions for:', nameInputValue);
+    console.log('Existing names:', existingAdNames);
+    
+    if (!nameInputValue) {
+      setNameSuggestions([]);
+      return;
+    }
+
+    // Filter existing names that start with or contain the input value
+    const matchingNames = existingAdNames.filter(name => 
+      name.toLowerCase().includes(nameInputValue.toLowerCase())
+    );
+    console.log('Matching names:', matchingNames);
+
+    // Generate incremented suggestions
+    const baseName = nameInputValue.trim();
+    let suggestions: string[] = [];
+    
+    // Add matching existing names first
+    if (matchingNames.length > 0) {
+      suggestions = [...matchingNames];
+    }
+    
+    // Check if the exact name already exists
+    if (existingAdNames.includes(baseName)) {
+      // Find the highest index for this name
+      let highestIndex = 0;
+      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_([0-9]+)$`);
+      
+      existingAdNames.forEach(name => {
+        const match = name.match(regex);
+        if (match) {
+          const index = parseInt(match[1]);
+          highestIndex = Math.max(highestIndex, index);
+        }
+      });
+      
+      // Suggest the next index
+      suggestions.push(`${baseName}_${highestIndex + 1}`);
+    }
+
+    // Add some default suggestions if no matches and name doesn't exist yet
+    if (suggestions.length === 0 && baseName && !existingAdNames.includes(baseName)) {
+      suggestions = [baseName];
+    } else if (suggestions.length === 0 && baseName) {
+      suggestions = [`${baseName}_1`];
+    }
+
+    // Remove duplicates
+    suggestions = Array.from(new Set(suggestions));
+    
+    console.log('Final suggestions:', suggestions);
+    setNameSuggestions(suggestions);
+  }, [nameInputValue, existingAdNames]);
 
   const onSubmit = async (data: AdFormData) => {
     try {
@@ -630,13 +721,68 @@ export function AdForm() {
                             <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                             Ad Name
                           </FormLabel>
-                          <FormControl>
+                          <div className="relative">
                             <Input 
                               placeholder="Enter ad name"
                               {...field}
+                              value={nameInputValue || field.value}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                console.log('Input value changing to:', value);
+                                setNameInputValue(value);
+                                field.onChange(value);
+                                setOpenNameSuggestions(!!value);
+                              }}
+                              onFocus={() => {
+                                if (nameInputValue || field.value) {
+                                  console.log('Input focused, opening suggestions');
+                                  setOpenNameSuggestions(true);
+                                }
+                              }}
+                              onBlur={() => {
+                                // Delay closing to allow clicking on suggestions
+                                setTimeout(() => setOpenNameSuggestions(false), 200);
+                              }}
                               className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
                             />
-                          </FormControl>
+                            
+                            {openNameSuggestions && nameSuggestions.length > 0 && (
+                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                <div className="p-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Filter suggestions..."
+                                    value={nameInputValue}
+                                    onChange={(e) => setNameInputValue(e.target.value)}
+                                    className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                                <div className="py-1">
+                                  {nameSuggestions.map((name) => (
+                                    <div
+                                      key={name}
+                                      className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault(); // Prevent input blur
+                                        console.log('Suggestion selected:', name);
+                                        field.onChange(name);
+                                        setNameInputValue(name);
+                                        setOpenNameSuggestions(false);
+                                      }}
+                                    >
+                                      <span>{name}</span>
+                                      {existingAdNames.includes(name) && (
+                                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full">
+                                          Exists
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           <FormDescription className="text-gray-500 dark:text-gray-400">
                             A unique name to identify your ad
                           </FormDescription>

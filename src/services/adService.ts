@@ -279,6 +279,45 @@ class AdService {
       };
     }
   }
+
+  // Get ad names for suggestion
+  async getAdNames(campaignId?: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
+    try {
+      const params = new URLSearchParams();
+      if (campaignId) params.append('campaignId', campaignId.toString());
+      params.append('status', ''); // Get all ads regardless of status
+
+      const url = `${API_BASE_URL}${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      if (result.status === 1 && result.data?.adsList) {
+        const adNames = result.data.adsList.map((ad: any) => ad.name).filter(Boolean);
+        return {
+          success: true,
+          data: adNames,
+          message: 'Ad names fetched successfully'
+        };
+      }
+      
+      return {
+        success: false,
+        message: result.message || 'Failed to fetch ad names'
+      };
+    } catch (error) {
+      console.error('Error fetching ad names:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch ad names'
+      };
+    }
+  }
 }
 
 export const adService = new AdService(); 
