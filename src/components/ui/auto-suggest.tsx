@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, X, MapPin, Tag, Sparkles, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { adService, LocationDetails, CategoryDetails } from '@/services/adService';
+import { adService, CategoryDetail, CategoryDetails, LocationDetails } from '@/services/adService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface LocationSuggestProps {
@@ -55,7 +55,7 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
 
   const handleAdd = (locationName: string) => {
     if (!value[locationName]) {
-      onChange({ ...value, [locationName]: 1 });
+      onChange({ ...value, [locationName]: suggestions[locationName] || 1 });
     }
     setSearchTerm('');
     setIsOpen(false);
@@ -123,7 +123,7 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[1] w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-h-[400px] "
+            className="absolute z-[1] w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-h-[400px] overflow-hidden"
             style={{ 
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
             }}
@@ -214,16 +214,41 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
   const containerRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout>();
 
+  // Load initial categories
   useEffect(() => {
-    const searchCategories = async (term: string) => {
-      if (!term || term.length < 1) {
-        setSuggestions({});
+    const loadInitialCategories = async () => {
+      try {
+        const result = await adService.getCategoryDetails('');
+        if (result.success && result.data) {
+          setSuggestions(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to load initial categories:', error);
+      }
+    };
+
+    loadInitialCategories();
+  }, []);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const searchCategories = async () => {
+      if (!searchTerm || searchTerm.length < 2) {
+        // Load initial categories if search is cleared
+        try {
+          const result = await adService.getCategoryDetails('');
+          if (result.success && result.data) {
+            setSuggestions(result.data);
+          }
+        } catch (error) {
+          console.error('Failed to load categories:', error);
+        }
         return;
       }
 
       setLoading(true);
       try {
-        const result = await adService.getCategoryDetails(term);
+        const result = await adService.getCategoryDetails(searchTerm);
         if (result.success && result.data) {
           setSuggestions(result.data);
         }
@@ -234,15 +259,15 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
       }
     };
 
-    // Debounce search
+    // Clear previous timeout
     if (searchTimeout.current) {
       clearTimeout(searchTimeout.current);
     }
 
-    searchTimeout.current = setTimeout(() => {
-      searchCategories(searchTerm);
-    }, 300);
+    // Set new timeout for debounce
+    searchTimeout.current = setTimeout(searchCategories, 300);
 
+    // Cleanup
     return () => {
       if (searchTimeout.current) {
         clearTimeout(searchTimeout.current);
@@ -265,7 +290,7 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
 
   const handleAdd = (categoryName: string) => {
     if (!value[categoryName]) {
-      onChange({ ...value, [categoryName]: 1 });
+      onChange({ ...value, [categoryName]: suggestions[categoryName]?.catId || 1 });
     }
     setSearchTerm('');
     setIsOpen(false);
@@ -292,7 +317,7 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-md hover:shadow-lg transition-all duration-200"
-              title={suggestions[category] || ''}
+              title={suggestions[category]?.path || ''}
             >
               <Tag className="h-3 w-3" />
               {category}
@@ -346,7 +371,7 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
               </div>
             ) : Object.keys(suggestions).length > 0 ? (
               <div className="py-2 max-h-[350px] overflow-y-auto">
-                {Object.entries(suggestions).map(([categoryName, categoryPath], index) => (
+                {Object.entries(suggestions).map(([categoryName, details], index) => (
                   <motion.button
                     key={categoryName}
                     initial={{ opacity: 0, x: -20 }}
@@ -367,7 +392,7 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
                         <div className={cn(
                           "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 mt-1",
                           value[categoryName] 
-                            ? "bg-blue-500 text-white" 
+                            ? "bg-blue-500 text-white"
                             : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-500 dark:group-hover:bg-blue-800 dark:group-hover:text-blue-300"
                         )}>
                           <Tag className="h-5 w-5" />
@@ -380,7 +405,10 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
                               : "text-gray-900 dark:text-gray-100"
                           )}>{categoryName}</div>
                           <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md mt-1">
-                            {categoryPath}
+                            {details.path}
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            ID: {details.catId}
                           </div>
                         </div>
                       </div>
@@ -397,21 +425,21 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
                   </motion.button>
                 ))}
               </div>
-            ) : searchTerm && !loading ? (
+            ) : searchTerm ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <div className="text-gray-800 dark:text-gray-200 font-medium">
                   No categories found for "{searchTerm}"
                 </div>
               </div>
-            ) : !searchTerm ? (
+            ) : (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <div className="text-gray-800 dark:text-gray-200 font-medium">
                   Start typing to search categories...
                 </div>
               </div>
-            ) : null}
+            )}
           </motion.div>
         )}
       </AnimatePresence>

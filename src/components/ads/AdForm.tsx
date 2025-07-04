@@ -126,6 +126,7 @@ const adSchema = z.object({
   slotId: z.union([z.undefined(), z.number().min(1, 'Slot selection is required')]).refine((val) => val !== undefined && val > 0, {
     message: 'Slot selection is required'
   }),
+  name: z.string().min(1, 'Ad name is required'),
   impressionTarget: z.number().min(1, 'Impression target is required'),
   clickTarget: z.number().min(1, 'Click target is required'),
   impressionPixel: z.string().url('Must be a valid URL'),
@@ -209,6 +210,7 @@ export function AdForm() {
     resolver: zodResolver(adSchema),
     defaultValues: {
       slotId: undefined,
+      name: '',
       impressionTarget: 1000,
       clickTarget: 100,
       impressionPixel: '',
@@ -618,185 +620,145 @@ export function AdForm() {
                 </h3>
               </div>
               <div className="p-6 space-y-6">
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-              <FormField
-                control={form.control}
-                name="slotId"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                      Ad Slot
-                    </FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        const slot = slots.find(s => s.slotId === parseInt(value));
-                        setSelectedSlot(slot || null);
-                        field.onChange(parseInt(value));
-                      }}
-                      value={field.value?.toString() || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
-                          <SelectValue placeholder="Select a slot" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg">
-                        {slots.map((slot) => (
-                          <SelectItem 
-                            key={slot.slotId} 
-                            value={slot.slotId.toString()}
-                            className="hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {slot.name} ({slot.width} x {slot.height})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-red-500 font-medium" />
-                  </FormItem>
-                )}
-              />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          Ad Name
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter ad name"
+                            {...field}
+                            className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                          A unique name to identify your ad
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                    Creative
-                  </FormLabel>
-                  {(() => {
-                    const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
-                    return currentSlot ? (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Required: {currentSlot.width} x {currentSlot.height}px
-                      </span>
-                    ) : null;
-                  })()}
+                  <FormField
+                    control={form.control}
+                    name="slotId"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          Ad Slot
+                        </FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            const slot = slots.find(s => s.slotId === parseInt(value));
+                            setSelectedSlot(slot || null);
+                            field.onChange(parseInt(value));
+                          }}
+                          value={field.value?.toString() || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
+                              <SelectValue placeholder="Select a slot" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg">
+                            {slots.map((slot) => (
+                              <SelectItem 
+                                key={slot.slotId} 
+                                value={slot.slotId.toString()}
+                                className="hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              >
+                                {slot.name} ({slot.width} x {slot.height})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-red-500 font-medium" />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                
-                <div className="flex items-center space-x-4">
-                  {previewUrl ? (
-                    <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
-                      <img
-                        src={previewUrl}
-                        alt="Ad preview"
-                        className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.src = 'https://example.com/placeholder-moon.png';
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
-                        onClick={() => setPreviewUrl('')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
-                      <Upload className="h-6 w-6 text-blue-500" />
-                      <p className="text-sm text-blue-600 dark:text-blue-400 text-center font-medium">
-                        Click to upload
-                      </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </label>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                      Creative
+                    </FormLabel>
+                    {(() => {
+                      const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
+                      return currentSlot ? (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Required: {currentSlot.width} x {currentSlot.height}px
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    {previewUrl ? (
+                      <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
+                        <img
+                          src={previewUrl}
+                          alt="Ad preview"
+                          className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = 'https://example.com/placeholder-moon.png';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
+                          onClick={() => setPreviewUrl('')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
+                        <Upload className="h-6 w-6 text-blue-500" />
+                        <p className="text-sm text-blue-600 dark:text-blue-400 text-center font-medium">
+                          Click to upload
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  {form.formState.errors.creativeUrl && (
+                    <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
                   )}
                 </div>
-                {form.formState.errors.creativeUrl && (
-                  <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
-                )}
-              </div>
 
-              <FormField
-                control={form.control}
-                name="impressionTarget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Impression Target</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="Enter impression target"
-                        value={field.value || ''}
-                        onChange={(e) => handleNumberInput(e, (value) => {
-                          field.onChange(value);
-                          handleTargetChange('impressionTarget', value);
-                        }, 1)}
-                        onKeyPress={(e) => {
-                          // Allow only numbers
-                          if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                            e.preventDefault();
-                          }
-                        }}
-                        className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-gray-500 dark:text-gray-400">
-                      Must be greater than or equal to click target
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clickTarget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Click Target</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="Enter click target"
-                        value={field.value || ''}
-                        onChange={(e) => handleNumberInput(e, (value) => {
-                          field.onChange(value);
-                          handleTargetChange('clickTarget', value);
-                        }, 1)}
-                        onKeyPress={(e) => {
-                          // Allow only numbers
-                          if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                            e.preventDefault();
-                          }
-                        }}
-                        className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-gray-500 dark:text-gray-400">
-                      Must be less than or equal to impression target
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Priority Score (0-1000)</FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="impressionTarget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Impression Target</FormLabel>
+                      <FormControl>
                         <Input 
-                          type="number" 
-                          min={0}
-                          max={1000}
-                          placeholder="Enter priority score (0-1000)"
+                          type="text" 
+                          placeholder="Enter impression target"
                           value={field.value || ''}
-                          onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
+                          onChange={(e) => handleNumberInput(e, (value) => {
+                            field.onChange(value);
+                            handleTargetChange('impressionTarget', value);
+                          }, 1)}
                           onKeyPress={(e) => {
                             // Allow only numbers
                             if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
@@ -805,177 +767,241 @@ export function AdForm() {
                           }}
                           className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                         />
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min((field.value || 0) / 1000 * 100, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormDescription className="text-gray-500 dark:text-gray-400">
-                      Higher priority ads are shown more frequently (0 = lowest, 1000 = highest)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Status</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                        <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Active</SelectItem>
-                        <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Paused</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormDescription className="text-gray-500 dark:text-gray-400">
+                        Must be greater than or equal to click target
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="isTestPhase"
-                render={({ field }) => {
-                  const isTestMode = field.value === 1;
-                  return (
+                <FormField
+                  control={form.control}
+                  name="clickTarget"
+                  render={({ field }) => (
                     <FormItem>
-                      <div
-                        onClick={() => field.onChange(isTestMode ? 0 : 1)}
-                        className={`
-                          flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                          ${isTestMode 
-                            ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' 
-                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          }
-                        `}
-                      >
-                        <div className={`
-                          relative w-12 h-6 rounded-full transition-all duration-200 mr-4
-                          ${isTestMode 
-                            ? 'bg-emerald-500' 
-                            : 'bg-gray-300 dark:bg-gray-600'
-                          }
-                        `}>
-                          <div className={`
-                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
-                            ${isTestMode 
-                              ? 'translate-x-6' 
-                              : 'translate-x-0.5'
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Click Target</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="Enter click target"
+                          value={field.value || ''}
+                          onChange={(e) => handleNumberInput(e, (value) => {
+                            field.onChange(value);
+                            handleTargetChange('clickTarget', value);
+                          }, 1)}
+                          onKeyPress={(e) => {
+                            // Allow only numbers
+                            if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                              e.preventDefault();
                             }
-                          `}>
-                            {isTestMode && (
-                              <div className="flex items-center justify-center h-full">
-                                <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
+                          }}
+                          className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        />
+                      </FormControl>
+                      <FormDescription className="text-gray-500 dark:text-gray-400">
+                        Must be less than or equal to impression target
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Priority Score (0-1000)</FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          <Input 
+                            type="number" 
+                            min={0}
+                            max={1000}
+                            placeholder="Enter priority score (0-1000)"
+                            value={field.value || ''}
+                            onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
+                            onKeyPress={(e) => {
+                              // Allow only numbers
+                              if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                e.preventDefault();
+                              }
+                            }}
+                            className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                          />
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min((field.value || 0) / 1000 * 100, 100)}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>
-                            Test Phase
-                          </FormLabel>
-                          <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                            Enable to test this ad without affecting live traffic
-                          </FormDescription>
+                      </FormControl>
+                      <FormDescription className="text-gray-500 dark:text-gray-400">
+                        Higher priority ads are shown more frequently (0 = lowest, 1000 = highest)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Status</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                          <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Active</SelectItem>
+                          <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Paused</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isTestPhase"
+                  render={({ field }) => {
+                    const isTestMode = field.value === 1;
+                    return (
+                      <FormItem>
+                        <div
+                          onClick={() => field.onChange(isTestMode ? 0 : 1)}
+                          className={`
+                            flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                            ${isTestMode 
+                              ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' 
+                              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-12 h-6 rounded-full transition-all duration-200 mr-4
+                            ${isTestMode 
+                              ? 'bg-emerald-500' 
+                              : 'bg-gray-300 dark:bg-gray-600'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
+                              ${isTestMode 
+                                ? 'translate-x-6' 
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {isTestMode && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                              Test Phase
+                            </FormLabel>
+                            <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              Enable to test this ad without affecting live traffic
+                            </FormDescription>
+                          </div>
+                          {isTestMode && (
+                            <div className="ml-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                                Active
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        {isTestMode && (
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="serveStrategy"
+                  render={({ field }) => {
+                    const isUserBased = field.value === 1;
+                    return (
+                      <FormItem>
+                        <div
+                          onClick={() => field.onChange(isUserBased ? 0 : 1)}
+                          className={`
+                            flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                            ${isUserBased 
+                              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
+                              : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
+                            }
+                          `}
+                        >
+                          <div className={`
+                            relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
+                            ${isUserBased 
+                              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800' 
+                              : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
+                            }
+                          `}>
+                            <div className={`
+                              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
+                              ${isUserBased 
+                                ? 'translate-x-6' 
+                                : 'translate-x-0.5'
+                              }
+                            `}>
+                              {isUserBased && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                              {!isUserBased && (
+                                <div className="flex items-center justify-center h-full">
+                                  <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
+                              Serve Strategy
+                            </FormLabel>
+                            <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                              {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
+                            </FormDescription>
+                          </div>
                           <div className="ml-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                              Active
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${
+                              isUserBased 
+                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700' 
+                                : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+                            }`}>
+                              {isUserBased ? 'User-based' : 'Product-based'}
                             </span>
                           </div>
-                        )}
-                      </div>
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={form.control}
-                name="serveStrategy"
-                render={({ field }) => {
-                  const isUserBased = field.value === 1;
-                  return (
-                    <FormItem>
-                      <div
-                        onClick={() => field.onChange(isUserBased ? 0 : 1)}
-                        className={`
-                          flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                          ${isUserBased 
-                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
-                            : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
-                          }
-                        `}
-                      >
-                        <div className={`
-                          relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
-                          ${isUserBased 
-                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800' 
-                            : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
-                          }
-                        `}>
-                          <div className={`
-                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
-                            ${isUserBased 
-                              ? 'translate-x-6' 
-                              : 'translate-x-0.5'
-                            }
-                          `}>
-                            {isUserBased && (
-                              <div className="flex items-center justify-center h-full">
-                                <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
-                            {!isUserBased && (
-                              <div className="flex items-center justify-center h-full">
-                                <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
                         </div>
-                        <div className="flex-1">
-                          <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
-                            Serve Strategy
-                          </FormLabel>
-                          <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                            {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
-                          </FormDescription>
-                        </div>
-                        <div className="ml-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${
-                            isUserBased 
-                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700' 
-                              : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
-                          }`}>
-                            {isUserBased ? 'User-based' : 'Product-based'}
-                          </span>
-                        </div>
-                      </div>
-                    </FormItem>
-                  );
-                }}
-              />
+                      </FormItem>
+                    );
+                  }}
+                />
               </div>
             </div>
           </Card>
@@ -1355,7 +1381,6 @@ export function AdForm() {
             </div>
             </div>
           </Card>
-        </motion.div>
 
           <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
@@ -1646,10 +1671,7 @@ export function AdForm() {
             </Button>
           </motion.div>
         </form>
-              </Form>
-
-
-      </div>
+      </Form>
     </div>
-  );
-}
+  </div>
+);

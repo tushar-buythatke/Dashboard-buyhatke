@@ -24,6 +24,7 @@ export interface Slot {
 export interface Ad {
   adId: number;
   campaignId: number;
+  name: string;
   slotId: number;
   slotName?: string;
   slotWidth?: string;
@@ -108,4 +109,17 @@ export interface FilterState {
   platforms: string[];
   gender: string[];
   ageGroups: string[];
+}
+
+export interface CategoryDetail {
+  path: string;
+  catId: number;
+}
+
+export interface CategoryDetails {
+  [categoryName: string]: CategoryDetail;
+}
+
+export interface LocationDetails {
+  [locationName: string]: number;
 }

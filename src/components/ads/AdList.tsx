@@ -232,7 +232,7 @@ export function AdList() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <Badge 
@@ -252,6 +252,9 @@ export function AdList() {
                     {ad.slotName}
                   </span>
                 )}
+              </div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                {ad.name}
               </div>
               {ad.slotWidth && ad.slotHeight && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -511,6 +514,7 @@ export function AdList() {
                   <TableRow className="border-gray-200 dark:border-gray-700">
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20">Creative</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24">Status</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Name</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-32">Slot</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28 text-right">Impressions</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Clicks</TableHead>
@@ -573,6 +577,9 @@ export function AdList() {
                           >
                             {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
+                          <span className="font-semibold text-sm truncate max-w-32">{ad.name}</span>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
                           {ad.slotName && (

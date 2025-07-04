@@ -11,11 +11,16 @@ export interface SiteDetails {
 }
 
 export interface LocationDetails {
-  [locationName: string]: string;
+  [locationName: string]: number;
+}
+
+export interface CategoryDetail {
+  path: string;
+  catId: number;
 }
 
 export interface CategoryDetails {
-  [categoryName: string]: string;
+  [categoryName: string]: CategoryDetail;
 }
 
 export interface CreateAdData {
