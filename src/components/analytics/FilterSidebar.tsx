@@ -1,13 +1,42 @@
-import { Filter, X, Calendar, Users, Monitor } from 'lucide-react';
+import { Filter, X, Calendar, Users, Monitor, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFilters } from '@/context/FilterContext';
 import { mockCampaigns, platforms } from '@/data/mockData';
+import { DateRangePicker } from '@/components/analytics/DateRangePicker';
+import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
+import { adService } from '@/services/adService';
+import { useState, useEffect } from 'react';
 
 const genderOptions = ['Male', 'Female'];
 const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55+'];
 
 export function FilterSidebar() {
   const { filters, updateFilters, resetFilters } = useFilters();
+  const [adNameOptions, setAdNameOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadAdNames = async () => {
+      if (filters.campaigns.length === 0) {
+        setAdNameOptions([]);
+        return;
+      }
+      try {
+        const namesSet = new Set<string>();
+        await Promise.all(
+          filters.campaigns.map(async (campId) => {
+            const res = await adService.getAdNames(Number(campId));
+            if (res.success && res.data) {
+              res.data.forEach((name) => namesSet.add(name));
+            }
+          })
+        );
+        setAdNameOptions(Array.from(namesSet));
+      } catch (err) {
+        console.error('Failed to fetch ad names', err);
+      }
+    };
+    loadAdNames();
+  }, [filters.campaigns]);
 
   const handleFilterChange = (filterType: keyof typeof filters, value: string, checked: boolean) => {
     const currentValues = filters[filterType] as string[];
@@ -65,41 +94,7 @@ export function FilterSidebar() {
             </div>
 
             {/* Date Range Dropdown */}
-            <select
-              value={`${filters.dateRange.from}-${filters.dateRange.to}`}
-              onChange={(e) => {
-                const [from, to] = e.target.value.split('-');
-                updateFilters({ dateRange: { from, to } });
-              }}
-              className="w-full text-sm h-8 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-md px-2"
-            >
-              <option value={`${new Date().toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                Today
-              </option>
-              <option value={`${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
-                Yesterday
-              </option>
-              <option value={`${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                Last 7 Days
-              </option>
-              <option value={`${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
-                Previous 7 Days
-              </option>
-              <option value={`${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                Last 30 Days
-              </option>
-              <option value={`${new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
-                Previous 30 Days
-              </option>
-              <option value={`${new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                Last 90 Days
-              </option>
-            </select>
-
-            {/* Selected Date Range Display */}
-            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border">
-              {new Date(filters.dateRange.from).toLocaleDateString()} - {new Date(filters.dateRange.to).toLocaleDateString()}
-            </div>
+            <DateRangePicker />
           </div>
         </div>
 
@@ -132,6 +127,23 @@ export function FilterSidebar() {
             ))}
           </div>
         </div>
+
+        {/* Ad Names */}
+        {adNameOptions.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Tag className="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400" />
+              <h4 className="font-medium text-gray-900 dark:text-white">Ad Names</h4>
+            </div>
+            <MultiSelectDropdown
+              options={adNameOptions.map((n) => ({ value: n, label: n }))}
+              selectedValues={filters.adNames}
+              onChange={(vals) => updateFilters({ adNames: vals as string[] })}
+              placeholder="Select ad names..."
+              maxSelections={10}
+            />
+          </div>
+        )}
 
         {/* Platforms */}
         <div className="space-y-3">

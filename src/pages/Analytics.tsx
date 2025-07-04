@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, ChevronUp, BarChart3, PieChart, Table } from 'lucide-react';
+import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, ChevronUp, BarChart3, PieChart, Table, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,12 +14,14 @@ import { ComboChart } from '@/components/analytics/ComboChart';
 import { DataTable } from '@/components/analytics/DataTable';
 import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
+import { DateRangePicker } from '@/components/analytics/DateRangePicker';
 
 // Analytics Service
 import { 
   analyticsService, 
   MetricsPayload 
 } from '@/services/analyticsService';
+import { adService } from '@/services/adService';
 
 // Types
 import { 
@@ -37,13 +39,6 @@ interface Site {
   domain: string[];
   image: string;
 }
-
-const timeRanges = [
-  { value: '1d', label: '24 Hours' },
-  { value: '7d', label: '7 Days' },
-  { value: '30d', label: '30 Days' },
-  { value: '90d', label: '90 Days' },
-];
 
 const kpiOptions = [
   { value: 'impressions', label: 'Impressions' },
@@ -64,6 +59,8 @@ export function Analytics() {
   const [selectedSlots, setSelectedSlots] = useState<(string | number)[]>([]);
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
   const [selectedKPIs, setSelectedKPIs] = useState<(string | number)[]>(['impressions', 'clicks']);
+  const [selectedAdNames, setSelectedAdNames] = useState<(string | number)[]>([]);
+  const [adNameOptions, setAdNameOptions] = useState<string[]>([]);
 
   // Data states
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -98,6 +95,32 @@ export function Analytics() {
       fetchAnalyticsData();
     }
   }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, activeView]);
+
+  // Fetch ad names when selected campaigns change
+  useEffect(() => {
+    const loadAdNames = async () => {
+      if (selectedCampaigns.length === 0) {
+        setAdNameOptions([]);
+        setSelectedAdNames([]);
+        return;
+      }
+      try {
+        const namesSet = new Set<string>();
+        await Promise.all(
+          selectedCampaigns.map(async (campId) => {
+            const res = await adService.getAdNames(Number(campId));
+            if (res.success && res.data) {
+              res.data.forEach((n: string) => namesSet.add(n));
+            }
+          })
+        );
+        setAdNameOptions(Array.from(namesSet));
+      } catch (err) {
+        console.error('Failed to fetch ad names', err);
+      }
+    };
+    loadAdNames();
+  }, [selectedCampaigns]);
 
   const fetchDropdownData = async () => {
     try {
@@ -317,21 +340,7 @@ export function Analytics() {
               </div>
 
               {/* Time Range Selector */}
-              <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
-                <SelectTrigger className="w-32 h-9 sm:h-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {timeRanges.map((range) => (
-                    <SelectItem key={range.value} value={range.value}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DateRangePicker />
 
               <Button
                 variant="outline"
@@ -364,7 +373,7 @@ export function Analytics() {
                 <Filter className="h-4 w-4" />
                 <span className="text-sm">Filters</span>
                 <Badge variant="secondary" className="ml-1 text-xs">
-                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length}
+                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedAdNames.length}
                 </Badge>
                 {isFilterExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
@@ -416,6 +425,16 @@ export function Analytics() {
                   onChange={setSelectedKPIs}
                   placeholder="Select KPIs..."
                 />
+
+                {adNameOptions.length > 0 && (
+                  <MultiSelectDropdown
+                    label="Ad Names"
+                    options={adNameOptions.map((n) => ({ value: n, label: n }))}
+                    selectedValues={selectedAdNames}
+                    onChange={setSelectedAdNames}
+                    placeholder="Select ad names..."
+                  />
+                )}
               </div>
             </div>
           </motion.div>
@@ -442,7 +461,7 @@ export function Analytics() {
                     {activeView === 'slot' ? 'Slot-wise' : 'Campaign-wise'} Analytics
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">
-                    {timeRanges.find(r => r.value === selectedTimeRange)?.label} • Real-time data
+                    {selectedTimeRange} • Real-time data
                   </p>
                 </div>
               </div>

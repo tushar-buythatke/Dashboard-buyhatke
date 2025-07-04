@@ -18,7 +18,8 @@ const initialState: FilterState = {
   campaigns: [],
   platforms: [],
   gender: [],
-  ageGroups: []
+  ageGroups: [],
+  adNames: []
 };
 
 type FilterAction = 

@@ -109,6 +109,7 @@ export interface FilterState {
   platforms: string[];
   gender: string[];
   ageGroups: string[];
+  adNames: string[];
 }
 
 export interface CategoryDetail {
