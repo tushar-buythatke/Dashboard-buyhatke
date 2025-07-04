@@ -603,226 +603,162 @@ export function AdForm() {
           </div>
         </motion.div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-                <h3 className="text-xl font-semibold text-white flex items-center">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                    <Target className="h-4 w-4" />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+                  <h3 className="text-xl font-semibold text-white flex items-center">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    Ad Details
+                  </h3>
+                </div>
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                            Ad Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter ad name"
+                              {...field}
+                              className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
+                            />
+                          </FormControl>
+                          <FormDescription className="text-gray-500 dark:text-gray-400">
+                            A unique name to identify your ad
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="slotId"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                            Ad Slot
+                          </FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              const slot = slots.find(s => s.slotId === parseInt(value));
+                              setSelectedSlot(slot || null);
+                              field.onChange(parseInt(value));
+                            }}
+                            value={field.value?.toString() || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
+                                <SelectValue placeholder="Select a slot" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg">
+                              {slots.map((slot) => (
+                                <SelectItem 
+                                  key={slot.slotId} 
+                                  value={slot.slotId.toString()}
+                                  className="hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                  {slot.name} ({slot.width} x {slot.height})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage className="text-red-500 font-medium" />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                  Ad Details
-                </h3>
-              </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                        Creative
+                      </FormLabel>
+                      {(() => {
+                        const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
+                        return currentSlot ? (
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Required: {currentSlot.width} x {currentSlot.height}px
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      {previewUrl ? (
+                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
+                          <img
+                            src={previewUrl}
+                            alt="Ad preview"
+                            className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = 'https://example.com/placeholder-moon.png';
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
+                            onClick={() => setPreviewUrl('')}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
+                          <Upload className="h-6 w-6 text-blue-500" />
+                          <p className="text-sm text-blue-600 dark:text-blue-400 text-center font-medium">
+                            Click to upload
+                          </p>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    {form.formState.errors.creativeUrl && (
+                      <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
+                    )}
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="impressionTarget"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                          Ad Name
-                        </FormLabel>
+                      <FormItem>
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Impression Target</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Enter ad name"
-                            {...field}
-                            className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
-                          A unique name to identify your ad
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="slotId"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                          Ad Slot
-                        </FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            const slot = slots.find(s => s.slotId === parseInt(value));
-                            setSelectedSlot(slot || null);
-                            field.onChange(parseInt(value));
-                          }}
-                          value={field.value?.toString() || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
-                              <SelectValue placeholder="Select a slot" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg">
-                            {slots.map((slot) => (
-                              <SelectItem 
-                                key={slot.slotId} 
-                                value={slot.slotId.toString()}
-                                className="hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
-                              >
-                                {slot.name} ({slot.width} x {slot.height})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500 font-medium" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                      Creative
-                    </FormLabel>
-                    {(() => {
-                      const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
-                      return currentSlot ? (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Required: {currentSlot.width} x {currentSlot.height}px
-                        </span>
-                      ) : null;
-                    })()}
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    {previewUrl ? (
-                      <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
-                        <img
-                          src={previewUrl}
-                          alt="Ad preview"
-                          className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://example.com/placeholder-moon.png';
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
-                          onClick={() => setPreviewUrl('')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <label className="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
-                        <Upload className="h-6 w-6 text-blue-500" />
-                        <p className="text-sm text-blue-600 dark:text-blue-400 text-center font-medium">
-                          Click to upload
-                        </p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  {form.formState.errors.creativeUrl && (
-                    <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
-                  )}
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="impressionTarget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Impression Target</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="text" 
-                          placeholder="Enter impression target"
-                          value={field.value || ''}
-                          onChange={(e) => handleNumberInput(e, (value) => {
-                            field.onChange(value);
-                            handleTargetChange('impressionTarget', value);
-                          }, 1)}
-                          onKeyPress={(e) => {
-                            // Allow only numbers
-                            if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                              e.preventDefault();
-                            }
-                          }}
-                          className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                        />
-                      </FormControl>
-                      <FormDescription className="text-gray-500 dark:text-gray-400">
-                        Must be greater than or equal to click target
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="clickTarget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Click Target</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="text" 
-                          placeholder="Enter click target"
-                          value={field.value || ''}
-                          onChange={(e) => handleNumberInput(e, (value) => {
-                            field.onChange(value);
-                            handleTargetChange('clickTarget', value);
-                          }, 1)}
-                          onKeyPress={(e) => {
-                            // Allow only numbers
-                            if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                              e.preventDefault();
-                            }
-                          }}
-                          className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                        />
-                      </FormControl>
-                      <FormDescription className="text-gray-500 dark:text-gray-400">
-                        Must be less than or equal to impression target
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Priority Score (0-1000)</FormLabel>
-                      <FormControl>
-                        <div className="space-y-3">
-                          <Input 
-                            type="number" 
-                            min={0}
-                            max={1000}
-                            placeholder="Enter priority score (0-1000)"
+                            type="text" 
+                            placeholder="Enter impression target"
                             value={field.value || ''}
-                            onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
+                            onChange={(e) => handleNumberInput(e, (value) => {
+                              field.onChange(value);
+                              handleTargetChange('impressionTarget', value);
+                            }, 1)}
                             onKeyPress={(e) => {
                               // Allow only numbers
                               if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
@@ -831,847 +767,911 @@ export function AdForm() {
                             }}
                             className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                           />
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min((field.value || 0) / 1000 * 100, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormDescription className="text-gray-500 dark:text-gray-400">
-                        Higher priority ads are shown more frequently (0 = lowest, 1000 = highest)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Status</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                          <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Active</SelectItem>
-                          <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Paused</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isTestPhase"
-                  render={({ field }) => {
-                    const isTestMode = field.value === 1;
-                    return (
-                      <FormItem>
-                        <div
-                          onClick={() => field.onChange(isTestMode ? 0 : 1)}
-                          className={`
-                            flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                            ${isTestMode 
-                              ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' 
-                              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }
-                          `}
-                        >
-                          <div className={`
-                            relative w-12 h-6 rounded-full transition-all duration-200 mr-4
-                            ${isTestMode 
-                              ? 'bg-emerald-500' 
-                              : 'bg-gray-300 dark:bg-gray-600'
-                            }
-                          `}>
-                            <div className={`
-                              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
-                              ${isTestMode 
-                                ? 'translate-x-6' 
-                                : 'translate-x-0.5'
-                              }
-                            `}>
-                              {isTestMode && (
-                                <div className="flex items-center justify-center h-full">
-                                  <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>
-                              Test Phase
-                            </FormLabel>
-                            <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                              Enable to test this ad without affecting live traffic
-                            </FormDescription>
-                          </div>
-                          {isTestMode && (
-                            <div className="ml-4">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                                Active
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                          Must be greater than or equal to click target
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
-                    );
-                  }}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="serveStrategy"
-                  render={({ field }) => {
-                    const isUserBased = field.value === 1;
-                    return (
-                      <FormItem>
-                        <div
-                          onClick={() => field.onChange(isUserBased ? 0 : 1)}
-                          className={`
-                            flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                            ${isUserBased 
-                              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
-                              : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
-                            }
-                          `}
-                        >
-                          <div className={`
-                            relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
-                            ${isUserBased 
-                              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800' 
-                              : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
-                            }
-                          `}>
-                            <div className={`
-                              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
-                              ${isUserBased 
-                                ? 'translate-x-6' 
-                                : 'translate-x-0.5'
-                              }
-                            `}>
-                              {isUserBased && (
-                                <div className="flex items-center justify-center h-full">
-                                  <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                              )}
-                              {!isUserBased && (
-                                <div className="flex items-center justify-center h-full">
-                                  <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
-                              Serve Strategy
-                            </FormLabel>
-                            <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                              {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
-                            </FormDescription>
-                          </div>
-                          <div className="ml-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${
-                              isUserBased 
-                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700' 
-                                : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
-                            }`}>
-                              {isUserBased ? 'User-based' : 'Product-based'}
-                            </span>
-                          </div>
-                        </div>
-                      </FormItem>
-                    );
-                  }}
-                />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
-              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white flex items-center">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                      <Settings className="h-4 w-4" />
-                    </div>
-                    Targeting & Audience
-                  </h3>
-                </div>
-              </div>
-              <div className="p-6 space-y-6">
-                
-                {/* Master No Specificity Toggle */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800">
-                  <ElegantToggle
-                    checked={form.watch('noSpecificity') || false}
-                    onChange={(checked) => {
-                      form.setValue('noSpecificity', checked, { shouldValidate: true });
-                      
-                      // Toggle all specificity toggles
-                      form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
-                      
-
-                      
-                      if (checked) {
-                        // If enabling master toggle, set default values and highlight price range
-                        form.setValue('gender', 'NA', { shouldValidate: true });
-                        form.setValue('ageRangeMin', 13, { shouldValidate: true });
-                        form.setValue('ageRangeMax', 100, { shouldValidate: true });
-                        setAgeRange([13, 100]);
-                        setPriceRangeHighlighted(true);
-                        
-                        // Set empty objects for all target sections (no specificity)
-                        form.setValue('sites', {}, { shouldValidate: true });
-                        form.setValue('brandTargets', {}, { shouldValidate: true });
-                        form.setValue('location', {}, { shouldValidate: true });
-                        form.setValue('categories', {}, { shouldValidate: true });
-                        
-                        // Show highlighting for 3 seconds
-                        setTimeout(() => setPriceRangeHighlighted(false), 3000);
-                      } else {
-                        // If disabling master toggle, reset to defaults
-                        form.setValue('gender', 'Male', { shouldValidate: true });
-                        form.setValue('ageRangeMin', 18, { shouldValidate: true });
-                        form.setValue('ageRangeMax', 65, { shouldValidate: true });
-                        setAgeRange([18, 65]);
-                        setPriceRangeHighlighted(false);
-                        
-                        // Reset no-specificity for all target sections
-                        form.setValue('sites', {}, { shouldValidate: true });
-                        form.setValue('brandTargets', {}, { shouldValidate: true });
-                        form.setValue('location', {}, { shouldValidate: true });
-                        form.setValue('categories', {}, { shouldValidate: true });
-                      }
-                    }}
-                    label="Master No Specificity"
-                    description="Apply broad targeting to all categories. When enabled, focus on price range settings below."
-                    size="lg"
-                    variant="primary"
+                    )}
                   />
-                </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Gender Targeting</FormLabel>
-                    <div className="space-y-3">
-                      <FormControl>
-                        <Select 
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            if (value === 'NA') {
-                              form.setValue('noGenderSpecificity', true, { shouldValidate: true });
-                            }
-                          }} 
-                          value={field.value}
-                          disabled={form.watch('noSpecificity')}
+
+                  <FormField
+                    control={form.control}
+                    name="clickTarget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Click Target</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="text" 
+                            placeholder="Enter click target"
+                            value={field.value || ''}
+                            onChange={(e) => handleNumberInput(e, (value) => {
+                              field.onChange(value);
+                              handleTargetChange('clickTarget', value);
+                            }, 1)}
+                            onKeyPress={(e) => {
+                              // Allow only numbers
+                              if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                e.preventDefault();
+                              }
+                            }}
+                            className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                          Must be less than or equal to impression target
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Priority Score (0-1000)</FormLabel>
+                        <FormControl>
+                          <div className="space-y-3">
+                            <Input 
+                              type="number" 
+                              min={0}
+                              max={1000}
+                              placeholder="Enter priority score (0-1000)"
+                              value={field.value || ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0, 1000)}
+                              onKeyPress={(e) => {
+                                // Allow only numbers
+                                if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                            />
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${Math.min((field.value || 0) / 1000 * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                          Higher priority ads are shown more frequently (0 = lowest, 1000 = highest)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Status</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(Number(value))}
+                          value={field.value?.toString()}
                         >
-                          <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                            <SelectValue placeholder={form.watch('noSpecificity') ? "All Genders (No Specificity)" : "Select gender"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                            <SelectItem value="NA">All Genders</SelectItem>
+                          <FormControl>
+                            <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                            <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Active</SelectItem>
+                            <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Paused</SelectItem>
                           </SelectContent>
                         </Select>
-                      </FormControl>
-                      
-                      <ElegantToggle
-                        checked={form.watch('noGenderSpecificity') || false}
-                        onChange={(checked) => {
-                          form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
-                          if (checked) {
-                            form.setValue('gender', 'NA', { shouldValidate: true });
-                          } else {
-                            form.setValue('gender', 'Male', { shouldValidate: true });
-                          }
-                        }}
-                        label="No Gender Specificity"
-                        description="Target all genders equally"
-                        disabled={form.watch('noSpecificity')}
-                        variant="success"
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="space-y-3">
-                <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
-                  Age Range
-                </FormLabel>
-                
-                <div className="space-y-3">
-                  <div className="px-2 py-3">
-                    <Slider
-                      value={ageRange}
-                      onValueChange={(value) => {
-                        const [min, max] = value as [number, number];
-                        setAgeRange([min, max]);
-                        form.setValue('ageRangeMin', min);
-                        form.setValue('ageRangeMax', max);
-                        handleAgeChange('ageRangeMin', min);
-                        handleAgeChange('ageRangeMax', max);
+                  <FormField
+                    control={form.control}
+                    name="isTestPhase"
+                    render={({ field }) => {
+                      const isTestMode = field.value === 1;
+                      return (
+                        <FormItem>
+                          <div
+                            onClick={() => field.onChange(isTestMode ? 0 : 1)}
+                            className={`
+                              flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                              ${isTestMode 
+                                ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' 
+                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }
+                            `}
+                          >
+                            <div className={`
+                              relative w-12 h-6 rounded-full transition-all duration-200 mr-4
+                              ${isTestMode 
+                                ? 'bg-emerald-500' 
+                                : 'bg-gray-300 dark:bg-gray-600'
+                              }
+                            `}>
+                              <div className={`
+                                absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
+                                ${isTestMode 
+                                  ? 'translate-x-6' 
+                                  : 'translate-x-0.5'
+                                }
+                              `}>
+                                {isTestMode && (
+                                  <div className="flex items-center justify-center h-full">
+                                    <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                                Test Phase
+                              </FormLabel>
+                              <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                Enable to test this ad without affecting live traffic
+                              </FormDescription>
+                            </div>
+                            {isTestMode && (
+                              <div className="ml-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                                  Active
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </FormItem>
+                      );
+                    }}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="serveStrategy"
+                    render={({ field }) => {
+                      const isUserBased = field.value === 1;
+                      return (
+                        <FormItem>
+                          <div
+                            onClick={() => field.onChange(isUserBased ? 0 : 1)}
+                            className={`
+                              flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
+                              ${isUserBased 
+                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
+                                : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
+                              }
+                            `}
+                          >
+                            <div className={`
+                              relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
+                              ${isUserBased 
+                                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800' 
+                                : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
+                              }
+                            `}>
+                              <div className={`
+                                absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
+                                ${isUserBased 
+                                  ? 'translate-x-6' 
+                                  : 'translate-x-0.5'
+                                }
+                              `}>
+                                {isUserBased && (
+                                  <div className="flex items-center justify-center h-full">
+                                    <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                )}
+                                {!isUserBased && (
+                                  <div className="flex items-center justify-center h-full">
+                                    <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
+                                Serve Strategy
+                              </FormLabel>
+                              <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                                {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
+                              </FormDescription>
+                            </div>
+                            <div className="ml-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${
+                                isUserBased 
+                                  ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700' 
+                                  : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+                              }`}>
+                                {isUserBased ? 'User-based' : 'Product-based'}
+                              </span>
+                            </div>
+                          </div>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-semibold text-white flex items-center">
+                      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                        <Settings className="h-4 w-4" />
+                      </div>
+                      Targeting & Audience
+                    </h3>
+                  </div>
+                </div>
+                <div className="p-6 space-y-6">
+                  
+                  {/* Master No Specificity Toggle */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                    <ElegantToggle
+                      checked={form.watch('noSpecificity') || false}
+                      onChange={(checked) => {
+                        form.setValue('noSpecificity', checked, { shouldValidate: true });
+                        
+                        // Toggle all specificity toggles
+                        form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
+                        
+                        if (checked) {
+                          // If enabling master toggle, set default values and highlight price range
+                          form.setValue('gender', 'NA', { shouldValidate: true });
+                          form.setValue('ageRangeMin', 13, { shouldValidate: true });
+                          form.setValue('ageRangeMax', 100, { shouldValidate: true });
+                          setAgeRange([13, 100]);
+                          setPriceRangeHighlighted(true);
+                          
+                          // Set empty objects for all target sections (no specificity)
+                          form.setValue('sites', {}, { shouldValidate: true });
+                          form.setValue('brandTargets', {}, { shouldValidate: true });
+                          form.setValue('location', {}, { shouldValidate: true });
+                          form.setValue('categories', {}, { shouldValidate: true });
+                          
+                          // Show highlighting for 3 seconds
+                          setTimeout(() => setPriceRangeHighlighted(false), 3000);
+                        } else {
+                          // If disabling master toggle, reset to defaults
+                          form.setValue('gender', 'Male', { shouldValidate: true });
+                          form.setValue('ageRangeMin', 18, { shouldValidate: true });
+                          form.setValue('ageRangeMax', 65, { shouldValidate: true });
+                          setAgeRange([18, 65]);
+                          setPriceRangeHighlighted(false);
+                          
+                          // Reset no-specificity for all target sections
+                          form.setValue('sites', {}, { shouldValidate: true });
+                          form.setValue('brandTargets', {}, { shouldValidate: true });
+                          form.setValue('location', {}, { shouldValidate: true });
+                          form.setValue('categories', {}, { shouldValidate: true });
+                        }
                       }}
-                      min={13}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                      disabled={form.watch('noSpecificity')}
+                      label="Master No Specificity"
+                      description="Apply broad targeting to all categories. When enabled, focus on price range settings below."
+                      size="lg"
+                      variant="primary"
                     />
                   </div>
                   
-                  <div className="flex justify-center">
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
-                        {ageRange[0]} years
-                      </span>
-                      <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
-                        {ageRange[1]} years
-                      </span>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <FormField
+                      control={form.control}
+                      name="gender"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Gender Targeting</FormLabel>
+                          <div className="space-y-3">
+                            <FormControl>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  if (value === 'NA') {
+                                    form.setValue('noGenderSpecificity', true, { shouldValidate: true });
+                                  }
+                                }} 
+                                value={field.value}
+                                disabled={form.watch('noSpecificity')}
+                              >
+                                <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                                  <SelectValue placeholder={form.watch('noSpecificity') ? "All Genders (No Specificity)" : "Select gender"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Male">Male</SelectItem>
+                                  <SelectItem value="Female">Female</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                  <SelectItem value="NA">All Genders</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            
+                            <ElegantToggle
+                              checked={form.watch('noGenderSpecificity') || false}
+                              onChange={(checked) => {
+                                form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
+                                if (checked) {
+                                  form.setValue('gender', 'NA', { shouldValidate: true });
+                                } else {
+                                  form.setValue('gender', 'Male', { shouldValidate: true });
+                                }
+                              }}
+                              label="No Gender Specificity"
+                              description="Target all genders equally"
+                              disabled={form.watch('noSpecificity')}
+                              variant="success"
+                            />
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-3">
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                        Age Range
+                      </FormLabel>
+                      
+                      <div className="space-y-3">
+                        <div className="px-2 py-3">
+                          <Slider
+                            value={ageRange}
+                            onValueChange={(value) => {
+                              const [min, max] = value as [number, number];
+                              setAgeRange([min, max]);
+                              form.setValue('ageRangeMin', min);
+                              form.setValue('ageRangeMax', max);
+                              handleAgeChange('ageRangeMin', min);
+                              handleAgeChange('ageRangeMax', max);
+                            }}
+                            min={13}
+                            max={100}
+                            step={1}
+                            className="w-full"
+                            disabled={form.watch('noSpecificity')}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <div className="flex items-center space-x-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                              {ageRange[0]} years
+                            </span>
+                            <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                              {ageRange[1]} years
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Display age range validation error prominently */}
+                      {(form.formState.errors.ageRangeMax || form.formState.errors.ageRangeMin) && (
+                        <p className="text-sm text-red-500 font-medium mt-2">
+                          {form.formState.errors.ageRangeMax?.message || form.formState.errors.ageRangeMin?.message}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                </div>
-                
-                {/* Display age range validation error prominently */}
-                {(form.formState.errors.ageRangeMax || form.formState.errors.ageRangeMin) && (
-                  <p className="text-sm text-red-500 font-medium mt-2">
-                    {form.formState.errors.ageRangeMax?.message || form.formState.errors.ageRangeMin?.message}
-                  </p>
-                )}
-              </div>
 
-              <motion.div 
-                className={`space-y-4 p-4 rounded-xl border-2 transition-all duration-500 ${
-                  priceRangeHighlighted 
-                    ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 shadow-lg' 
-                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
-                }`}
-                animate={priceRangeHighlighted ? { 
-                  scale: [1, 1.02, 1],
-                  boxShadow: ['0 0 0 0 rgba(255, 193, 7, 0)', '0 0 0 10px rgba(255, 193, 7, 0.1)', '0 0 0 0 rgba(255, 193, 7, 0)']
-                } : {}}
-                transition={{ duration: 0.6, repeat: priceRangeHighlighted ? 2 : 0 }}
-              >
-                <div className="flex items-center space-x-2">
-                  <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
-                    <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-2"></div>
-                    Price Range
-                  </FormLabel>
-                  {priceRangeHighlighted && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs font-medium"
+                    <motion.div 
+                      className={`space-y-4 p-4 rounded-xl border-2 transition-all duration-500 ${
+                        priceRangeHighlighted 
+                          ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 shadow-lg' 
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+                      }`}
+                      animate={priceRangeHighlighted ? { 
+                        scale: [1, 1.02, 1],
+                        boxShadow: ['0 0 0 0 rgba(255, 193, 7, 0)', '0 0 0 10px rgba(255, 193, 7, 0.1)', '0 0 0 0 rgba(255, 193, 7, 0)']
+                      } : {}}
+                      transition={{ duration: 0.6, repeat: priceRangeHighlighted ? 2 : 0 }}
                     >
-                      🎯 Focus Here!
-                    </motion.div>
-                  )}
-                </div>
+                      <div className="flex items-center space-x-2">
+                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                          <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-2"></div>
+                          Price Range
+                        </FormLabel>
+                        {priceRangeHighlighted && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs font-medium"
+                          >
+                            🎯 Focus Here!
+                          </motion.div>
+                        )}
+                      </div>
 
-                <div className="space-y-4">
-                  <div className="px-2 py-3">
-                    <Slider
-                      value={[
-                        Math.min(form.getValues('priceRangeMin'), 400000),
-                        Math.min(form.getValues('priceRangeMax'), 400000),
-                      ]}
-                      onValueChange={(value) => {
-                        const [min, max] = value as [number, number];
-                        form.setValue('priceRangeMin', min);
-                        form.setValue('priceRangeMax', max);
-                        handlePriceChange('priceRangeMin', min);
-                        handlePriceChange('priceRangeMax', max);
-                      }}
-                      min={1}
-                      max={400000}
-                      step={1}
-                      className="w-full"
-                      disabled={form.watch('noSpecificity')}
+                      <div className="space-y-4">
+                        <div className="px-2 py-3">
+                          <Slider
+                            value={[
+                              Math.min(form.getValues('priceRangeMin'), 400000),
+                              Math.min(form.getValues('priceRangeMax'), 400000),
+                            ]}
+                            onValueChange={(value) => {
+                              const [min, max] = value as [number, number];
+                              form.setValue('priceRangeMin', min);
+                              form.setValue('priceRangeMax', max);
+                              handlePriceChange('priceRangeMin', min);
+                              handlePriceChange('priceRangeMax', max);
+                            }}
+                            min={1}
+                            max={400000}
+                            step={1}
+                            className="w-full"
+                            disabled={form.watch('noSpecificity')}
+                          />
+                        </div>
+
+                        <div className="flex justify-center">
+                          <div className="flex items-center space-x-4">
+                            <FormField
+                              control={form.control}
+                              name="priceRangeMin"
+                              render={({ field }) => (
+                                <FormItem className="flex-1">
+                                  <FormControl>
+                                    <Input
+                                      type="text"
+                                      placeholder="Min price"
+                                      value={field.value || ''}
+                                      onChange={(e) => {
+                                        handleNumberInput(e, (value) => {
+                                          field.onChange(value);
+                                          handlePriceChange('priceRangeMin', value);
+                                        }, 0);
+                                      }}
+                                      onKeyPress={(e) => {
+                                        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      disabled={form.watch('noSpecificity')}
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <span className="text-gray-400 dark:text-gray-500 text-sm">to</span>
+                            <FormField
+                              control={form.control}
+                              name="priceRangeMax"
+                              render={({ field }) => (
+                                <FormItem className="flex-1">
+                                  <FormControl>
+                                    <Input
+                                      type="text"
+                                      placeholder="Max price"
+                                      value={field.value || ''}
+                                      onChange={(e) => {
+                                        handleNumberInput(e, (value) => {
+                                          field.onChange(value);
+                                          handlePriceChange('priceRangeMax', value);
+                                        }, 1);
+                                      }}
+                                      onKeyPress={(e) => {
+                                        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      disabled={form.watch('noSpecificity')}
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        {(form.formState.errors.priceRangeMax || form.formState.errors.priceRangeMin) && (
+                          <p className="text-sm text-red-500 font-medium mt-2">
+                            {form.formState.errors.priceRangeMax?.message || form.formState.errors.priceRangeMin?.message}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    <FormField
+                      control={form.control}
+                      name="sites"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sites</FormLabel>
+                          <FormDescription>
+                            Select the sites where you want your ads to appear.
+                          </FormDescription>
+                          <FormControl>
+                            <SiteSelect
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select sites..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="categories"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categories</FormLabel>
+                          <FormDescription>
+                            Search and select product categories to target.
+                          </FormDescription>
+                          <FormControl>
+                            <CategoryAutoSuggest
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Search categories..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="brandTargets"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Brand Targets</FormLabel>
+                          <FormDescription>
+                            Type brand names like Apple, Samsung, etc...
+                          </FormDescription>
+                          <FormControl>
+                            <BrandInput
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Type brand names..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Locations</FormLabel>
+                          <FormDescription>
+                            Search and select locations to target for your ad.
+                          </FormDescription>
+                          <FormControl>
+                            <LocationAutoSuggest
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Search locations..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
+                </div>
+              </Card>
+            </motion.div>
 
-                  <div className="flex justify-center">
-                    <div className="flex items-center space-x-4">
-                      <FormField
-                        control={form.control}
-                        name="priceRangeMin"
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input
-                                type="text"
-                                placeholder="Min price"
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  handleNumberInput(e, (value) => {
-                                    field.onChange(value);
-                                    handlePriceChange('priceRangeMin', value);
-                                  }, 0);
-                                }}
-                                onKeyPress={(e) => {
-                                  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                disabled={form.watch('noSpecificity')}
-                                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <span className="text-gray-400 dark:text-gray-500 text-sm">to</span>
-                      <FormField
-                        control={form.control}
-                        name="priceRangeMax"
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input
-                                type="text"
-                                placeholder="Max price"
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  handleNumberInput(e, (value) => {
-                                    field.onChange(value);
-                                    handlePriceChange('priceRangeMax', value);
-                                  }, 1);
-                                }}
-                                onKeyPress={(e) => {
-                                  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                disabled={form.watch('noSpecificity')}
-                                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <Target className="h-3 w-3" />
                   </div>
+                  Tracking & Pixels
+                </h3>
+              </div>
+              <div className="p-8 space-y-8">
+                
+                <div className="grid grid-cols-1 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="impressionPixel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Impression Pixel URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/impression-pixel"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          URL to track ad impressions
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  {(form.formState.errors.priceRangeMax || form.formState.errors.priceRangeMin) && (
-                    <p className="text-sm text-red-500 font-medium mt-2">
-                      {form.formState.errors.priceRangeMax?.message || form.formState.errors.priceRangeMin?.message}
-                    </p>
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="clickPixel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Click Pixel URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/click-pixel"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          URL to track ad clicks
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </motion.div>
+              </div>
+            </Card>
 
-              <FormField
-                control={form.control}
-                name="sites"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sites</FormLabel>
-                    <FormDescription>
-                      Select the sites where you want your ads to appear.
-                    </FormDescription>
-                    <FormControl>
-                      <SiteSelect
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Select sites..."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <CalendarIcon className="h-3 w-3" />
+                  </div>
+                  Scheduling
+                </h3>
+              </div>
+              <div className="p-8 space-y-8">
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date</FormLabel>
+                        <div className="relative">
+                          <Input 
+                            type="date" 
+                            min={new Date().toISOString().split('T')[0]}
+                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                            ref={field.ref}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleDateChange('startDate', e.target.value);
+                            }}
+                            onBlur={field.onBlur}
+                            value={field.value}
+                            id="start-date-input"
+                            style={{
+                              colorScheme: 'light',
+                              direction: 'ltr'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const input = document.getElementById('start-date-input') as HTMLInputElement;
+                              if (input) {
+                                // Focus the input first to establish context
+                                input.focus();
+                                // Small delay to ensure focus is established
+                                setTimeout(() => {
+                                  input.showPicker?.();
+                                }, 10);
+                              }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="categories"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categories</FormLabel>
-                    <FormDescription>
-                      Search and select product categories to target.
-                    </FormDescription>
-                    <FormControl>
-                      <CategoryAutoSuggest
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Search categories..."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date</FormLabel>
+                        <div className="relative">
+                          <Input 
+                            type="date" 
+                            min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
+                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                            ref={field.ref}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleDateChange('endDate', e.target.value);
+                            }}
+                            onBlur={field.onBlur}
+                            value={field.value}
+                            id="end-date-input"
+                            style={{
+                              colorScheme: 'light',
+                              direction: 'ltr'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const input = document.getElementById('end-date-input') as HTMLInputElement;
+                              if (input) {
+                                // Focus the input first to establish context
+                                input.focus();
+                                // Small delay to ensure focus is established
+                                setTimeout(() => {
+                                  input.showPicker?.();
+                                }, 10);
+                              }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="brandTargets"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Brand Targets</FormLabel>
-                    <FormDescription>
-                    Type brand names like Apple, Samsung, etc...
-                    </FormDescription>
-                    <FormControl>
-                      <BrandInput
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Time</FormLabel>
+                        <div className="relative">
+                          <Input 
+                            type="time" 
+                            step="60"
+                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                            ref={field.ref}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            value={field.value}
+                            id="start-time-input"
+                            style={{
+                              colorScheme: 'light',
+                              direction: 'ltr'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const input = document.getElementById('start-time-input') as HTMLInputElement;
+                              if (input) {
+                                input.focus();
+                                setTimeout(() => {
+                                  input.showPicker?.();
+                                }, 10);
+                              }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                          >
+                            <Clock className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Locations</FormLabel>
-                    <FormDescription>
-                      Search and select locations to target for your ad.
-                    </FormDescription>
-                    <FormControl>
-                      <LocationAutoSuggest
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Search locations..."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            </div>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                  <Target className="h-3 w-3" />
+                  <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Time</FormLabel>
+                        <div className="relative">
+                          <Input 
+                            type="time" 
+                            step="60"
+                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                            ref={field.ref}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            value={field.value}
+                            id="end-time-input"
+                            style={{
+                              colorScheme: 'light',
+                              direction: 'ltr'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const input = document.getElementById('end-time-input') as HTMLInputElement;
+                              if (input) {
+                                input.focus();
+                                setTimeout(() => {
+                                  input.showPicker?.();
+                                }, 10);
+                              }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                          >
+                            <Clock className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                Tracking & Pixels
-              </h3>
-            </div>
-            <div className="p-8 space-y-8">
-            
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="impressionPixel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Impression Pixel URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/impression-pixel"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      URL to track ad impressions
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              </div>
+            </Card>
 
-              <FormField
-                control={form.control}
-                name="clickPixel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Click Pixel URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/click-pixel"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      URL to track ad clicks
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            </div>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                  <CalendarIcon className="h-3 w-3" />
-                </div>
-                Scheduling
-              </h3>
-            </div>
-            <div className="p-8 space-y-8">
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="date" 
-                        min={new Date().toISOString().split('T')[0]}
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleDateChange('startDate', e.target.value);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="start-date-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('start-date-input') as HTMLInputElement;
-                          if (input) {
-                            // Focus the input first to establish context
-                            input.focus();
-                            // Small delay to ensure focus is established
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <CalendarIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="date" 
-                        min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleDateChange('endDate', e.target.value);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="end-date-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('end-date-input') as HTMLInputElement;
-                          if (input) {
-                            // Focus the input first to establish context
-                            input.focus();
-                            // Small delay to ensure focus is established
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <CalendarIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="time" 
-                        step="60"
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="start-time-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('start-time-input') as HTMLInputElement;
-                          if (input) {
-                            input.focus();
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <Clock className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="time" 
-                        step="60"
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="end-time-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('end-time-input') as HTMLInputElement;
-                          if (input) {
-                            input.focus();
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <Clock className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            </div>
-          </Card>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
-          >
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Saving...
-                </span>
-              ) : (
-                <>
-                  {isEditMode ? 'Update Ad' : 'Create Ad'}
-                </>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
-            >
-              Cancel
-            </Button>
-          </motion.div>
-        </form>
-      </Form>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Saving...
+                  </span>
+                ) : (
+                  <>
+                    {isEditMode ? 'Update Ad' : 'Create Ad'}
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
+                disabled={loading}
+                className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
+              >
+                Cancel
+              </Button>
+            </motion.div>
+          </form>
+        </Form>
+      </div>
     </div>
-  </div>
-);
+  );
+}
