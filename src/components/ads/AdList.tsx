@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick } from 'lucide-react';
+import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,8 @@ export function AdList() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const [ads, setAds] = useState<Ad[]>([]);
+  const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<Record<number, Slot>>({});
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
@@ -133,8 +135,10 @@ export function AdList() {
           };
         });
         setAds(enrichedAds);
+        setFilteredAds(enrichedAds);
       } else {
         setAds([]);
+        setFilteredAds([]);
         setError('No ads found for this campaign');
       }
     } catch (error) {
@@ -188,7 +192,27 @@ export function AdList() {
     }
   };
 
-  // Calculate summary stats
+  // Set filtered ads initially
+  useEffect(() => {
+    setFilteredAds(ads);
+  }, [ads]);
+
+  // Filter ads when search query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredAds(ads);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = ads.filter(ad => 
+      ad.name.toLowerCase().includes(query)
+    );
+    
+    setFilteredAds(filtered);
+  }, [ads, searchQuery]);
+
+  // Calculate summary stats - update to use filteredAds
   const totalAds = ads.length;
   const activeAds = ads.filter(ad => ad.status === 1).length;
   const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressionTarget, 0);
@@ -492,12 +516,41 @@ export function AdList() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 w-full">
-              <Input
-                placeholder="Search ads..."
-                className="flex-1 sm:max-w-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-              />
+              <div className="relative flex-1 sm:max-w-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <Input
+                  placeholder="Search ads by name..."
+                  className="pl-10 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      <span className="sr-only">Clear search</span>
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              {searchQuery && (
+                <div className="hidden sm:flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <span className="font-medium">{filteredAds.length}</span>
+                  <span className="ml-1">results</span>
+                </div>
+              )}
             </div>
           </div>
+          {searchQuery && filteredAds.length === 0 && (
+            <div className="mt-4 text-center py-2 text-gray-500 dark:text-gray-400">
+              No ads found matching "{searchQuery}"
+            </div>
+          )}
         </motion.div>
 
         {/* Ads Content */}
@@ -523,16 +576,20 @@ export function AdList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ads.length === 0 ? (
+                  {filteredAds.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-32 text-center">
                         <div className="text-gray-500 dark:text-gray-400 p-6">
-                          <span className="font-medium text-lg">No ads found. Create your first ad to get started.</span>
+                          <span className="font-medium text-lg">
+                            {searchQuery 
+                              ? `No ads found matching "${searchQuery}"`
+                              : "No ads found. Create your first ad to get started."}
+                          </span>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    ads.map((ad, index) => (
+                    filteredAds.map((ad, index) => (
                       <motion.tr 
                         key={ad.adId}
                         initial={{ opacity: 0, x: -20 }}
@@ -685,14 +742,18 @@ export function AdList() {
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
-            {ads.length === 0 ? (
+            {filteredAds.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
-                  <span className="font-medium">No ads found. Create your first ad to get started.</span>
+                  <span className="font-medium">
+                    {searchQuery 
+                      ? `No ads found matching "${searchQuery}"`
+                      : "No ads found. Create your first ad to get started."}
+                  </span>
                 </div>
               </div>
             ) : (
-              ads.map((ad, index) => (
+              filteredAds.map((ad, index) => (
                 <AdCard key={ad.adId} ad={ad} index={index} />
               ))
             )}
