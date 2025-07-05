@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Ad, Slot, SlotListResponse } from '@/types';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
+import { analyticsService } from '@/services/analyticsService';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -26,6 +27,7 @@ export function AdList() {
   const [slots, setSlots] = useState<Record<number, Slot>>({});
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
   const [error, setError] = useState<string | null>(null);
+  const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
 
   useEffect(() => {
     // Inject gradient animation CSS
@@ -136,6 +138,16 @@ export function AdList() {
         });
         setAds(enrichedAds);
         setFilteredAds(enrichedAds);
+
+        // fetch live metrics for ads
+        const dateRange = analyticsService.getDateRange('30d');
+        const metricsArr = await Promise.all(result.data.adsList.map(async (ad: Ad) => {
+          const resp = await analyticsService.getMetrics({ ...dateRange, campaignId: campaignId ? Number(campaignId) : undefined, adId: ad.adId });
+          return { id: ad.adId, metrics: resp.success && resp.data ? resp.data : null };
+        }));
+        const mMap: Record<number, { impressions: number; clicks: number }> = {};
+        metricsArr.forEach(({ id, metrics }) => { if(metrics) mMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks }; });
+        setAdMetrics(mMap);
       } else {
         setAds([]);
         setFilteredAds([]);
@@ -228,9 +240,9 @@ export function AdList() {
       onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
       className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95 cursor-pointer"
     >
-      <div className="flex items-start space-x-4">
+      <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
         {/* Creative */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 self-center lg:self-auto">
           <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             {ad.creativeUrl ? (
               <img 
@@ -351,24 +363,45 @@ export function AdList() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mt-3">
+            {/* Target Metrics */}
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Impressions</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {ad.impressionTarget.toLocaleString()}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Clicks</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {ad.clickTarget.toLocaleString()}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">CTR</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
               <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                {ad.impressionTarget > 0 
-                  ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
-                  : '0.00%'}
+                {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) : '0'}%
+              </div>
+            </div>
+
+            {/* Live Metrics */}
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '—'}
+              </div>
+            </div>
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '—'}
+              </div>
+            </div>
+            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live CTR</div>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
+                  ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
+                  : '—'}
               </div>
             </div>
           </div>
@@ -569,9 +602,14 @@ export function AdList() {
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24">Status</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold">Name</TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-32">Slot</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28 text-right">Impressions</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Clicks</TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center">CTR</TableHead>
+                    {/* Target group */}
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right bg-gray-50 dark:bg-gray-700">Target Impr.</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-right bg-gray-50 dark:bg-gray-700">Target Clicks</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center bg-gray-50 dark:bg-gray-700">Target CTR</TableHead>
+                    {/* Live group */}
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right bg-blue-50 dark:bg-gray-600">Live Impr.</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-right bg-blue-50 dark:bg-gray-600">Live Clicks</TableHead>
+                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center bg-blue-50 dark:bg-gray-600">Live CTR</TableHead>
                     <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -651,16 +689,27 @@ export function AdList() {
                           )}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
-                          {(ad.impressionTarget / 1000).toFixed(0)}K
+                          {ad.impressionTarget.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
-                          {(ad.clickTarget / 1000).toFixed(1)}K
+                          {ad.clickTarget.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-center p-2">
+                          <span className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">
+                            {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) + '%' : '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
+                          {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
+                          {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '—'}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-center p-2">
                           <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">
-                            {ad.impressionTarget > 0 
-                              ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) + '%' 
-                              : '0%'}
+                            {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
+                              ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
+                              : '—'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right p-2">

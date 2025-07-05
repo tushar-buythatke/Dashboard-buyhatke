@@ -80,6 +80,10 @@ export function Analytics() {
     location: []
   });
 
+  // Table data states
+  const [topLocations, setTopLocations] = useState<any[]>([]);
+  const [topSlotsData, setTopSlotsData] = useState<any[]>([]);
+
   // Loading states
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
@@ -155,19 +159,27 @@ export function Analytics() {
       setDataLoading(true);
       
       const dateRange = analyticsService.getDateRange(selectedTimeRange);
+
+      // Build payload suited for the updated analytics backend – filters are arrays
       const basePayload: MetricsPayload = {
         ...dateRange,
-        campaignId: selectedCampaigns.length > 0 ? Number(selectedCampaigns[0]) : undefined,
+        campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+        slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+        siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+        // adId filter can be added once ad-name → id mapping is available
       };
 
-      // Fetch metrics, trend data, and breakdowns in parallel
+      // Fetch metrics, trend data, breakdowns & tables in parallel
       const [metricsResult, trendResult, ...breakdownResults] = await Promise.all([
         analyticsService.getMetrics(basePayload),
-        analyticsService.getTrendData(basePayload),
+        analyticsService.getTrendData({ ...basePayload, interval: selectedTimeRange }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'gender' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'age' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'platform' }),
-        analyticsService.getBreakdownData({ ...basePayload, by: 'location' })
+        analyticsService.getBreakdownData({ ...basePayload, by: 'location' }),
+        // table data
+        analyticsService.getTableData('location', 'impressions'),
+        analyticsService.getTableData('slotId', 'impressions')
       ]);
 
       if (metricsResult.success && metricsResult.data) {
@@ -178,14 +190,22 @@ export function Analytics() {
         setTrendData(trendResult.data);
       }
 
-      // Process breakdown data
-      const [genderResult, ageResult, platformResult, locationResult] = breakdownResults;
+      // Process breakdown & table data
+      const [genderResult, ageResult, platformResult, locationResult, locationTableResult, slotTableResult] = breakdownResults;
       setBreakdownData({
         gender: genderResult.success ? genderResult.data || [] : [],
         age: ageResult.success ? ageResult.data || [] : [],
         platform: platformResult.success ? platformResult.data || [] : [],
         location: locationResult.success ? locationResult.data || [] : []
       });
+
+      // Table data processing
+      if (locationTableResult && locationTableResult.success && locationTableResult.data) {
+        setTopLocations(locationTableResult.data);
+      }
+      if (slotTableResult && slotTableResult.success && slotTableResult.data) {
+        setTopSlotsData(slotTableResult.data);
+      }
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
@@ -225,29 +245,21 @@ export function Analytics() {
     roi: 0
   });
 
-  // Mock data for tables while implementing real API for table data
+  // Fallback mock data – used only if API fails
   const mockTopLocations = [
-    { location: 'Mumbai', impressions: 45000, clicks: 1350, conversions: 81 },
-    { location: 'Delhi', impressions: 38000, clicks: 1140, conversions: 68 },
-    { location: 'Bangalore', impressions: 32000, clicks: 960, conversions: 58 },
-    { location: 'Chennai', impressions: 28000, clicks: 840, conversions: 50 },
-    { location: 'Hyderabad', impressions: 25000, clicks: 750, conversions: 45 }
-  ];
-
-  const mockTopLandingUrls = [
-    { landingUrl: 'https://example.com/product-1', clicks: 850, impressions: 28000, conversions: 51 },
-    { landingUrl: 'https://example.com/product-2', clicks: 720, impressions: 24000, conversions: 43 },
-    { landingUrl: 'https://example.com/product-3', clicks: 650, impressions: 21000, conversions: 39 },
-    { landingUrl: 'https://example.com/product-4', clicks: 580, impressions: 19000, conversions: 35 },
-    { landingUrl: 'https://example.com/product-5', clicks: 520, impressions: 17000, conversions: 31 }
+    { location: 'Mumbai', impressions: 45000, clicks: 1350 },
+    { location: 'Delhi', impressions: 38000, clicks: 1140 },
+    { location: 'Bangalore', impressions: 32000, clicks: 960 },
+    { location: 'Chennai', impressions: 28000, clicks: 840 },
+    { location: 'Hyderabad', impressions: 25000, clicks: 750 }
   ];
 
   const mockTopSlots = [
-    { slotName: 'Header Banner', impressions: 52000, clicks: 1560, conversionRate: 5.8 },
-    { slotName: 'Sidebar Ad', impressions: 41000, clicks: 1230, conversionRate: 4.2 },
-    { slotName: 'Mobile Banner', impressions: 38000, clicks: 1140, conversionRate: 6.1 },
-    { slotName: 'Footer Banner', impressions: 28000, clicks: 840, conversionRate: 3.9 },
-    { slotName: 'In-Feed Ad', impressions: 25000, clicks: 750, conversionRate: 7.2 }
+    { slotId: 1, impressions: 52000, clicks: 1560 },
+    { slotId: 2, impressions: 41000, clicks: 1230 },
+    { slotId: 3, impressions: 38000, clicks: 1140 },
+    { slotId: 4, impressions: 28000, clicks: 840 },
+    { slotId: 5, impressions: 25000, clicks: 750 }
   ];
 
   const mockImpressionsVsConversions = [
@@ -522,12 +534,11 @@ export function Analytics() {
             >
               <DataTable
                 title="Top 5 Locations by Impressions"
-                data={mockTopLocations}
+                data={topLocations.length > 0 ? topLocations : mockTopLocations}
                 columns={[
                   { key: 'location', label: 'Location' },
                   { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' },
-                  { key: 'conversions', label: 'Conversions', format: 'number' }
+                  { key: 'clicks', label: 'Clicks', format: 'number' }
                 ]}
               />
             </motion.div>
@@ -539,31 +550,12 @@ export function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
               <DataTable
-                title="Top 5 Landing URLs by Clicks"
-                data={mockTopLandingUrls}
-                columns={[
-                  { key: 'landingUrl', label: 'Landing URL', format: 'url' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' },
-                  { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'conversions', label: 'Conversions', format: 'number' }
-                ]}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
-            >
-              <DataTable
                 title="Top Slots by Performance"
-                data={mockTopSlots}
+                data={topSlotsData.length > 0 ? topSlotsData : mockTopSlots}
                 columns={[
-                  { key: 'slotName', label: 'Slot Name' },
+                  { key: 'slotId', label: 'Slot ID' },
                   { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' },
-                  { key: 'conversionRate', label: 'CR %', format: 'percentage' }
+                  { key: 'clicks', label: 'Clicks', format: 'number' }
                 ]}
               />
             </motion.div>

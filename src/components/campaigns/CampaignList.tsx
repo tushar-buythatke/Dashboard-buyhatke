@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from 'sonner';
 import { Campaign, CampaignResponse } from '@/types';
 import { motion } from 'framer-motion';
+import { analyticsService } from '@/services/analyticsService';
 
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
@@ -34,14 +35,15 @@ export function CampaignList() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // live metrics map keyed by campaignId
+  const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  
   const statusFilter = searchParams.get('status') || 'all';
   const brandNameFilter = searchParams.get('brandName') || '';
 
   useEffect(() => {
     fetchCampaigns();
   }, [statusFilter, brandNameFilter]);
-
-
 
   const fetchCampaigns = async () => {
     try {
@@ -58,6 +60,18 @@ export function CampaignList() {
       
       if (result.status === 1 && result.data?.campaignList) {
         setCampaigns(result.data.campaignList);
+
+        // fetch live metrics for each campaign in parallel (last 30d)
+        const dateRange = analyticsService.getDateRange('30d');
+        const metricsArr = await Promise.all(result.data.campaignList.map(async (c) => {
+          const mRes = await analyticsService.getMetrics({ ...dateRange, campaignId: c.campaignId });
+          return { id: c.campaignId, metrics: mRes.success && mRes.data ? mRes.data : null };
+        }));
+        const metricMap: Record<number, { impressions: number; clicks: number }> = {};
+        metricsArr.forEach(({ id, metrics }) => {
+          if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks };
+        });
+        setCampaignMetrics(metricMap);
       } else {
         setCampaigns([]);
       }
@@ -137,10 +151,10 @@ export function CampaignList() {
     });
   };
 
-  // Calculate summary stats
+  // Calculate summary stats using live metrics when available
   const activeCampaigns = campaigns.filter(c => c.status === 1).length;
   const totalBudget = campaigns.reduce((sum, c) => sum + parseFloat(c.totalBudget), 0);
-  const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressionTarget, 0);
+  const totalImpressions = Object.values(campaignMetrics).reduce((s,m)=>s+m.impressions,0);
 
   // Campaign Card Component for mobile view
   const CampaignCard = ({ campaign, index }: { campaign: Campaign; index: number }) => (
@@ -232,24 +246,42 @@ export function CampaignList() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Target Metrics */}
         <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Impressions</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
           <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {campaign.impressionTarget.toLocaleString()}
           </div>
         </div>
         <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Clicks</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
           <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {campaign.clickTarget.toLocaleString()}
           </div>
         </div>
+
+        {/* Live Metrics */}
         <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Budget</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
           <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            ₹{parseFloat(campaign.totalBudget).toLocaleString()}
+            {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
           </div>
+        </div>
+        <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
+          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
+          </div>
+        </div>
+      </div>
+
+      {/* Budget */}
+      <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mt-3">
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Budget</div>
+        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          ₹{parseFloat(campaign.totalBudget).toLocaleString()}
         </div>
       </div>
     </motion.div>
@@ -427,8 +459,12 @@ export function CampaignList() {
                       <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-40">Brand</TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24">Status</TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28">Created</TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28 text-right">Impressions</TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Clicks</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Target Impr.</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-right">Target Clicks</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center">Target CTR</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-24 text-right">Live Impr.</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-right">Live Clicks</TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-20 text-center">Live CTR</TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300 font-semibold w-28 text-right">Budget</TableHead>
                       <TableHead className="text-right text-gray-700 dark:text-gray-300 font-semibold w-16">Actions</TableHead>
                     </TableRow>
@@ -478,10 +514,24 @@ export function CampaignList() {
                             {formatDate(campaign.createdAt)}
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300 text-right p-2 text-sm">
-                            {(campaign.impressionTarget / 1000).toFixed(0)}K
+                            {campaign.impressionTarget.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300 text-right p-2 text-sm">
-                            {(campaign.clickTarget / 1000).toFixed(1)}K
+                            {campaign.clickTarget.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-gray-700 dark:text-gray-300 text-center p-2 text-sm">
+                            {campaign.impressionTarget > 0 ? ((campaign.clickTarget / campaign.impressionTarget) * 100).toFixed(1) + '%' : '—'}
+                          </TableCell>
+                          <TableCell className="text-gray-700 dark:text-gray-300 text-right p-2 text-sm">
+                            {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
+                          </TableCell>
+                          <TableCell className="text-gray-700 dark:text-gray-300 text-right p-2 text-sm">
+                            {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
+                          </TableCell>
+                          <TableCell className="text-gray-700 dark:text-gray-300 text-center p-2 text-sm">
+                            {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
+                              ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
+                              : '—'}
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300 text-right p-2 text-sm">
                             ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
