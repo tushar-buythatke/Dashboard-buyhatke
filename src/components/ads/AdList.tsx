@@ -218,7 +218,7 @@ export function AdList() {
     
     const query = searchQuery.toLowerCase().trim();
     const filtered = ads.filter(ad => 
-      ad.name.toLowerCase().includes(query)
+      ad.label.toLowerCase().includes(query)
     );
     
     setFilteredAds(filtered);
@@ -290,7 +290,7 @@ export function AdList() {
                 )}
               </div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                {ad.name}
+                {ad.label}
               </div>
               {ad.slotWidth && ad.slotHeight && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -674,7 +674,7 @@ export function AdList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
-                          <span className="font-semibold text-sm truncate max-w-32">{ad.name}</span>
+                          <span className="font-semibold text-sm truncate max-w-32">{ad.label}</span>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
                           {ad.slotName && (

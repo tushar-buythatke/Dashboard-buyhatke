@@ -179,7 +179,7 @@ export function AdDetail() {
               </Button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {ad.name}
+                  {ad.label}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
                   {campaign?.brandName || 'Campaign'} • Ad #{ad.adId}
@@ -318,7 +318,7 @@ export function AdDetail() {
                 {/* Ad Name */}
                 <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Ad Name</h4>
-                  <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.name}</p>
+                  <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.label}</p>
                 </div>
 
                 {/* Creative Image */}

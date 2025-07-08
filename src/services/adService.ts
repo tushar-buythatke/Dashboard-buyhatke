@@ -26,6 +26,7 @@ export interface CategoryDetails {
 export interface CreateAdData {
   campaignId: number;
   slotId: number;
+  label: string;
   impressionTarget: number;
   clickTarget: number;
   impressionPixel?: string;
@@ -280,8 +281,8 @@ class AdService {
     }
   }
 
-  // Get ad names for suggestion
-  async getAdNames(campaignId?: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
+  // Get ad labels for suggestion
+  async getAdLabels(campaignId?: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
     try {
       const params = new URLSearchParams();
       if (campaignId) params.append('campaignId', campaignId.toString());
@@ -298,23 +299,23 @@ class AdService {
 
       const result = await response.json();
       if (result.status === 1 && result.data?.adsList) {
-        const adNames = result.data.adsList.map((ad: any) => ad.name).filter(Boolean);
+        const adLabels = result.data.adsList.map((ad: any) => ad.label).filter(Boolean);
         return {
           success: true,
-          data: adNames,
-          message: 'Ad names fetched successfully'
+          data: adLabels,
+          message: 'Ad labels fetched successfully'
         };
       }
       
       return {
         success: false,
-        message: result.message || 'Failed to fetch ad names'
+        message: result.message || 'Failed to fetch ad labels'
       };
     } catch (error) {
-      console.error('Error fetching ad names:', error);
+      console.error('Error fetching ad labels:', error);
       return {
         success: false,
-        message: 'Failed to fetch ad names'
+        message: 'Failed to fetch ad labels'
       };
     }
   }

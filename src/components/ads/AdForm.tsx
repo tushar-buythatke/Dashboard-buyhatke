@@ -128,7 +128,7 @@ const adSchema = z.object({
   slotId: z.union([z.undefined(), z.number().min(1, 'Slot selection is required')]).refine((val) => val !== undefined && val > 0, {
     message: 'Slot selection is required'
   }),
-  name: z.string().min(1, 'Ad name is required'),
+  label: z.string().min(1, 'Ad label is required'),
   impressionTarget: z.number().min(1, 'Impression target is required'),
   clickTarget: z.number().min(1, 'Click target is required'),
   impressionPixel: z.string().url('Must be a valid URL'),
@@ -207,16 +207,16 @@ export function AdForm() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 65]);
   const [priceRangeHighlighted, setPriceRangeHighlighted] = useState(false);
-  const [existingAdNames, setExistingAdNames] = useState<string[]>([]);
-  const [nameInputValue, setNameInputValue] = useState('');
-  const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
-  const [openNameSuggestions, setOpenNameSuggestions] = useState(false);
+  const [existingAdLabels, setExistingAdLabels] = useState<string[]>([]);
+  const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
+  const [openLabelSuggestions, setOpenLabelSuggestions] = useState(false);
+  const [campaignName, setCampaignName] = useState('');
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
       slotId: undefined,
-      name: '',
+      label: '',
       impressionTarget: 1000,
       clickTarget: 100,
       impressionPixel: '',
@@ -326,6 +326,21 @@ export function AdForm() {
       try {
         setFormLoading(true);
 
+        // Fetch campaign name
+        if (campaignId) {
+          try {
+            const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`);
+            if (response.ok) {
+              const result = await response.json();
+              if (result.status === 1 && result.data?.campaignList?.[0]) {
+                setCampaignName(result.data.campaignList[0].brandName);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching campaign name:', error);
+          }
+        }
+
         await fetchSlots();
 
         // Fetch ad data
@@ -411,90 +426,55 @@ export function AdForm() {
     }
   }, [form.watch('slotId'), slots, selectedSlot]);
 
-  // Initialize nameInputValue from form value when it's loaded
+  // Initialize labelInputValue from form value when it's loaded
   useEffect(() => {
-    const currentName = form.getValues('name');
-    if (currentName && !nameInputValue) {
-      setNameInputValue(currentName);
-    }
-  }, [form, nameInputValue]);
+    const currentLabel = form.getValues('label');
+  }, [form]);
 
-  // Fetch existing ad names for the current campaign
+  // Fetch existing ad labels for the current campaign
   useEffect(() => {
-    const fetchExistingAdNames = async () => {
+    const fetchExistingAdLabels = async () => {
       try {
         if (!campaignId) return;
         
-        const result = await adService.getAdNames(Number(campaignId));
+        const result = await adService.getAdLabels(Number(campaignId));
         if (result.success && result.data) {
-          setExistingAdNames(result.data);
+          setExistingAdLabels(result.data);
         } else {
-          console.error('Failed to fetch ad names:', result.message);
+          console.error('Failed to fetch ad labels:', result.message);
         }
       } catch (error) {
-        console.error('Error fetching existing ad names:', error);
+        console.error('Error fetching existing ad labels:', error);
       }
     };
 
-    fetchExistingAdNames();
+    fetchExistingAdLabels();
   }, [campaignId]);
 
-  // Generate name suggestions based on input
+  // Generate label suggestions based on input
   useEffect(() => {
-    console.log('Generating suggestions for:', nameInputValue);
-    console.log('Existing names:', existingAdNames);
-    
-    if (!nameInputValue) {
-      setNameSuggestions([]);
+    const labelInputValue = form.watch('label');
+    if (!labelInputValue) {
+      setLabelSuggestions([]);
       return;
     }
 
-    // Filter existing names that start with or contain the input value
-    const matchingNames = existingAdNames.filter(name => 
-      name.toLowerCase().includes(nameInputValue.toLowerCase())
+    const baseLabel = labelInputValue.trim();
+    
+    // Filter existing labels that include the input value
+    const matchingLabels = existingAdLabels.filter(label =>
+      label.toLowerCase().includes(baseLabel.toLowerCase())
     );
-    console.log('Matching names:', matchingNames);
 
-    // Generate incremented suggestions
-    const baseName = nameInputValue.trim();
-    let suggestions: string[] = [];
-    
-    // Add matching existing names first
-    if (matchingNames.length > 0) {
-      suggestions = [...matchingNames];
+    // Use a Set to handle uniqueness. Add the user's typed label as a suggestion.
+    const suggestions = new Set<string>();
+    if (baseLabel) {
+      suggestions.add(baseLabel);
     }
-    
-    // Check if the exact name already exists
-    if (existingAdNames.includes(baseName)) {
-      // Find the highest index for this name
-      let highestIndex = 0;
-      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_([0-9]+)$`);
-      
-      existingAdNames.forEach(name => {
-        const match = name.match(regex);
-        if (match) {
-          const index = parseInt(match[1]);
-          highestIndex = Math.max(highestIndex, index);
-        }
-      });
-      
-      // Suggest the next index
-      suggestions.push(`${baseName}_${highestIndex + 1}`);
-    }
+    matchingLabels.forEach(label => suggestions.add(label));
 
-    // Add some default suggestions if no matches and name doesn't exist yet
-    if (suggestions.length === 0 && baseName && !existingAdNames.includes(baseName)) {
-      suggestions = [baseName];
-    } else if (suggestions.length === 0 && baseName) {
-      suggestions = [`${baseName}_1`];
-    }
-
-    // Remove duplicates
-    suggestions = Array.from(new Set(suggestions));
-    
-    console.log('Final suggestions:', suggestions);
-    setNameSuggestions(suggestions);
-  }, [nameInputValue, existingAdNames]);
+    setLabelSuggestions(Array.from(suggestions));
+  }, [form.watch('label'), existingAdLabels]);
 
   const onSubmit = async (data: AdFormData) => {
     try {
@@ -680,9 +660,7 @@ export function AdForm() {
                   {isEditMode ? 'Edit Ad' : 'Create New Ad'}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-                  {isEditMode 
-                    ? 'Update your ad settings and targeting.' 
-                    : 'Set up a new ad for your campaign.'}
+                  for campaign <span className="font-semibold text-purple-600 dark:text-purple-400">{campaignName}</span>
                 </p>
               </div>
             </div>
@@ -714,7 +692,7 @@ export function AdForm() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="label"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
                           <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
@@ -722,69 +700,39 @@ export function AdForm() {
                             Ad Name
                           </FormLabel>
                           <div className="relative">
-                            <Input 
-                              placeholder="Enter ad name"
-                              {...field}
-                              value={nameInputValue || field.value}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                console.log('Input value changing to:', value);
-                                setNameInputValue(value);
-                                field.onChange(value);
-                                setOpenNameSuggestions(!!value);
-                              }}
-                              onFocus={() => {
-                                if (nameInputValue || field.value) {
-                                  console.log('Input focused, opening suggestions');
-                                  setOpenNameSuggestions(true);
-                                }
-                              }}
-                              onBlur={() => {
-                                // Delay closing to allow clicking on suggestions
-                                setTimeout(() => setOpenNameSuggestions(false), 200);
-                              }}
-                              className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300"
-                            />
-                            
-                            {openNameSuggestions && nameSuggestions.length > 0 && (
-                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                <div className="p-2">
-                                  <input
-                                    type="text"
-                                    placeholder="Filter suggestions..."
-                                    value={nameInputValue}
-                                    onChange={(e) => setNameInputValue(e.target.value)}
-                                    className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-sm"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </div>
-                                <div className="py-1">
-                                  {nameSuggestions.map((name) => (
-                                    <div
-                                      key={name}
-                                      className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                      onMouseDown={(e) => {
-                                        e.preventDefault(); // Prevent input blur
-                                        console.log('Suggestion selected:', name);
-                                        field.onChange(name);
-                                        setNameInputValue(name);
-                                        setOpenNameSuggestions(false);
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., Summer Sale Ad"
+                                {...field}
+                                onFocus={() => setOpenLabelSuggestions(true)}
+                                onBlur={() => setTimeout(() => setOpenLabelSuggestions(false), 150)}
+                                className="transition-shadow duration-200 focus:shadow-md"
+                              />
+                            </FormControl>
+                            {openLabelSuggestions && labelSuggestions.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                                <ul className="py-1">
+                                  {labelSuggestions.map((suggestion, index) => (
+                                    <li
+                                      key={index}
+                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      onMouseDown={() => {
+                                        form.setValue('label', suggestion);
+                                        setOpenLabelSuggestions(false);
                                       }}
                                     >
-                                      <span>{name}</span>
-                                      {existingAdNames.includes(name) && (
-                                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full">
-                                          Exists
-                                        </span>
+                                      {suggestion}
+                                      {existingAdLabels.includes(suggestion) && (
+                                        <span className="ml-2 text-xs text-yellow-600">(Exists)</span>
                                       )}
-                                    </div>
+                                    </li>
                                   ))}
-                                </div>
+                                </ul>
                               </div>
                             )}
                           </div>
                           <FormDescription className="text-gray-500 dark:text-gray-400">
-                            A unique name to identify your ad
+                            A unique name for your ad within this campaign.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -1527,296 +1475,296 @@ export function AdForm() {
           </Card>
         </motion.div>
 
-          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                  <Target className="h-3 w-3" />
-                </div>
-                Tracking & Pixels
-              </h3>
-            </div>
-            <div className="p-8 space-y-8">
-            
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="impressionPixel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Impression Pixel URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/impression-pixel"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      URL to track ad impressions
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clickPixel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Click Pixel URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/click-pixel"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      URL to track ad clicks
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            </div>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                  <CalendarIcon className="h-3 w-3" />
-                </div>
-                Scheduling
-              </h3>
-            </div>
-            <div className="p-8 space-y-8">
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="date" 
-                        min={new Date().toISOString().split('T')[0]}
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleDateChange('startDate', e.target.value);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="start-date-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('start-date-input') as HTMLInputElement;
-                          if (input) {
-                            // Focus the input first to establish context
-                            input.focus();
-                            // Small delay to ensure focus is established
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <CalendarIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="date" 
-                        min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleDateChange('endDate', e.target.value);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="end-date-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('end-date-input') as HTMLInputElement;
-                          if (input) {
-                            // Focus the input first to establish context
-                            input.focus();
-                            // Small delay to ensure focus is established
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <CalendarIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="time" 
-                        step="60"
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="start-time-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('start-time-input') as HTMLInputElement;
-                          if (input) {
-                            input.focus();
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <Clock className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <div className="relative">
-                      <Input 
-                        type="time" 
-                        step="60"
-                        className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                        ref={field.ref}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        value={field.value}
-                        id="end-time-input"
-                        style={{
-                          colorScheme: 'light',
-                          direction: 'ltr'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = document.getElementById('end-time-input') as HTMLInputElement;
-                          if (input) {
-                            input.focus();
-                            setTimeout(() => {
-                              input.showPicker?.();
-                            }, 10);
-                          }
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                      >
-                        <Clock className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            </div>
-          </Card>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
-          >
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Saving...
-                </span>
-              ) : (
-                <>
-                  {isEditMode ? 'Update Ad' : 'Create Ad'}
-                </>
+        <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
+            <h3 className="text-xl font-semibold text-white flex items-center">
+              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                <Target className="h-3 w-3" />
+              </div>
+              Tracking & Pixels
+            </h3>
+          </div>
+          <div className="p-8 space-y-8">
+          
+          <div className="grid grid-cols-1 gap-6">
+            <FormField
+              control={form.control}
+              name="impressionPixel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Impression Pixel URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://example.com/impression-pixel"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    URL to track ad impressions
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
-            >
-              Cancel
-            </Button>
-          </motion.div>
-        </form>
-              </Form>
+            />
+
+            <FormField
+              control={form.control}
+              name="clickPixel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Click Pixel URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://example.com/click-pixel"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    URL to track ad clicks
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          </div>
+        </Card>
+
+        <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
+            <h3 className="text-xl font-semibold text-white flex items-center">
+              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                <CalendarIcon className="h-3 w-3" />
+              </div>
+              Scheduling
+            </h3>
+          </div>
+          <div className="p-8 space-y-8">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="date" 
+                      min={new Date().toISOString().split('T')[0]}
+                      className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                      ref={field.ref}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleDateChange('startDate', e.target.value);
+                      }}
+                      onBlur={field.onBlur}
+                      value={field.value}
+                      id="start-date-input"
+                      style={{
+                        colorScheme: 'light',
+                        direction: 'ltr'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const input = document.getElementById('start-date-input') as HTMLInputElement;
+                        if (input) {
+                          // Focus the input first to establish context
+                          input.focus();
+                          // Small delay to ensure focus is established
+                          setTimeout(() => {
+                            input.showPicker?.();
+                          }, 10);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Date</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="date" 
+                      min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
+                      className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                      ref={field.ref}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleDateChange('endDate', e.target.value);
+                      }}
+                      onBlur={field.onBlur}
+                      value={field.value}
+                      id="end-date-input"
+                      style={{
+                        colorScheme: 'light',
+                        direction: 'ltr'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const input = document.getElementById('end-date-input') as HTMLInputElement;
+                        if (input) {
+                          // Focus the input first to establish context
+                          input.focus();
+                          // Small delay to ensure focus is established
+                          setTimeout(() => {
+                            input.showPicker?.();
+                          }, 10);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Time</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="time" 
+                      step="60"
+                      className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                      ref={field.ref}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      value={field.value}
+                      id="start-time-input"
+                      style={{
+                        colorScheme: 'light',
+                        direction: 'ltr'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const input = document.getElementById('start-time-input') as HTMLInputElement;
+                        if (input) {
+                          input.focus();
+                          setTimeout(() => {
+                            input.showPicker?.();
+                          }, 10);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                    >
+                      <Clock className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="endTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Time</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="time" 
+                      step="60"
+                      className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                      ref={field.ref}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      value={field.value}
+                      id="end-time-input"
+                      style={{
+                        colorScheme: 'light',
+                        direction: 'ltr'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const input = document.getElementById('end-time-input') as HTMLInputElement;
+                        if (input) {
+                          input.focus();
+                          setTimeout(() => {
+                            input.showPicker?.();
+                          }, 10);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                    >
+                      <Clock className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          </div>
+        </Card>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
+        >
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </span>
+            ) : (
+              <>
+                {isEditMode ? 'Update Ad' : 'Create Ad'}
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
+            disabled={loading}
+            className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
+          >
+            Cancel
+          </Button>
+        </motion.div>
+      </form>
+            </Form>
       </div>
     </div>
   );

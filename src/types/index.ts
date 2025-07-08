@@ -24,7 +24,7 @@ export interface Slot {
 export interface Ad {
   adId: number;
   campaignId: number;
-  name: string;
+  label: string;
   slotId: number;
   slotName?: string;
   slotWidth?: string;
