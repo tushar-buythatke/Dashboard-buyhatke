@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Ad, Slot } from '@/types';
+import { Ad, Slot, ApiAd, mapApiAdToAd } from '@/types';
 import { motion } from 'framer-motion';
+import { analyticsService } from '@/services/analyticsService';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -19,6 +20,7 @@ export function AdDetail() {
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [liveMetrics, setLiveMetrics] = useState<{ impressions: number; clicks: number } | null>(null);
 
   useEffect(() => {
     if (campaignId && adId) {
@@ -50,7 +52,10 @@ export function AdDetail() {
 
       // Set ad data
       if (adResult.status === 1 && adResult.data?.adsList?.[0]) {
-        setAd(adResult.data.adsList[0]);
+        const apiAd = adResult.data.adsList[0] as ApiAd;
+        const adData = mapApiAdToAd(apiAd);
+        setAd(adData);
+        fetchLiveMetrics(adData);
       } else {
         setError('Ad not found');
         return;
@@ -74,6 +79,27 @@ export function AdDetail() {
       toast.error('Failed to load ad details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLiveMetrics = async (currentAd: Ad) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const fromDate = currentAd.createdAt.split('T')[0];
+      const resp = await analyticsService.getMetrics({
+        from: fromDate,
+        to: today,
+        campaignId: Number(campaignId),
+        adId: currentAd.adId
+      });
+      if (resp.success && resp.data) {
+        setLiveMetrics({
+          impressions: resp.data.impressions,
+          clicks: resp.data.clicks,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching live metrics:', error);
     }
   };
 
@@ -179,7 +205,7 @@ export function AdDetail() {
               </Button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {ad.label}
+                  {ad.name}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
                   {campaign?.brandName || 'Campaign'} • Ad #{ad.adId}
@@ -300,6 +326,44 @@ export function AdDetail() {
           </Card>
         </motion.div>
 
+        {/* Live Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                <TrendingUp className="h-5 w-5 mr-3" />
+                Live Performance
+              </h3>
+            </div>
+            <div className="p-4 sm:p-6 grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Impressions</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {liveMetrics?.impressions?.toLocaleString() ?? '0'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Clicks</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {liveMetrics?.clicks?.toLocaleString() ?? '0'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">CTR</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {liveMetrics && liveMetrics.impressions > 0
+                    ? `${((liveMetrics.clicks / liveMetrics.impressions) * 100).toFixed(2)}%`
+                    : '0.00%'}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Creative & Basic Details */}
           <motion.div
@@ -318,7 +382,7 @@ export function AdDetail() {
                 {/* Ad Name */}
                 <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Ad Name</h4>
-                  <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.label}</p>
+                  <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.name}</p>
                 </div>
 
                 {/* Creative Image */}
@@ -373,7 +437,7 @@ export function AdDetail() {
                 </div>
 
                 {/* Test Phase */}
-                {ad.isTestPhase && (
+                {ad.isTestPhase === 1 && (
                   <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
                     <p className="text-emerald-800 dark:text-emerald-200 font-medium">
                       🧪 This ad is in test phase

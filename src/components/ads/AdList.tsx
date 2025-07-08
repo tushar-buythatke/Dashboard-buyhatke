@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Ad, Slot, SlotListResponse } from '@/types';
+import { Ad, Slot, SlotListResponse, ApiAd, mapApiAdToAd } from '@/types';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { analyticsService } from '@/services/analyticsService';
@@ -28,6 +28,7 @@ export function AdList() {
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  // We use adService for auto-numbering, but don't need visual indicators in the UI
 
   useEffect(() => {
     // Inject gradient animation CSS
@@ -126,8 +127,9 @@ export function AdList() {
       const result = await response.json();
       
       if (result.status === 1 && result.data?.adsList) {
-        // Enrich ads with slot information
-        const enrichedAds = result.data.adsList.map((ad: Ad) => {
+        // Enrich ads with slot information and map to the frontend Ad type
+        const enrichedAds = result.data.adsList.map((apiAd: ApiAd) => {
+          const ad = mapApiAdToAd(apiAd);
           const slot = slots[ad.slotId];
           return {
             ...ad,
@@ -140,14 +142,31 @@ export function AdList() {
         setFilteredAds(enrichedAds);
 
         // fetch live metrics for ads
-        const dateRange = analyticsService.getDateRange('30d');
-        const metricsArr = await Promise.all(result.data.adsList.map(async (ad: Ad) => {
-          const resp = await analyticsService.getMetrics({ ...dateRange, campaignId: campaignId ? Number(campaignId) : undefined, adId: ad.adId });
-          return { id: ad.adId, metrics: resp.success && resp.data ? resp.data : null };
-        }));
-        const mMap: Record<number, { impressions: number; clicks: number }> = {};
-        metricsArr.forEach(({ id, metrics }) => { if(metrics) mMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks }; });
-        setAdMetrics(mMap);
+        const today = new Date().toISOString().split('T')[0];
+        const metricsPromises = enrichedAds.map((ad: Ad) => {
+          const fromDate = ad.createdAt.split('T')[0];
+          return analyticsService.getMetrics({ 
+            from: fromDate, 
+            to: today,
+            campaignId: campaignId ? Number(campaignId) : undefined,
+            adId: ad.adId 
+          });
+        });
+        
+        const metricsResults = await Promise.all(metricsPromises);
+        
+        const newAdMetrics: Record<number, { impressions: number; clicks: number }> = {};
+        metricsResults.forEach((resp, index) => {
+          const adId = enrichedAds[index].adId;
+          if (resp.success && resp.data) {
+            newAdMetrics[adId] = {
+              impressions: resp.data.impressions,
+              clicks: resp.data.clicks,
+            };
+          }
+        });
+
+        setAdMetrics(newAdMetrics);
       } else {
         setAds([]);
         setFilteredAds([]);
@@ -218,18 +237,27 @@ export function AdList() {
     
     const query = searchQuery.toLowerCase().trim();
     const filtered = ads.filter(ad => 
-      ad.label.toLowerCase().includes(query)
+      ad.name.toLowerCase().includes(query)
     );
     
     setFilteredAds(filtered);
   }, [ads, searchQuery]);
 
-  // Calculate summary stats - update to use filteredAds
+  // We handle auto-numbering in the AdForm component when selecting existing names
+
+  // Auto-numbering is handled by the adService.getSuggestedAdName function
+
+  // Calculate summary stats
   const totalAds = ads.length;
   const activeAds = ads.filter(ad => ad.status === 1).length;
-  const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressionTarget, 0);
-  const totalClicks = ads.reduce((sum, ad) => sum + ad.clickTarget, 0);
-  const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+
+  const totalTargetImpressions = ads.reduce((sum, ad) => sum + (ad.impressionTarget || 0), 0);
+  const totalTargetClicks = ads.reduce((sum, ad) => sum + (ad.clickTarget || 0), 0);
+  const targetCTR = totalTargetImpressions > 0 ? (totalTargetClicks / totalTargetImpressions) * 100 : 0;
+
+  const totalLiveImpressions = Object.values(adMetrics).reduce((sum, metrics) => sum + (metrics.impressions || 0), 0);
+  const totalLiveClicks = Object.values(adMetrics).reduce((sum, metrics) => sum + (metrics.clicks || 0), 0);
+  const liveCTR = totalLiveImpressions > 0 ? (totalLiveClicks / totalLiveImpressions) * 100 : 0;
 
   // Mobile Ad Card Component
   const AdCard = ({ ad, index }: { ad: Ad; index: number }) => (
@@ -290,7 +318,7 @@ export function AdList() {
                 )}
               </div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                {ad.label}
+                {ad.name}
               </div>
               {ad.slotWidth && ad.slotHeight && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -387,13 +415,13 @@ export function AdList() {
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '—'}
+                {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '—'}
+                {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
               </div>
             </div>
             <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -401,7 +429,7 @@ export function AdList() {
               <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                 {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
                   ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
-                  : '—'}
+                  : '0.0%'}
               </div>
             </div>
           </div>
@@ -497,45 +525,81 @@ export function AdList() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+          className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6"
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 p-4 sm:p-6">
+          {/* Total Ads Card */}
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 p-4 sm:p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-medium">Total Ads</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">{totalAds}</p>
-              </div>
-              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
+              <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Ads</p>
+              <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalAds}</p>
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 p-4 sm:p-6">
+          {/* Active Ads Card */}
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 p-4 sm:p-6 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-medium">Active Ads</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100">{activeAds}</p>
-              </div>
-              <Play className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
+              <p className="text-green-600 dark:text-green-400 text-sm font-medium">Active Ads</p>
+              <Play className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-green-900 dark:text-green-100">{activeAds}</p>
             </div>
           </Card>
 
+          {/* Impressions Card */}
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-600 dark:text-orange-400 text-xs sm:text-sm font-medium">Total Impressions</p>
-                <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{totalImpressions.toLocaleString()}</p>
+              <p className="text-orange-600 dark:text-orange-400 text-sm font-medium">Impressions</p>
+              <Eye className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Target</span>
+                <span className="text-lg font-bold text-orange-900 dark:text-orange-100">{totalTargetImpressions.toLocaleString()}</span>
               </div>
-              <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 dark:text-orange-400" />
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Live</span>
+                <span className="text-lg font-bold text-orange-900 dark:text-orange-100">{totalLiveImpressions.toLocaleString()}</span>
+              </div>
             </div>
           </Card>
 
+          {/* Clicks Card */}
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm font-medium">Average CTR</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100">{averageCTR.toFixed(2)}%</p>
+              <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">Clicks</p>
+              <MousePointerClick className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Target</span>
+                <span className="text-lg font-bold text-purple-900 dark:text-purple-100">{totalTargetClicks.toLocaleString()}</span>
               </div>
-              <MousePointerClick className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" />
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Live</span>
+                <span className="text-lg font-bold text-purple-900 dark:text-purple-100">{totalLiveClicks.toLocaleString()}</span>
+              </div>
+            </div>
+          </Card>
+          
+          {/* CTR Card */}
+          <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950 dark:to-pink-900 border-pink-200 dark:border-pink-800 p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-pink-600 dark:text-pink-400 text-sm font-medium">CTR</p>
+              <TrendingUp className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Target</span>
+                <span className="text-lg font-bold text-pink-900 dark:text-pink-100">{targetCTR.toFixed(2)}%</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Live</span>
+                <span className="text-lg font-bold text-pink-900 dark:text-pink-100">{liveCTR.toFixed(2)}%</span>
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -674,7 +738,7 @@ export function AdList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
-                          <span className="font-semibold text-sm truncate max-w-32">{ad.label}</span>
+                          <span className="font-semibold text-sm truncate max-w-32">{ad.name}</span>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium p-2">
                           {ad.slotName && (
@@ -696,20 +760,20 @@ export function AdList() {
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-center p-2">
                           <span className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">
-                            {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) + '%' : '—'}
+                            {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1)}%` : '0.0%'}
                           </span>
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
-                          {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '—'}
+                          {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-right p-2 text-sm">
-                          {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '—'}
+                          {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300 font-medium text-center p-2">
                           <span className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">
                             {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                              ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
-                              : '—'}
+                              ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1)}%`
+                              : '0.0%'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right p-2">

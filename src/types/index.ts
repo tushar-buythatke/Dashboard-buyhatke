@@ -24,7 +24,7 @@ export interface Slot {
 export interface Ad {
   adId: number;
   campaignId: number;
-  label: string;
+  name: string;
   slotId: number;
   slotName?: string;
   slotWidth?: string;
@@ -49,11 +49,50 @@ export interface Ad {
   endTime: string;
   creativeUrl: string;
   gender: string;
-  isTestPhase: boolean;
+  isTestPhase: number;
   serveStrategy: number;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApiAd {
+  adId: number;
+  campaignId: number;
+  name: string;
+  slotId: number;
+  slotName?: string;
+  slotWidth?: string;
+  slotHeight?: string;
+  impressionTarget: number;
+  clickTarget: number;
+  impressionPixel: string;
+  clickPixel: string;
+  status: number;
+  categories: Record<string, number>;
+  sites: Record<string, number>;
+  location: Record<string, number>;
+  brandTargets: Record<string, number>;
+  priceRangeMin: number;
+  priceRangeMax: number;
+  ageRangeMin: number;
+  ageRangeMax: number;
+  priority: number;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  creativeUrl: string;
+  gender: string;
+  isTestPhase: number;
+  serveStrategy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const mapApiAdToAd = (apiAd: ApiAd): Ad => ({
+  ...apiAd,
+  label: apiAd.name,
+});
 
 export interface SlotListResponse {
   status: number;
@@ -123,4 +162,9 @@ export interface CategoryDetails {
 
 export interface LocationDetails {
   [locationName: string]: number;
+}
+
+export interface TrendChartSeries {
+  name: string;
+  data: TrendDataPoint[];
 }

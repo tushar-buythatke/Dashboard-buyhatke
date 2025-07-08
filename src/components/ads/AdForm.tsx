@@ -128,7 +128,7 @@ const adSchema = z.object({
   slotId: z.union([z.undefined(), z.number().min(1, 'Slot selection is required')]).refine((val) => val !== undefined && val > 0, {
     message: 'Slot selection is required'
   }),
-  label: z.string().min(1, 'Ad label is required'),
+  name: z.string().min(1, 'Ad name is required'),
   impressionTarget: z.number().min(1, 'Impression target is required'),
   clickTarget: z.number().min(1, 'Click target is required'),
   impressionPixel: z.string().url('Must be a valid URL'),
@@ -211,12 +211,13 @@ export function AdForm() {
   const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
   const [openLabelSuggestions, setOpenLabelSuggestions] = useState(false);
   const [campaignName, setCampaignName] = useState('');
+  // We don't need to process labels as backend handles auto-numbering
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
       slotId: undefined,
-      label: '',
+      name: '',
       impressionTarget: 1000,
       clickTarget: 100,
       impressionPixel: '',
@@ -428,7 +429,7 @@ export function AdForm() {
 
   // Initialize labelInputValue from form value when it's loaded
   useEffect(() => {
-    const currentLabel = form.getValues('label');
+    const currentLabel = form.getValues('name');
   }, [form]);
 
   // Fetch existing ad labels for the current campaign
@@ -453,7 +454,7 @@ export function AdForm() {
 
   // Generate label suggestions based on input
   useEffect(() => {
-    const labelInputValue = form.watch('label');
+    const labelInputValue = form.watch('name');
     if (!labelInputValue) {
       setLabelSuggestions([]);
       return;
@@ -474,7 +475,9 @@ export function AdForm() {
     matchingLabels.forEach(label => suggestions.add(label));
 
     setLabelSuggestions(Array.from(suggestions));
-  }, [form.watch('label'), existingAdLabels]);
+  }, [form.watch('name'), existingAdLabels]);
+
+  // Backend will handle auto-numbering when an existing name is used
 
   const onSubmit = async (data: AdFormData) => {
     try {
@@ -486,9 +489,11 @@ export function AdForm() {
       const method = 'POST';
       const body = {
         ...data,
+        label: data.name,
         campaignId: Number(campaignId),
         ...(isEditMode && { adId: Number(adId) })
       };
+      delete (body as { name?: string }).name;
 
       const response = await fetch(url, {
         method,
@@ -692,7 +697,7 @@ export function AdForm() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                     <FormField
                       control={form.control}
-                      name="label"
+                      name="name"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
                           <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
@@ -711,19 +716,21 @@ export function AdForm() {
                             </FormControl>
                             {openLabelSuggestions && labelSuggestions.length > 0 && (
                               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-700">
-                                <ul className="py-1">
+                                <ul className="py-1 max-h-60 overflow-auto">
                                   {labelSuggestions.map((suggestion, index) => (
                                     <li
                                       key={index}
-                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
                                       onMouseDown={() => {
-                                        form.setValue('label', suggestion);
+                                        form.setValue('name', suggestion);
                                         setOpenLabelSuggestions(false);
                                       }}
                                     >
-                                      {suggestion}
+                                      <span>{suggestion}</span>
                                       {existingAdLabels.includes(suggestion) && (
-                                        <span className="ml-2 text-xs text-yellow-600">(Exists)</span>
+                                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+                                          Existing (will auto-number)
+                                        </span>
                                       )}
                                     </li>
                                   ))}
@@ -731,9 +738,9 @@ export function AdForm() {
                               </div>
                             )}
                           </div>
-                          <FormDescription className="text-gray-500 dark:text-gray-400">
-                            A unique name for your ad within this campaign.
-                          </FormDescription>
+                                                      <FormDescription className="text-gray-500 dark:text-gray-400">
+                              Enter a name for your ad. If you select an existing name, a number will be automatically added (e.g., Amazon_1).
+                            </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

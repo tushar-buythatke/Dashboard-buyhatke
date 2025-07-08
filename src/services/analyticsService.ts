@@ -305,10 +305,10 @@ class AnalyticsService {
       // Aggregate impressions & clicks from adStats (eventType mapping: 0 → impression, 1 → click)
       if (Array.isArray(rawData.adStats)) {
         rawData.adStats.forEach((event: any) => {
-          const type = typeof event.eventType === 'string' ? event.eventType : Number(event.eventType);
-          if (type === 0 || type === 'impression') {
+          const type = Number(event.eventType);
+          if (type === 0) {
             impressions += Number(event.eventCount) || 0;
-          } else if (type === 1 || type === 'click') {
+          } else if (type === 1) {
             clicks += Number(event.eventCount) || 0;
           }
         });
@@ -392,12 +392,12 @@ class AnalyticsService {
           map[key] = { impressions: 0, clicks: 0, conversions: 0 };
         }
 
-        const type = typeof row.eventType === 'string' ? row.eventType : Number(row.eventType);
-        if (type === 0 || type === 'impression') {
+        const type = Number(row.eventType);
+        if (type === 0) {
           map[key].impressions += Number(row.eventCount) || 0;
-        } else if (type === 1 || type === 'click') {
+        } else if (type === 1) {
           map[key].clicks += Number(row.eventCount) || 0;
-        } else if (type === 2 || type === 'conversion') {
+        } else if (type === 2) {
           map[key].conversions += Number(row.eventCount) || 0;
         }
       });

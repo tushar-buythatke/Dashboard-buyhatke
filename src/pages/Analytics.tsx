@@ -29,7 +29,8 @@ import {
   Slot, 
   MetricsData, 
   TrendDataPoint, 
-  BreakdownData 
+  BreakdownData,
+  TrendChartSeries
 } from '@/types';
 
 // Type definitions for sites (specific to analytics)
@@ -52,7 +53,7 @@ export function Analytics() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-  const [activeView, setActiveView] = useState<'slot' | 'campaign'>('slot');
+  const [activeView, setActiveView] = useState<'campaign' | 'slot' | 'ad' | 'pos'>('campaign');
   
   // Filter states
   const [selectedCampaigns, setSelectedCampaigns] = useState<(string | number)[]>([]);
@@ -67,7 +68,7 @@ export function Analytics() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [trendData, setTrendData] = useState<TrendChartSeries[]>([]);
   const [breakdownData, setBreakdownData] = useState<{
     gender: BreakdownData[];
     age: BreakdownData[];
@@ -95,9 +96,7 @@ export function Analytics() {
 
   // Fetch analytics data when filters change
   useEffect(() => {
-    if (campaigns.length > 0 || slots.length > 0) {
-      fetchAnalyticsData();
-    }
+    fetchAnalyticsData();
   }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, activeView]);
 
   // Fetch ad names when selected campaigns change
@@ -112,7 +111,7 @@ export function Analytics() {
         const namesSet = new Set<string>();
         await Promise.all(
           selectedCampaigns.map(async (campId) => {
-            const res = await adService.getAdNames(Number(campId));
+            const res = await adService.getAdLabels(Number(campId));
             if (res.success && res.data) {
               res.data.forEach((n: string) => namesSet.add(n));
             }
@@ -169,10 +168,23 @@ export function Analytics() {
         // adId filter can be added once ad-name → id mapping is available
       };
 
+      // Build payload based on the active view
+      const trendPayload: MetricsPayload = { ...basePayload, interval: selectedTimeRange };
+      
+      // Setup comparison logic for trend data
+      if (activeView === 'slot' && selectedSlots.length > 0) {
+        trendPayload.slotId = selectedSlots.map(Number);
+      } else if (activeView === 'ad' && selectedAdNames.length > 0) {
+        // This requires adName to adId mapping – assuming it's done elsewhere for now
+        // trendPayload.adId = selectedAdIds;
+      } else if (activeView === 'pos' && selectedPOS.length > 0) {
+        trendPayload.siteId = selectedPOS.map(Number);
+      }
+
       // Fetch metrics, trend data, breakdowns & tables in parallel
       const [metricsResult, trendResult, ...breakdownResults] = await Promise.all([
         analyticsService.getMetrics(basePayload),
-        analyticsService.getTrendData({ ...basePayload, interval: selectedTimeRange }),
+        analyticsService.getTrendData(trendPayload),
         analyticsService.getBreakdownData({ ...basePayload, by: 'gender' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'age' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'platform' }),
@@ -187,7 +199,12 @@ export function Analytics() {
       }
 
       if (trendResult.success && trendResult.data) {
-        setTrendData(trendResult.data);
+        // Transform the flat TrendDataPoint[] to TrendChartSeries[]
+        const series: TrendChartSeries[] = [{
+          name: 'Overall Performance',
+          data: trendResult.data,
+        }];
+        setTrendData(series);
       }
 
       // Process breakdown & table data
@@ -313,43 +330,34 @@ export function Analytics() {
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full animate-pulse delay-100"></div>
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-purple-500 rounded-full animate-pulse delay-200"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse delay-100"></div>
+                <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-200"></div>
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Advanced Analytics
                 </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
-                  Comprehensive performance insights • {getFilterSummary()}
+                <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+                  Your central hub for performance insights.
                 </p>
               </div>
             </div>
             
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-              {/* View Toggle */}
-              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                <Button
-                  variant={activeView === 'slot' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveView('slot')}
-                  className="flex items-center space-x-2 text-xs"
-                >
-                  <BarChart3 className="h-3 w-3" />
-                  <span>Slot-wise</span>
-                </Button>
-                <Button
-                  variant={activeView === 'campaign' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveView('campaign')}
-                  className="flex items-center space-x-2 text-xs"
-                >
-                  <PieChart className="h-3 w-3" />
-                  <span>Campaign-wise</span>
-                </Button>
-              </div>
+            <div className="flex items-center space-x-2">
+              {/* View Selector */}
+              <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
+                <SelectTrigger className="h-9 sm:h-10 w-full sm:w-auto text-xs sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                  <SelectValue placeholder="View By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="campaign">Campaign wise</SelectItem>
+                  <SelectItem value="slot">Slots wise</SelectItem>
+                  <SelectItem value="ad">Ads wise</SelectItem>
+                  <SelectItem value="pos">POS wise</SelectItem>
+                </SelectContent>
+              </Select>
 
               {/* Time Range Selector */}
               <DateRangePicker />
@@ -359,20 +367,18 @@ export function Analytics() {
                 size="sm"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="flex items-center justify-center space-x-2 h-9 sm:h-8"
+                className="h-9 sm:h-10"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="text-sm">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
               
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExport}
-                className="flex items-center justify-center space-x-2 h-9 sm:h-8"
+                className="h-9 sm:h-10"
               >
                 <Download className="h-4 w-4" />
-                <span className="text-sm">Export</span>
               </Button>
 
               {/* Filter Toggle */}
@@ -380,14 +386,12 @@ export function Analytics() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                className="flex items-center justify-center space-x-2 h-9 sm:h-8"
+                className="h-9 sm:h-10"
               >
                 <Filter className="h-4 w-4" />
-                <span className="text-sm">Filters</span>
-                <Badge variant="secondary" className="ml-1 text-xs">
+                <Badge variant="secondary" className="ml-2">
                   {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedAdNames.length}
                 </Badge>
-                {isFilterExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -470,7 +474,7 @@ export function Analytics() {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                    {activeView === 'slot' ? 'Slot-wise' : 'Campaign-wise'} Analytics
+                    {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">
                     {selectedTimeRange} • Real-time data
@@ -517,9 +521,9 @@ export function Analytics() {
                 <span className="ml-3 text-base font-medium">Loading chart data...</span>
               </div>
             ) : (
-              <TrendChart 
-                data={trendData} 
-                title={`${activeView === 'slot' ? 'Slot' : 'Campaign'} Performance Over Time`} 
+              <TrendChart
+                series={trendData}
+                title={`${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
               />
             )}
           </motion.div>

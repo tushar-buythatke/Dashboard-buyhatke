@@ -23,6 +23,14 @@ export interface CategoryDetails {
   [categoryName: string]: CategoryDetail;
 }
 
+export interface CreativeUploadResponse {
+  status: number;
+  message?: string;
+  data?: {
+    creativeUrl: string;
+  };
+}
+
 export interface CreateAdData {
   campaignId: number;
   slotId: number;
@@ -173,29 +181,35 @@ class AdService {
   }
 
   // Upload creative file
-  async uploadCreative(file: File, slotId: number, userId: number = 1): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('slotId', slotId.toString());
+  async uploadCreative(file: File, slotId: number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
+    const formData = new FormData();
+    formData.append('image', file); // Using 'image' key instead of 'file'
+    formData.append('slotId', slotId.toString());
 
-      const response = await fetch(`${API_BASE_URL}/uploadCreative?userId=${userId}`, {
+    try {
+      const response = await fetch(`${API_BASE_URL}/uploadCreative?userId=1`, {
         method: 'POST',
-        credentials: 'omit',
         body: formData,
       });
 
-      const result = await response.json();
-      return {
-        success: result.status === 1,
-        creativeUrl: result.data?.creativeUrl,
-        message: result.message
-      };
+      const result: CreativeUploadResponse = await response.json();
+      
+      if (result.status === 1 && result.data?.creativeUrl) {
+        return {
+          success: true,
+          creativeUrl: result.data.creativeUrl,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'File upload failed'
+        };
+      }
     } catch (error) {
       console.error('Error uploading creative:', error);
       return {
         success: false,
-        message: 'Failed to upload creative'
+        message: 'An unexpected error occurred'
       };
     }
   }
@@ -282,40 +296,33 @@ class AdService {
   }
 
   // Get ad labels for suggestion
-  async getAdLabels(campaignId?: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
+  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
     try {
-      const params = new URLSearchParams();
-      if (campaignId) params.append('campaignId', campaignId.toString());
-      params.append('status', ''); // Get all ads regardless of status
-
-      const url = `${API_BASE_URL}${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'omit',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
+      // Using the correct API endpoint
+      const response = await fetch(`${API_BASE_URL}?campaignId=${campaignId}`);
       const result = await response.json();
+
       if (result.status === 1 && result.data?.adsList) {
-        const adLabels = result.data.adsList.map((ad: any) => ad.label).filter(Boolean);
+        // Filter out empty names and get unique values
+        const labels = result.data.adsList
+          .map((ad: { name: string }) => ad.name)
+          .filter((name: string) => name && name.trim() !== '');
+        
         return {
           success: true,
-          data: adLabels,
-          message: 'Ad labels fetched successfully'
+          data: [...new Set(labels)] as string[], // Return unique labels
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Failed to fetch ad labels',
         };
       }
-      
-      return {
-        success: false,
-        message: result.message || 'Failed to fetch ad labels'
-      };
     } catch (error) {
       console.error('Error fetching ad labels:', error);
       return {
         success: false,
-        message: 'Failed to fetch ad labels'
+        message: 'An unexpected error occurred',
       };
     }
   }
