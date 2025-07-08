@@ -18,6 +18,19 @@ const mockMetrics = {
   roi: 186.5
 };
 
+// Format trend data for the TrendChart component
+const formattedTrendData = [{
+  name: 'Performance',
+  data: mockTrendData.map(item => ({
+    date: item.date,
+    impressions: item.value,
+    clicks: Math.round(item.value * 0.025),
+    conversions: Math.round(item.value * 0.005),
+    ctr: 2.5,
+    conversionRate: 0.5
+  }))
+}];
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -158,7 +171,12 @@ export function Dashboard() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="xl:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-shadow duration-200"
             >
-              <TrendChart data={mockTrendData} title="Performance Trends" />
+              <TrendChart 
+                series={formattedTrendData}
+                title="Performance Trends"
+                showGrid={true}
+                animated={true}
+              />
             </motion.div>
             
             {/* Quick Insights Panel */}

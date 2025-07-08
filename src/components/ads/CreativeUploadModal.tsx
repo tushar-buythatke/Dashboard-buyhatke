@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, AlertCircle, Check } from 'lucide-react';
+import { Upload, AlertCircle, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,13 +8,15 @@ interface CreativeUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (url: string) => void;
+  adId?: number;
   requiredDimensions?: { width: number; height: number };
 }
 
-export function CreativeUploadModal({ 
+export default function CreativeUploadModal({ 
   isOpen, 
   onClose, 
-  onUpload, 
+  onUpload,
+  adId,
   requiredDimensions 
 }: CreativeUploadModalProps) {
   const [dragActive, setDragActive] = useState(false);
@@ -22,6 +24,8 @@ export function CreativeUploadModal({
   const [error, setError] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const validateImage = (file: File) => {
     return new Promise<boolean>((resolve) => {
@@ -62,6 +66,7 @@ export function CreativeUploadModal({
     setIsValidating(true);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+    setSelectedFile(file);
 
     const valid = await validateImage(file);
     setIsValid(valid);
@@ -94,19 +99,32 @@ export function CreativeUploadModal({
     }
   };
 
-  const handleUpload = () => {
-    if (previewUrl && isValid) {
-      // TODO: Replace with actual S3 upload
-      // const formData = new FormData();
-      // formData.append('file', file);
-      // const response = await fetch('/api/upload/creative', {
-      //   method: 'POST',
-      //   body: formData
-      // });
-      // const { url } = await response.json();
+  const handleUpload = async () => {
+    if (!selectedFile || !isValid) return;
+    
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('image', selectedFile);
       
-      onUpload(previewUrl);
-      resetModal();
+      const response = await fetch(`/api/uploadCreative?userId=1`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.status === 1 && data.data?.creativeUrl) {
+        onUpload(data.data.creativeUrl);
+        resetModal();
+      } else {
+        setError(data.message || 'Failed to upload creative');
+      }
+    } catch (err) {
+      console.error('Error uploading creative:', err);
+      setError('An unexpected error occurred during upload');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -116,6 +134,8 @@ export function CreativeUploadModal({
     setIsValid(false);
     setIsValidating(false);
     setDragActive(false);
+    setSelectedFile(null);
+    setIsUploading(false);
   };
 
   const handleClose = () => {
@@ -127,14 +147,14 @@ export function CreativeUploadModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md border-slate-200">
         <DialogHeader>
-          <DialogTitle className="text-slate-900">Upload Creative</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Upload Creative</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           {requiredDimensions && (
-            <Alert className="border-purple-200 bg-purple-50">
-              <AlertCircle className="w-4 h-4 text-purple-600" />
-              <AlertDescription className="text-purple-800">
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+              <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-800 dark:text-blue-300">
                 Image must be exactly {requiredDimensions.width} x {requiredDimensions.height} pixels
               </AlertDescription>
             </Alert>
@@ -144,16 +164,16 @@ export function CreativeUploadModal({
             <div
               className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 dragActive 
-                  ? 'border-purple-500 bg-purple-50' 
-                  : 'border-slate-300 hover:border-slate-400'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                  : 'border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
-              <Upload className="mx-auto w-12 h-12 text-slate-400 mb-4" />
-              <p className="text-sm text-slate-600 mb-2">
+              <Upload className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Drag and drop your image here, or click to browse
               </p>
               <input
@@ -162,7 +182,7 @@ export function CreativeUploadModal({
                 onChange={handleFileInput}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+              <Button variant="outline" className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
                 Browse Files
               </Button>
             </div>
@@ -172,22 +192,24 @@ export function CreativeUploadModal({
                 <img 
                   src={previewUrl} 
                   alt="Preview" 
-                  className="w-full border border-slate-300 rounded"
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm"
                 />
                 {isValidating && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                    <div className="text-white">Validating...</div>
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                    <div className="text-white flex items-center">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> Validating...
+                    </div>
                   </div>
                 )}
                 {!isValidating && isValid && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full">
+                  <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full shadow-lg">
                     <Check className="w-4 h-4" />
                   </div>
                 )}
               </div>
               
               {error && (
-                <Alert variant="destructive" className="border-red-200">
+                <Alert variant="destructive" className="border-red-200 dark:border-red-800">
                   <AlertCircle className="w-4 h-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -197,16 +219,24 @@ export function CreativeUploadModal({
                 <Button 
                   variant="outline" 
                   onClick={() => setPreviewUrl('')}
-                  className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  disabled={isUploading}
                 >
                   Choose Different Image
                 </Button>
                 <Button 
                   onClick={handleUpload} 
-                  disabled={!isValid || isValidating}
-                  className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                  disabled={!isValid || isValidating || isUploading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 relative"
                 >
-                  Upload Creative
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Uploading...
+                    </>
+                  ) : (
+                    'Upload Creative'
+                  )}
                 </Button>
               </div>
             </div>

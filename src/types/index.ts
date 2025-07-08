@@ -25,6 +25,7 @@ export interface Ad {
   adId: number;
   campaignId: number;
   name: string;
+  label: string;
   slotId: number;
   slotName?: string;
   slotWidth?: string;
@@ -59,6 +60,7 @@ export interface ApiAd {
   adId: number;
   campaignId: number;
   name: string;
+  label: string;
   slotId: number;
   slotName?: string;
   slotWidth?: string;
@@ -90,8 +92,7 @@ export interface ApiAd {
 }
 
 export const mapApiAdToAd = (apiAd: ApiAd): Ad => ({
-  ...apiAd,
-  label: apiAd.name,
+  ...apiAd
 });
 
 export interface SlotListResponse {

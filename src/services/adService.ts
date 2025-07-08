@@ -59,8 +59,32 @@ export interface CreateAdData {
   serveStrategy: number;
 }
 
-export interface UpdateAdData extends CreateAdData {
-  adId: number;
+export interface UpdateAdData {
+  campaignId?: number;
+  slotId?: number;
+  label?: string;
+  impressionTarget?: number;
+  clickTarget?: number;
+  impressionPixel?: string;
+  clickPixel?: string;
+  categories?: { [key: string]: number };
+  sites?: { [key: string]: number };
+  location?: { [key: string]: number };
+  brandTargets?: { [key: string]: number };
+  priceRangeMin?: number;
+  priceRangeMax?: number;
+  ageRangeMin?: number;
+  ageRangeMax?: number;
+  priority?: number;
+  startDate?: string;
+  startTime?: string;
+  endDate?: string;
+  endTime?: string;
+  creativeUrl?: string;
+  gender?: string;
+  status?: number;
+  isTestPhase?: number;
+  serveStrategy?: number;
 }
 
 class AdService {
@@ -241,29 +265,35 @@ class AdService {
     }
   }
 
-  // Update existing ad
-  async updateAd(adData: UpdateAdData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  // Update an existing ad
+  async updateAd(adId: number, data: UpdateAdData): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/update?userId=${userId}`, {
-        method: 'POST',
-        credentials: 'omit',
+      const response = await fetch(`${API_BASE_URL}/${adId}`, {
+        method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(adData),
+        body: JSON.stringify(data)
       });
-
+      
       const result = await response.json();
-      return {
-        success: result.status === 1,
-        data: result.data,
-        message: result.message
-      };
+      
+      if (result.status === 1) {
+        return {
+          success: true,
+          data: result.data
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Failed to update ad'
+        };
+      }
     } catch (error) {
       console.error('Error updating ad:', error);
       return {
         success: false,
-        message: 'Failed to update ad'
+        message: 'An unexpected error occurred'
       };
     }
   }
@@ -296,21 +326,27 @@ class AdService {
   }
 
   // Get ad labels for suggestion
-  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: string[]; message?: string }> {
+  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string }>; message?: string }> {
     try {
       // Using the correct API endpoint
       const response = await fetch(`${API_BASE_URL}?campaignId=${campaignId}`);
       const result = await response.json();
 
       if (result.status === 1 && result.data?.adsList) {
-        // Filter out empty names and get unique values
-        const labels = result.data.adsList
-          .map((ad: { name: string }) => ad.name)
-          .filter((name: string) => name && name.trim() !== '');
+        // Extract both name and label for each ad
+        const adInfo = result.data.adsList
+          .map((ad: { name: string; label: string }) => ({
+            name: ad.name,
+            label: ad.label
+          }))
+          .filter((info: { name: string; label: string }) => 
+            info.name && info.name.trim() !== '' && 
+            info.label && info.label.trim() !== ''
+          );
         
         return {
           success: true,
-          data: [...new Set(labels)] as string[], // Return unique labels
+          data: adInfo
         };
       } else {
         return {

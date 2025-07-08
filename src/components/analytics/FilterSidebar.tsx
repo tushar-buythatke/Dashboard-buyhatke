@@ -24,9 +24,11 @@ export function FilterSidebar() {
         const namesSet = new Set<string>();
         await Promise.all(
           filters.campaigns.map(async (campId) => {
-            const res = await adService.getAdNames(Number(campId));
+            const res = await adService.getAdLabels(Number(campId));
             if (res.success && res.data) {
-              res.data.forEach((name) => namesSet.add(name));
+              res.data.forEach((adInfo: { name: string; label: string }) => {
+                namesSet.add(adInfo.name);
+              });
             }
           })
         );

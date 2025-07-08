@@ -5,16 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterSidebar } from '@/components/analytics/FilterSidebar';
+import { TrendChart } from '@/components/analytics/TrendChart';
+import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
+import { ComboChart } from '@/components/analytics/ComboChart';
+import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
+import { FilterDropdown } from '@/components/analytics/FilterDropdown';
+import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
+import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
+import { DateRangePicker } from '@/components/analytics/DateRangePicker';
+import { DataTable } from '@/components/analytics/DataTable';
 
 // Analytics Components
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
-import { TrendChart } from '@/components/analytics/TrendChart';
-import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
-import { ComboChart } from '@/components/analytics/ComboChart';
-import { DataTable } from '@/components/analytics/DataTable';
-import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
-import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
-import { DateRangePicker } from '@/components/analytics/DateRangePicker';
 
 // Analytics Service
 import { 
@@ -41,6 +46,11 @@ interface Site {
   image: string;
 }
 
+interface AdOption {
+  name: string;
+  label: string;
+}
+
 const kpiOptions = [
   { value: 'impressions', label: 'Impressions' },
   { value: 'clicks', label: 'Clicks' },
@@ -60,8 +70,11 @@ export function Analytics() {
   const [selectedSlots, setSelectedSlots] = useState<(string | number)[]>([]);
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
   const [selectedKPIs, setSelectedKPIs] = useState<(string | number)[]>(['impressions', 'clicks']);
-  const [selectedAdNames, setSelectedAdNames] = useState<(string | number)[]>([]);
-  const [adNameOptions, setAdNameOptions] = useState<string[]>([]);
+  
+  // Ad name filter states
+  const [selectedExactAdNames, setSelectedExactAdNames] = useState<string[]>([]);
+  const [selectedStartsWithAdNames, setSelectedStartsWithAdNames] = useState<string[]>([]);
+  const [adNameOptions, setAdNameOptions] = useState<AdOption[]>([]);
 
   // Data states
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -97,27 +110,38 @@ export function Analytics() {
   // Fetch analytics data when filters change
   useEffect(() => {
     fetchAnalyticsData();
-  }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, activeView]);
+  }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, selectedExactAdNames, selectedStartsWithAdNames, activeView]);
 
   // Fetch ad names when selected campaigns change
   useEffect(() => {
     const loadAdNames = async () => {
       if (selectedCampaigns.length === 0) {
         setAdNameOptions([]);
-        setSelectedAdNames([]);
+        setSelectedExactAdNames([]);
+        setSelectedStartsWithAdNames([]);
         return;
       }
       try {
-        const namesSet = new Set<string>();
+        const adOptions: AdOption[] = [];
         await Promise.all(
           selectedCampaigns.map(async (campId) => {
             const res = await adService.getAdLabels(Number(campId));
             if (res.success && res.data) {
-              res.data.forEach((n: string) => namesSet.add(n));
+              // Add each ad option with name and label fields
+              res.data.forEach((adInfo) => {
+                adOptions.push({
+                  name: adInfo.name,
+                  label: adInfo.label
+                });
+              });
             }
           })
         );
-        setAdNameOptions(Array.from(namesSet));
+        // Remove duplicates based on name field
+        const uniqueOptions = adOptions.filter((option, index, self) =>
+          index === self.findIndex((t) => t.name === option.name)
+        );
+        setAdNameOptions(uniqueOptions);
       } catch (err) {
         console.error('Failed to fetch ad names', err);
       }
@@ -165,8 +189,16 @@ export function Analytics() {
         campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
         slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
         siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
-        // adId filter can be added once ad-name → id mapping is available
       };
+      
+      // Add ad name filters
+      if (selectedExactAdNames.length > 0) {
+        basePayload.adNameExact = selectedExactAdNames;
+      }
+      
+      if (selectedStartsWithAdNames.length > 0) {
+        basePayload.adNameStartsWith = selectedStartsWithAdNames;
+      }
 
       // Build payload based on the active view
       const trendPayload: MetricsPayload = { ...basePayload, interval: selectedTimeRange };
@@ -174,9 +206,10 @@ export function Analytics() {
       // Setup comparison logic for trend data
       if (activeView === 'slot' && selectedSlots.length > 0) {
         trendPayload.slotId = selectedSlots.map(Number);
-      } else if (activeView === 'ad' && selectedAdNames.length > 0) {
-        // This requires adName to adId mapping – assuming it's done elsewhere for now
-        // trendPayload.adId = selectedAdIds;
+      } else if (activeView === 'ad') {
+        // Apply ad name filters for ad view
+        trendPayload.adNameExact = selectedExactAdNames;
+        trendPayload.adNameStartsWith = selectedStartsWithAdNames;
       } else if (activeView === 'pos' && selectedPOS.length > 0) {
         trendPayload.siteId = selectedPOS.map(Number);
       }
@@ -248,6 +281,9 @@ export function Analytics() {
     if (selectedCampaigns.length > 0) parts.push(`${selectedCampaigns.length} campaign${selectedCampaigns.length > 1 ? 's' : ''}`);
     if (selectedSlots.length > 0) parts.push(`${selectedSlots.length} slot${selectedSlots.length > 1 ? 's' : ''}`);
     if (selectedPOS.length > 0) parts.push(`${selectedPOS.length} marketplace${selectedPOS.length > 1 ? 's' : ''}`);
+    
+    const adNameCount = selectedExactAdNames.length + selectedStartsWithAdNames.length;
+    if (adNameCount > 0) parts.push(`${adNameCount} ad name${adNameCount > 1 ? 's' : ''}`);
     
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
@@ -390,7 +426,7 @@ export function Analytics() {
               >
                 <Filter className="h-4 w-4" />
                 <Badge variant="secondary" className="ml-2">
-                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedAdNames.length}
+                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
                 </Badge>
               </Button>
             </div>
@@ -443,13 +479,17 @@ export function Analytics() {
                 />
 
                 {adNameOptions.length > 0 && (
-                  <MultiSelectDropdown
-                    label="Ad Names"
-                    options={adNameOptions.map((n) => ({ value: n, label: n }))}
-                    selectedValues={selectedAdNames}
-                    onChange={setSelectedAdNames}
-                    placeholder="Select ad names..."
-                  />
+                  <div className="md:col-span-2">
+                    <AdNameFilterDropdown
+                      options={adNameOptions}
+                      selectedExactValues={selectedExactAdNames}
+                      selectedStartsWithValues={selectedStartsWithAdNames}
+                      onExactChange={setSelectedExactAdNames}
+                      onStartsWithChange={setSelectedStartsWithAdNames}
+                      placeholder="Filter ad names..."
+                      label="Ad Names (Starts With / Exact)"
+                    />
+                  </div>
                 )}
               </div>
             </div>

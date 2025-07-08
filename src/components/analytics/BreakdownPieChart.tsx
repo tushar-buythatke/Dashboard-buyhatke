@@ -15,6 +15,11 @@ const COLORS = [
   '#7C3AED', '#0891B2', '#EA580C', '#65A30D'
 ];
 
+// Format percentage to always show 2 decimal places
+const formatPercentage = (value: number) => {
+  return value.toFixed(2);
+};
+
 const CustomTooltip = memo(({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   
@@ -34,7 +39,7 @@ const CustomTooltip = memo(({ active, payload }: any) => {
           {value.toLocaleString()}
         </p>
         <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-          {percentage}%
+          {formatPercentage(percentage)}%
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           of total
@@ -125,7 +130,7 @@ export const BreakdownPieChart = memo<BreakdownPieChartProps>(({
                 const dataEntry = enrichedData[index];
                 return (
                   <span style={{ color: entry.color, fontWeight: 'bold' }}>
-                    {value} ({dataEntry?.percentage}%)
+                    {value} ({formatPercentage(dataEntry?.percentage)}%)
                   </span>
                 );
               }}

@@ -11,6 +11,10 @@ export interface MetricsPayload {
   siteId?: number | number[];
   /** Ad filter */
   adId?: number | number[];
+  /** Ad name exact match filter */
+  adNameExact?: string[];
+  /** Ad name starts with filter */
+  adNameStartsWith?: string[];
   /** Interval bucket for trend endpoint → one of "1d", "7d", "30d" */
   interval?: string;
   /** Field for breakdown grouping → gender | age | platform | location */
@@ -51,7 +55,20 @@ export interface MetricsData {
   roi: number;
 }
 
+interface AnalyticsParams {
+  startDate: string;
+  endDate: string;
+  campaignIds?: string[];
+  slotIds?: string[];
+  marketplaceIds?: string[];
+  adNamesExact?: string[];
+  adNamesStartsWith?: string[];
+  metrics?: string[];
+}
+
 class AnalyticsService {
+  private API_BASE_URL = '/api/analytics';
+
   // Get overall metrics
   async getMetrics(payload: MetricsPayload): Promise<{ success: boolean; data?: MetricsData; message?: string }> {
     try {
@@ -408,7 +425,7 @@ class AnalyticsService {
     return Object.entries(map).map(([name, d]) => ({
       name,
       value: d.impressions,
-      percentage: totalImpressions > 0 ? (d.impressions / totalImpressions) * 100 : 0,
+      percentage: totalImpressions > 0 ? Number(((d.impressions / totalImpressions) * 100).toFixed(2)) : 0,
       impressions: d.impressions,
       clicks: d.clicks,
       conversions: d.conversions
@@ -453,7 +470,189 @@ class AnalyticsService {
         cloned[key] = value.length === 1 ? value[0] : value;
       }
     });
+    
+    // Handle ad name filters
+    if (cloned.adNameExact && Array.isArray(cloned.adNameExact) && cloned.adNameExact.length === 0) {
+      delete cloned.adNameExact;
+    }
+    
+    if (cloned.adNameStartsWith && Array.isArray(cloned.adNameStartsWith) && cloned.adNameStartsWith.length === 0) {
+      delete cloned.adNameStartsWith;
+    }
+    
     return cloned;
+  }
+
+  async fetchAnalyticsData(params: AnalyticsParams) {
+    try {
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('startDate', params.startDate);
+      queryParams.append('endDate', params.endDate);
+      
+      // Add array parameters
+      if (params.campaignIds && params.campaignIds.length > 0) {
+        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
+      }
+      
+      if (params.slotIds && params.slotIds.length > 0) {
+        params.slotIds.forEach(id => queryParams.append('slotIds', id));
+      }
+      
+      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
+        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
+      }
+      
+      // Handle exact match ad names
+      if (params.adNamesExact && params.adNamesExact.length > 0) {
+        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
+      }
+      
+      // Handle starts with ad names
+      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
+        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
+      }
+      
+      if (params.metrics && params.metrics.length > 0) {
+        params.metrics.forEach(metric => queryParams.append('metrics', metric));
+      }
+      
+      const response = await fetch(`${this.API_BASE_URL}?${queryParams.toString()}`);
+      const data = await response.json();
+      
+      if (data.status === 1) {
+        return {
+          success: true,
+          data: data.data
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Failed to fetch analytics data'
+        };
+      }
+    } catch (error) {
+      console.error('Error in fetchAnalyticsData:', error);
+      return {
+        success: false,
+        message: 'An unexpected error occurred'
+      };
+    }
+  }
+
+  async fetchTrendData(params: AnalyticsParams) {
+    try {
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('startDate', params.startDate);
+      queryParams.append('endDate', params.endDate);
+      
+      // Add array parameters
+      if (params.campaignIds && params.campaignIds.length > 0) {
+        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
+      }
+      
+      if (params.slotIds && params.slotIds.length > 0) {
+        params.slotIds.forEach(id => queryParams.append('slotIds', id));
+      }
+      
+      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
+        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
+      }
+      
+      // Handle exact match ad names
+      if (params.adNamesExact && params.adNamesExact.length > 0) {
+        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
+      }
+      
+      // Handle starts with ad names
+      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
+        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
+      }
+      
+      if (params.metrics && params.metrics.length > 0) {
+        params.metrics.forEach(metric => queryParams.append('metrics', metric));
+      }
+      
+      const response = await fetch(`${this.API_BASE_URL}/trend?${queryParams.toString()}`);
+      const data = await response.json();
+      
+      if (data.status === 1) {
+        return {
+          success: true,
+          data: data.data
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Failed to fetch trend data'
+        };
+      }
+    } catch (error) {
+      console.error('Error in fetchTrendData:', error);
+      return {
+        success: false,
+        message: 'An unexpected error occurred'
+      };
+    }
+  }
+
+  async fetchBreakdownData(params: AnalyticsParams, breakdownBy: string) {
+    try {
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('startDate', params.startDate);
+      queryParams.append('endDate', params.endDate);
+      queryParams.append('breakdownBy', breakdownBy);
+      
+      // Add array parameters
+      if (params.campaignIds && params.campaignIds.length > 0) {
+        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
+      }
+      
+      if (params.slotIds && params.slotIds.length > 0) {
+        params.slotIds.forEach(id => queryParams.append('slotIds', id));
+      }
+      
+      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
+        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
+      }
+      
+      // Handle exact match ad names
+      if (params.adNamesExact && params.adNamesExact.length > 0) {
+        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
+      }
+      
+      // Handle starts with ad names
+      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
+        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
+      }
+      
+      if (params.metrics && params.metrics.length > 0) {
+        params.metrics.forEach(metric => queryParams.append('metrics', metric));
+      }
+      
+      const response = await fetch(`${this.API_BASE_URL}/breakdown?${queryParams.toString()}`);
+      const data = await response.json();
+      
+      if (data.status === 1) {
+        return {
+          success: true,
+          data: data.data
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Failed to fetch breakdown data'
+        };
+      }
+    } catch (error) {
+      console.error('Error in fetchBreakdownData:', error);
+      return {
+        success: false,
+        message: 'An unexpected error occurred'
+      };
+    }
   }
 }
 
