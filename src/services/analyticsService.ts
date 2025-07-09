@@ -93,6 +93,8 @@ class AnalyticsService {
   async getTrendData(payload: MetricsPayload): Promise<{ success: boolean; data?: TrendDataPoint[]; message?: string }> {
     try {
       const body = this.preparePayloadForTrend(payload);
+      console.log('📈 Making trend API call with payload:', body);
+      
       const response = await fetch(`${API_BASE_URL}/metrics/trend?userId=1`, {
         method: 'POST',
         headers: {
@@ -102,22 +104,25 @@ class AnalyticsService {
       });
 
       const result: MetricsResponse = await response.json();
+      console.log('📈 Trend API raw response:', result);
       
       if (result.status === 1 && result.data) {
         const processedData = this.processTrendData(result.data);
+        console.log('📊 Processed trend data:', processedData);
         return {
           success: true,
           data: processedData,
           message: result.message
         };
       } else {
+        console.error('❌ Trend API failed:', result);
         return {
           success: false,
           message: result.message || 'Failed to fetch trend data'
         };
       }
     } catch (error) {
-      console.error('Error fetching trend data:', error);
+      console.error('❌ Error fetching trend data:', error);
       return {
         success: false,
         message: 'Failed to fetch trend data'
@@ -291,6 +296,65 @@ class AnalyticsService {
       return {
         success: false,
         message: 'Failed to fetch table data'
+      };
+    }
+  }
+
+  // Get all metrics data (simplified endpoint)
+  async getAllMetrics(): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/metrics/all?userId=1`);
+      const result = await response.json();
+      
+      if (result.status === 1 && result.data) {
+        // Process the data to extract metrics
+        let impressions = 0;
+        let clicks = 0;
+        const conversions = result.data.conversionStats?.conversionCount || 0;
+        
+        // Extract impressions and clicks from adStats
+        if (Array.isArray(result.data.adStats)) {
+          result.data.adStats.forEach((stat: any) => {
+            if (stat.eventType === "0") {
+              impressions = Number(stat.eventCount) || 0;
+            } else if (stat.eventType === "1") {
+              clicks = Number(stat.eventCount) || 0;
+            }
+          });
+        }
+        
+        // Calculate derived metrics
+        const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+        const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+        const revenue = conversions * 100; // Example: ₹100 per conversion
+        const adSpend = impressions * 0.1; // Example: ₹0.1 CPM
+        const roi = adSpend > 0 ? ((revenue - adSpend) / adSpend) * 100 : 0;
+        
+        const processedData = {
+          impressions,
+          clicks,
+          ctr,
+          conversions,
+          revenue,
+          roi
+        };
+        
+        return {
+          success: true,
+          data: processedData,
+          message: result.message
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Failed to fetch all metrics'
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching all metrics:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch all metrics'
       };
     }
   }
@@ -510,7 +574,9 @@ class AnalyticsService {
   // Prepare payload for /metrics/trend endpoint
   private preparePayloadForTrend(payload: MetricsPayload): Record<string, any> {
     const body: any = {
-      interval: payload.interval || '7d'
+      from: payload.from,
+      to: payload.to,
+      interval: payload.interval || '1d'
     };
 
     // Add filters if they exist - backend expects arrays

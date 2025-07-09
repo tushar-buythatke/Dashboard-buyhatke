@@ -249,10 +249,10 @@ export default function Analytics() {
         const campaignResults = await Promise.all(
           selectedCampaigns.map(async (campaignId) => {
             const payload: MetricsPayload = {
-              ...dateRange,
+        ...dateRange,
               campaignId: [Number(campaignId)],
-              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+        slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+        siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
               interval: dataGrouping
             };
 
@@ -438,15 +438,15 @@ export default function Analytics() {
         };
 
         const [metricsResult, trendResult] = await Promise.all([
-          analyticsService.getMetrics(basePayload),
+        analyticsService.getMetrics(basePayload),
           analyticsService.getTrendData(basePayload)
-        ]);
+      ]);
 
-        if (metricsResult.success && metricsResult.data) {
+      if (metricsResult.success && metricsResult.data) {
           aggregatedMetrics = metricsResult.data;
-        }
+      }
 
-        if (trendResult.success && trendResult.data) {
+      if (trendResult.success && trendResult.data) {
           trendSeries = [{
             name: 'Ad Performance',
             data: trendResult.data
@@ -474,7 +474,7 @@ export default function Analytics() {
 
         if (trendResult.success && trendResult.data) {
           trendSeries = [{
-            name: 'Overall Performance',
+          name: 'Overall Performance',
             data: trendResult.data
           }];
         }
@@ -542,7 +542,7 @@ export default function Analytics() {
 
       // Safely process breakdown data
       try {
-        setBreakdownData({
+      setBreakdownData({
           gender: (genderResult.success && Array.isArray(genderResult.data)) ? genderResult.data : [],
           age: (ageResult.success && Array.isArray(ageResult.data)) ? transformAgeBucketData(ageResult.data) : [],
           platform: (platformResult.success && Array.isArray(platformResult.data)) ? platformResult.data : [],
@@ -562,7 +562,7 @@ export default function Analytics() {
       // Safely process table data
       try {
         if (locationTableResult && locationTableResult.success && Array.isArray(locationTableResult.data)) {
-          setTopLocations(locationTableResult.data);
+        setTopLocations(locationTableResult.data);
         } else {
           setTopLocations([]);
         }
@@ -573,7 +573,7 @@ export default function Analytics() {
 
       try {
         if (slotTableResult && slotTableResult.success && Array.isArray(slotTableResult.data)) {
-          setTopSlotsData(slotTableResult.data);
+        setTopSlotsData(slotTableResult.data);
         } else {
           setTopSlotsData([]);
         }
@@ -736,7 +736,7 @@ export default function Analytics() {
                 <div className="relative">
                   <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/30"></div>
                   <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-ping opacity-20"></div>
-                </div>
+              </div>
                 <div className="relative">
                   <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-pulse delay-150 shadow-lg shadow-blue-500/30"></div>
                   <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-ping opacity-20 delay-150"></div>
@@ -755,9 +755,9 @@ export default function Analytics() {
                   🚀 Your central hub for performance insights
                 </p>
               </div>
+              </div>
             </div>
-          </div>
-
+            
           {/* Control Panel - More Spacious */}
           <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/40 dark:border-gray-700/40 shadow-xl p-6 mb-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
@@ -766,17 +766,17 @@ export default function Analytics() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   📊 View Type
                 </label>
-                <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
+              <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
                   <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
                     <SelectValue placeholder="Select View" />
-                  </SelectTrigger>
+                </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
                     <SelectItem value="campaign" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📈 Campaign wise</SelectItem>
                     <SelectItem value="slot" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🎯 Slots wise</SelectItem>
                     <SelectItem value="ad" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📝 Ads wise</SelectItem>
                     <SelectItem value="pos" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🏪 POS wise</SelectItem>
-                  </SelectContent>
-                </Select>
+                </SelectContent>
+              </Select>
               </div>
 
               {/* Date Range Picker */}
@@ -785,7 +785,7 @@ export default function Analytics() {
                   📅 Date Range
                 </label>
                 <div className="h-11 flex items-center px-3 text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl relative z-50">
-                  <DateRangePicker />
+              <DateRangePicker />
                 </div>
               </div>
 
@@ -835,36 +835,36 @@ export default function Analytics() {
                 
                 {/* Secondary Actions */}
                 <div className="flex items-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                     className="h-11 w-11 border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
+              >
                     <RefreshCw className={`h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} />
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExport}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
                     className="h-11 w-11 border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
+              >
                     <Download className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-y-0.5 transition-all duration-300" />
-                  </Button>
+              </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
                     className="h-11 px-4 border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-950 hover:border-purple-400 dark:hover:border-purple-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
+              >
                     <Filter className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 mr-2 group-hover:rotate-12 transition-all duration-300" />
                     <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 border-0 shadow-sm">
-                      {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
-                    </Badge>
-                  </Button>
+                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
+                </Badge>
+              </Button>
                 </div>
               </div>
             </div>
@@ -898,13 +898,13 @@ export default function Analytics() {
                     📈 Campaigns
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-blue-300 dark:hover:border-blue-600">
-                    <MultiSelectDropdown
+                <MultiSelectDropdown
                       label=""
-                      options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
-                      selectedValues={selectedCampaigns}
-                      onChange={setSelectedCampaigns}
-                      placeholder="Select campaigns..."
-                    />
+                  options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
+                  selectedValues={selectedCampaigns}
+                  onChange={setSelectedCampaigns}
+                  placeholder="Select campaigns..."
+                />
                   </div>
                 </div>
                 
@@ -914,13 +914,13 @@ export default function Analytics() {
                     🎯 Slots
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
-                    <MultiSelectDropdown
+                <MultiSelectDropdown
                       label=""
-                      options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
-                      selectedValues={selectedSlots}
-                      onChange={setSelectedSlots}
-                      placeholder="Select slots..."
-                    />
+                  options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
+                  selectedValues={selectedSlots}
+                  onChange={setSelectedSlots}
+                  placeholder="Select slots..."
+                />
                   </div>
                 </div>
                 
@@ -930,13 +930,13 @@ export default function Analytics() {
                     🏪 Marketplaces (POS)
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
-                    <MultiSelectDropdown
+                <MultiSelectDropdown
                       label=""
-                      options={sites.map(site => ({ value: site.posId, label: site.name }))}
-                      selectedValues={selectedPOS}
-                      onChange={setSelectedPOS}
-                      placeholder="Select marketplaces..."
-                    />
+                  options={sites.map(site => ({ value: site.posId, label: site.name }))}
+                  selectedValues={selectedPOS}
+                  onChange={setSelectedPOS}
+                  placeholder="Select marketplaces..."
+                />
                   </div>
                 </div>
 
@@ -953,13 +953,13 @@ export default function Analytics() {
                           <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading ad names...</span>
                         </div>
                       ) : adNameOptions.length > 0 ? (
-                        <AdNameFilterDropdown
-                          options={adNameOptions}
-                          selectedExactValues={selectedExactAdNames}
-                          selectedStartsWithValues={selectedStartsWithAdNames}
-                          onExactChange={setSelectedExactAdNames}
-                          onStartsWithChange={setSelectedStartsWithAdNames}
-                          placeholder="Filter ad names..."
+                    <AdNameFilterDropdown
+                      options={adNameOptions}
+                      selectedExactValues={selectedExactAdNames}
+                      selectedStartsWithValues={selectedStartsWithAdNames}
+                      onExactChange={setSelectedExactAdNames}
+                      onStartsWithChange={setSelectedStartsWithAdNames}
+                      placeholder="Filter ad names..."
                           label=""
                         />
                       ) : (
@@ -968,8 +968,8 @@ export default function Analytics() {
                             <div className="mb-2">📭 No ads found</div>
                             <div>Create some ads in the selected campaigns to enable ad-level filtering</div>
                           </div>
-                        </div>
-                      )}
+                  </div>
+                )}
                     </div>
                   </div>
                 )}
@@ -1014,15 +1014,15 @@ export default function Analytics() {
                     <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                     <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       🔄 Real-time data
-                    </p>
-                  </div>
+                  </p>
                 </div>
+              </div>
               </div>
               
               <div className="flex items-center space-x-3">
                 {/* Live Badge */}
                 <Badge className="bg-emerald-500 text-white border-0 shadow-md font-medium px-3 py-1 rounded-lg">
-                  <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                     <span>Live Data</span>
                   </div>
@@ -1086,9 +1086,9 @@ export default function Analytics() {
                     <span>Click the "Fetch Results" button</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span>View your analytics insights</span>
-                  </div>
+            </div>
                 </div>
               </div>
             )}
@@ -1104,7 +1104,7 @@ export default function Analytics() {
             {dataLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
                   <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
@@ -1115,8 +1115,8 @@ export default function Analytics() {
             ) : (
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
-                  <TrendChart
-                    series={trendData}
+              <TrendChart
+                series={trendData}
                     title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
                   />
                 ) : (

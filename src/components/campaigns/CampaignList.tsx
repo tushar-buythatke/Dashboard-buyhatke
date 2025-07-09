@@ -315,38 +315,38 @@ export function CampaignList() {
                 <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔍 Filters</h2>
                 <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent"></div>
-              </div>
-              
+            </div>
+            
               <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:gap-6">
-                <div className="flex-1">
-                  <Select 
-                    value={statusFilter} 
-                    onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
-                  >
+              <div className="flex-1">
+                <Select 
+                  value={statusFilter} 
+                  onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
+                >
                     <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300">
                       <SelectValue placeholder="🎯 Filter by status" />
-                    </SelectTrigger>
+                  </SelectTrigger>
                     <SelectContent className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border-white/20 rounded-xl">
-                      {statusOptions.map(option => (
+                    {statusOptions.map(option => (
                         <SelectItem key={option.value} value={option.value} className="font-medium">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex-1">
-                  <div className="relative">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex-1">
+                <div className="relative">
                     <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
                       <Search className="text-purple-500 h-4 w-4" />
                     </div>
-                    <Input
+                  <Input
                       placeholder="🔍 Search by brand name..."
                       className="pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300"
-                      value={brandNameFilter}
-                      onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
-                    />
+                    value={brandNameFilter}
+                    onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
+                  />
                   </div>
                 </div>
               </div>
@@ -505,77 +505,77 @@ export function CampaignList() {
                             <div className="flex items-center space-x-3">
                               <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
                               <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                {campaign.brandName}
+                              {campaign.brandName}
                               </div>
                             </div>
                           </TableCell>
                           
                           <TableCell className="p-4 w-[140px]" onClick={(e) => e.stopPropagation()}>
-                            <Badge 
+                              <Badge 
                               className={`text-xs font-bold px-3 py-1 rounded-full ${
-                                campaign.status === 1 
+                                  campaign.status === 1 
                                   ? 'bg-green-500 text-white' 
-                                  : campaign.status === 3 
+                                    : campaign.status === 3 
                                     ? 'bg-yellow-500 text-white' 
-                                    : campaign.status === 0
+                                      : campaign.status === 0
                                       ? 'bg-gray-500 text-white'
-                                      : campaign.status === 2
+                                        : campaign.status === 2
                                         ? 'bg-blue-500 text-white'
                                         : 'bg-gray-400 text-white'
-                              }`}
-                            >
+                                }`}
+                              >
                               {campaign.status === 1 && '🟢'} {campaign.status === 3 && '⏸️'} {campaign.status === 0 && '📝'} {campaign.status === 2 && '🧪'}
-                              {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
-                            </Badge>
+                                {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
+                              </Badge>
                           </TableCell>
                           
                           <TableCell className="p-4 w-[130px]">
                             <div className="text-sm text-gray-700 dark:text-gray-300">
-                              {formatDate(campaign.createdAt)}
+                            {formatDate(campaign.createdAt)}
                             </div>
                           </TableCell>
                           
                           <TableCell className="p-4 text-right w-[140px]">
                             <span className="font-semibold text-blue-800 dark:text-blue-300 text-sm">
-                              {campaign.impressionTarget.toLocaleString()}
+                            {campaign.impressionTarget.toLocaleString()}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-right w-[130px]">
                             <span className="font-semibold text-purple-800 dark:text-purple-300 text-sm">
-                              {campaign.clickTarget.toLocaleString()}
+                            {campaign.clickTarget.toLocaleString()}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-center w-[110px]">
                             <span className="font-semibold text-indigo-800 dark:text-indigo-300 text-sm">
-                              {campaign.impressionTarget > 0 ? ((campaign.clickTarget / campaign.impressionTarget) * 100).toFixed(1) + '%' : '—'}
+                            {campaign.impressionTarget > 0 ? ((campaign.clickTarget / campaign.impressionTarget) * 100).toFixed(1) + '%' : '—'}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-right w-[130px]">
                             <span className="font-semibold text-green-800 dark:text-green-300 text-sm">
-                              {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
+                            {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-right w-[120px]">
                             <span className="font-semibold text-orange-800 dark:text-orange-300 text-sm">
-                              {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
+                            {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-center w-[110px]">
                             <span className="font-semibold text-pink-800 dark:text-pink-300 text-sm">
-                              {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
-                                ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
-                                : '—'}
+                            {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
+                              ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
+                              : '—'}
                             </span>
                           </TableCell>
                           
                           <TableCell className="p-4 text-right w-[120px]">
                             <span className="font-semibold text-orange-800 dark:text-orange-300 text-sm">
-                              ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
+                            ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
                             </span>
                           </TableCell>
                           
