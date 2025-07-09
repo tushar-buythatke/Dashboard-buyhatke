@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { FilterProvider } from '@/context/FilterContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
@@ -72,9 +73,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <FilterProvider>
-          <AppRoutes />
-        </FilterProvider>
+        <NotificationProvider>
+          <FilterProvider>
+            <AppRoutes />
+          </FilterProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

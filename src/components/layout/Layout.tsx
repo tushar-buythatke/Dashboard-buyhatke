@@ -7,10 +7,10 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', minWidth: '100vw', position: 'relative' }}>
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', minWidth: '100vw' }}>
       <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       {/* Add top padding to account for fixed header */}
-      <div className="flex pt-20 min-h-screen">
+      <div className="flex pt-20 min-h-screen" style={{ position: 'relative', zIndex: 1 }}>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200 min-h-screen">
           {/* Mobile overlay */}

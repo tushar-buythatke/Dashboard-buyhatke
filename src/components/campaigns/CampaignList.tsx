@@ -183,10 +183,10 @@ export function CampaignList() {
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  🚀 Campaigns ✨
+                  Campaigns
                 </h1>
                 <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base font-medium">
-                  🎯 Manage and monitor your advertising campaigns with style
+                  Manage and monitor your advertising campaigns with style
                 </p>
               </div>
             </div>
@@ -207,7 +207,7 @@ export function CampaignList() {
               >
                 <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 transition-transform duration-500 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
                 <span className="ml-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-                  {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </span>
               </Button>
               
@@ -218,7 +218,7 @@ export function CampaignList() {
                 className="group relative overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-green-50 dark:hover:bg-green-900/20 hover:scale-105 transition-all duration-300 h-11 px-4"
               >
                 <Download className="h-4 w-4 text-green-600 dark:text-green-400 group-hover:animate-bounce" />
-                <span className="ml-2 text-sm font-semibold text-green-700 dark:text-green-300">📥 Export</span>
+                <span className="ml-2 text-sm font-semibold text-green-700 dark:text-green-300">Export</span>
               </Button>
               
               <Button
@@ -228,7 +228,7 @@ export function CampaignList() {
                 className="group relative overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:scale-105 transition-all duration-300 h-11 px-4"
               >
                 <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
-                <span className="ml-2 text-sm font-semibold text-purple-700 dark:text-purple-300">📊 Analytics</span>
+                <span className="ml-2 text-sm font-semibold text-purple-700 dark:text-purple-300">Analytics</span>
               </Button>
               
               <Button 
@@ -236,7 +236,7 @@ export function CampaignList() {
                 className="group relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold h-11 px-6 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-0"
               >
                 <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="ml-2 text-sm relative z-10">✨ Create Campaign</span>
+                <span className="ml-2 text-sm relative z-10">Create Campaign</span>
               </Button>
             </motion.div>
           </div>
@@ -259,7 +259,7 @@ export function CampaignList() {
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Activity className="h-5 w-5 text-green-600" />
-                    <p className="text-green-700 dark:text-green-400 text-sm font-bold">🟢 Active Campaigns</p>
+                    <p className="text-green-700 dark:text-green-400 text-sm font-bold">Active Campaigns</p>
                   </div>
                   <p className="text-3xl font-black text-green-800 dark:text-green-300">{activeCampaigns}</p>
                 </div>
@@ -275,12 +275,12 @@ export function CampaignList() {
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <DollarSign className="h-5 w-5 text-blue-600" />
-                    <p className="text-blue-700 dark:text-blue-400 text-sm font-bold">💰 Total Budget</p>
+                    <p className="text-blue-700 dark:text-blue-400 text-sm font-bold">Total Budget</p>
                   </div>
                   <p className="text-3xl font-black text-blue-800 dark:text-blue-300">₹{totalBudget.toLocaleString()}</p>
                 </div>
                 <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg shadow-blue-500/30">
-                  <span className="text-white text-2xl">💰</span>
+                  <DollarSign className="h-6 w-6 text-white" />
                 </div>
               </div>
             </div>
@@ -291,7 +291,7 @@ export function CampaignList() {
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Target className="h-5 w-5 text-purple-600" />
-                    <p className="text-purple-700 dark:text-purple-400 text-sm font-bold">🎯 Target Impressions</p>
+                    <p className="text-purple-700 dark:text-purple-400 text-sm font-bold">Target Impressions</p>
                   </div>
                   <p className="text-3xl font-black text-purple-800 dark:text-purple-300">{totalImpressions.toLocaleString()}</p>
                 </div>
@@ -313,7 +313,7 @@ export function CampaignList() {
             <div className="relative z-10">
               <div className="flex items-center space-x-3 mb-6">
                 <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔍 Filters</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h2>
                 <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent"></div>
             </div>
             
@@ -324,7 +324,7 @@ export function CampaignList() {
                   onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
                 >
                     <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300">
-                      <SelectValue placeholder="🎯 Filter by status" />
+                      <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                     <SelectContent className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border-white/20 rounded-xl">
                     {statusOptions.map(option => (
@@ -342,7 +342,7 @@ export function CampaignList() {
                       <Search className="text-purple-500 h-4 w-4" />
                     </div>
                   <Input
-                      placeholder="🔍 Search by brand name..."
+                      placeholder="Search by brand name..."
                       className="pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300"
                     value={brandNameFilter}
                     onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
@@ -367,7 +367,7 @@ export function CampaignList() {
               <div className="flex items-center space-x-3">
                 <Star className="w-5 h-5 text-yellow-500" />
                 <h3 className="text-lg font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
-                  📋 Campaign List
+                  Campaign List
                 </h3>
                 <div className="flex-1 h-px bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20"></div>
                 <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold px-3 py-1">
@@ -397,7 +397,7 @@ export function CampaignList() {
                     />
                   </div>
                   <span className="ml-4 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    ⏳ Loading campaigns...
+                    Loading campaigns...
                   </span>
                 </div>
               ) : error ? (
@@ -407,7 +407,7 @@ export function CampaignList() {
                   className="text-center py-16"
                 >
                   <div className="text-red-500 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-sm rounded-2xl p-8 inline-block border border-red-200/50">
-                    <span className="font-bold text-lg">❌ {error}</span>
+                    <span className="font-bold text-lg">{error}</span>
                   </div>
                 </motion.div>
               ) : filteredCampaigns.length === 0 ? (
@@ -417,7 +417,7 @@ export function CampaignList() {
                   className="text-center py-16"
                 >
                   <div className="text-gray-500 dark:text-gray-400 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 inline-block border border-gray-200/50">
-                    <span className="font-bold text-lg">📋 No campaigns found</span>
+                    <span className="font-bold text-lg">No campaigns found</span>
                   </div>
                 </motion.div>
               ) : (
@@ -427,19 +427,19 @@ export function CampaignList() {
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 w-[220px]">
                         <div className="flex items-center space-x-3">
                           <Target className="h-4 w-4 text-blue-600" />
-                          <span>🎯 Brand</span>
+                          <span>Brand</span>
                         </div>
                       </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 w-[140px]">
                         <div className="flex items-center space-x-3">
                           <Activity className="h-4 w-4 text-green-600" />
-                          <span>📊 Status</span>
+                          <span>Status</span>
                         </div>
                       </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 w-[130px]">
                         <div className="flex items-center space-x-3">
                           <Calendar className="h-4 w-4 text-purple-600" />
-                          <span>📅 Created</span>
+                          <span>Created</span>
                         </div>
                       </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-right w-[140px]">
@@ -485,7 +485,7 @@ export function CampaignList() {
                         </div>
                       </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-center w-[100px]">
-                        <span>⚙️ Actions</span>
+                        <span>Actions</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -524,7 +524,6 @@ export function CampaignList() {
                                         : 'bg-gray-400 text-white'
                                 }`}
                               >
-                              {campaign.status === 1 && '🟢'} {campaign.status === 3 && '⏸️'} {campaign.status === 0 && '📝'} {campaign.status === 2 && '🧪'}
                                 {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
                               </Badge>
                           </TableCell>

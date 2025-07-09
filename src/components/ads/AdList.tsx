@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Ad, Slot, SlotListResponse, ApiAd, mapApiAdToAd } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { analyticsService } from '@/services/analyticsService';
 
 // Placeholder image URL
@@ -20,12 +21,13 @@ export function AdList() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { checkPerformanceAlerts, addNotification } = useNotifications();
   const [ads, setAds] = useState<Ad[]>([]);
   const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<Record<number, Slot>>({});
-  const [campaign, setCampaign] = useState<{ brandName?: string }>({});
+  const [campaign, setCampaign] = useState<{ brandName?: string; id?: number }>({});
   const [error, setError] = useState<string | null>(null);
   const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
   // We use adService for auto-numbering, but don't need visual indicators in the UI
@@ -69,6 +71,55 @@ export function AdList() {
     fetchData();
   }, [campaignId]);
 
+  // Real-time performance monitoring for notifications
+  useEffect(() => {
+    if (ads.length > 0 && Object.keys(adMetrics).length > 0) {
+      // Check each ad for performance achievements
+      ads.forEach(ad => {
+        const metrics = adMetrics[ad.adId];
+        if (!metrics) return;
+
+        const impressionExceeded = metrics.impressions > ad.impressionTarget;
+        const clickExceeded = metrics.clicks > ad.clickTarget;
+
+        // Only notify if targets are actually exceeded
+        if (impressionExceeded && ad.impressionTarget > 0) {
+          const improvement = Math.round(((metrics.impressions - ad.impressionTarget) / ad.impressionTarget) * 100);
+          if (improvement > 0) {
+            addNotification({
+              type: 'achievement',
+              title: 'Impression Target Exceeded!',
+              message: `Ad "${ad.name}" exceeded impression targets by ${improvement}%`,
+              metadata: {
+                campaignId: campaign.id,
+                adId: ad.adId,
+                metric: 'impressions',
+                improvement
+              }
+            });
+          }
+        }
+
+        if (clickExceeded && ad.clickTarget > 0) {
+          const improvement = Math.round(((metrics.clicks - ad.clickTarget) / ad.clickTarget) * 100);
+          if (improvement > 0) {
+            addNotification({
+              type: 'success',
+              title: 'Click Target Exceeded!',
+              message: `Ad "${ad.name}" exceeded click targets by ${improvement}%`,
+              metadata: {
+                campaignId: campaign.id,
+                adId: ad.adId,
+                metric: 'clicks',
+                improvement
+              }
+            });
+          }
+        }
+      });
+    }
+  }, [ads, adMetrics, campaign.id, addNotification]);
+
   const fetchSlots = async () => {
     try {
       const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/slots');
@@ -95,7 +146,11 @@ export function AdList() {
       
       const result = await response.json();
       if (result.status === 1 && result.data?.campaignList?.[0]) {
-        setCampaign(result.data.campaignList[0]);
+        const campaignData = result.data.campaignList[0];
+        setCampaign({
+          ...campaignData,
+          id: parseInt(campaignId || '0', 10)
+        });
       }
     } catch (error) {
       console.error('Error fetching campaign:', error);
@@ -167,6 +222,17 @@ export function AdList() {
         });
 
         setAdMetrics(newAdMetrics);
+
+        // Check for performance alerts with enriched data
+        const adsWithMetrics = enrichedAds.map((ad: Ad) => ({
+          ...ad,
+          liveImpressions: newAdMetrics[ad.adId]?.impressions || 0,
+          liveClicks: newAdMetrics[ad.adId]?.clicks || 0,
+        }));
+
+        // Check performance and trigger notifications
+        const campaignData = campaign.id ? [campaign] : [];
+        checkPerformanceAlerts(campaignData, adsWithMetrics);
       } else {
         setAds([]);
         setFilteredAds([]);
