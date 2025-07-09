@@ -164,9 +164,19 @@ class AdService {
       });
 
       const result = await response.json();
+      
+      // Convert string values to numbers to match the interface
+      let locationDetails: LocationDetails = {};
+      if (result.status === 1 && result.data?.locationDetails) {
+        locationDetails = Object.entries(result.data.locationDetails).reduce((acc, [locationName, value]) => {
+          acc[locationName] = parseInt(value as string, 10) || 0;
+          return acc;
+        }, {} as LocationDetails);
+      }
+
       return {
         success: result.status === 1,
-        data: result.data?.locationDetails,
+        data: locationDetails,
         message: result.message
       };
     } catch (error) {
