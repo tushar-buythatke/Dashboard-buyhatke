@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
-import { Analytics } from '@/pages/Analytics';
+import Analytics from '@/pages/Analytics';
 import { CampaignList } from '@/components/campaigns/CampaignList';
 import { CampaignForm } from '@/components/campaigns/CampaignForm';
 import { AdList } from '@/components/ads/AdList';

@@ -3,7 +3,7 @@ const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test';
 export interface MetricsPayload {
   from: string;
   to: string;
-  /** Campaign filter – single id or list */
+  /** Campaign filter – single id or array */
   campaignId?: number | number[];
   /** Slot filter */
   slotId?: number | number[];
@@ -11,10 +11,6 @@ export interface MetricsPayload {
   siteId?: number | number[];
   /** Ad filter */
   adId?: number | number[];
-  /** Ad name exact match filter */
-  adNameExact?: string[];
-  /** Ad name starts with filter */
-  adNameStartsWith?: string[];
   /** Interval bucket for trend endpoint → one of "1d", "7d", "30d" */
   interval?: string;
   /** Field for breakdown grouping → gender | age | platform | location */
@@ -55,30 +51,17 @@ export interface MetricsData {
   roi: number;
 }
 
-interface AnalyticsParams {
-  startDate: string;
-  endDate: string;
-  campaignIds?: string[];
-  slotIds?: string[];
-  marketplaceIds?: string[];
-  adNamesExact?: string[];
-  adNamesStartsWith?: string[];
-  metrics?: string[];
-}
-
 class AnalyticsService {
-  private API_BASE_URL = '/api/analytics';
-
   // Get overall metrics
   async getMetrics(payload: MetricsPayload): Promise<{ success: boolean; data?: MetricsData; message?: string }> {
     try {
-      const body = JSON.stringify(this.preparePayload(payload));
+      const body = this.preparePayloadForAll(payload);
       const response = await fetch(`${API_BASE_URL}/metrics/all?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(body),
       });
 
       const result: MetricsResponse = await response.json();
@@ -109,13 +92,13 @@ class AnalyticsService {
   // Get trend data over time
   async getTrendData(payload: MetricsPayload): Promise<{ success: boolean; data?: TrendDataPoint[]; message?: string }> {
     try {
-      const body = JSON.stringify(this.preparePayload(payload));
+      const body = this.preparePayloadForTrend(payload);
       const response = await fetch(`${API_BASE_URL}/metrics/trend?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(body),
       });
 
       const result: MetricsResponse = await response.json();
@@ -145,19 +128,19 @@ class AnalyticsService {
   // Get breakdown data (platform, age, location, etc.)
   async getBreakdownData(payload: MetricsPayload): Promise<{ success: boolean; data?: BreakdownData[]; message?: string }> {
     try {
-      const body = JSON.stringify(this.preparePayload(payload));
+      const body = this.preparePayloadForBreakdown(payload);
       const response = await fetch(`${API_BASE_URL}/metrics/breakdown?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(body),
       });
 
       const result: MetricsResponse = await response.json();
       
       if (result.status === 1 && result.data) {
-        const processedData = this.processBreakdownData(result.data);
+        const processedData = this.processBreakdownData(result.data, payload.by);
         return {
           success: true,
           data: processedData,
@@ -281,9 +264,16 @@ class AnalyticsService {
       const result: MetricsResponse = await response.json();
 
       if (result.status === 1 && result.data?.tableData) {
+        // Convert object to array format for table
+        const tableArray = Object.entries(result.data.tableData).map(([key, value]: [string, any]) => ({
+          [type]: key,
+          impressions: value.impressions || 0,
+          clicks: value.clicks || 0,
+        }));
+        
         return {
           success: true,
-          data: result.data.tableData,
+          data: tableArray,
           message: result.message
         };
       } else {
@@ -301,13 +291,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Convert the /metrics/all response structure → MetricsData expected by UI
-   * Response shape => {
-   *   conversionStats: { conversionCount: number },
-   *   adStats: Array<{ eventType: 0 | 1 | 2, eventCount: number }>
-   * }
-   */
+  // Process metrics data
   private processMetricsData(rawData: any): MetricsData {
     let impressions = 0;
     let clicks = 0;
@@ -349,16 +333,7 @@ class AnalyticsService {
     };
   }
 
-  /**
-   * Convert the /metrics/trend response → TrendDataPoint[] expected by UI
-   * Raw shape => {
-   *   total: {
-   *     impression: { [bucket: string]: number },
-   *     click: { [bucket: string]: number },
-   *     conversion: { [bucket: string]: number }
-   *   }
-   * }
-   */
+  // Process trend data
   private processTrendData(rawData: any): TrendDataPoint[] {
     if (!rawData || !rawData.total) return [];
 
@@ -388,22 +363,59 @@ class AnalyticsService {
       });
     });
 
-    // Sort chronologically (assuming bucket can be parsed by Date; fallback lexical)
-    trend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Sort chronologically
+    trend.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        return a.date.localeCompare(b.date);
+      }
+      return dateA.getTime() - dateB.getTime();
+    });
     return trend;
   }
 
-  /**
-   * Convert /metrics/breakdown response → BreakdownData[]
-   * Each row from backend contains a grouping field (gender/platform/location/age...) + eventType + eventCount
-   */
-  private processBreakdownData(rawData: any): BreakdownData[] {
+  // Process breakdown data
+  private processBreakdownData(rawData: any, groupBy?: string): BreakdownData[] {
     const map: { [key: string]: { impressions: number; clicks: number; conversions: number } } = {};
 
     if (Array.isArray(rawData)) {
       rawData.forEach((row: any) => {
-        // Determine the grouping key dynamically – take first non-null grouping field
-        const key = row.gender ?? row.platform ?? row.location ?? row.age ?? 'Unknown';
+        // Determine the grouping key based on the breakdown type
+        let key = 'Unknown';
+        
+        if (groupBy === 'gender' && row.gender !== undefined) {
+          key = row.gender;
+        } else if (groupBy === 'platform' && row.platform !== undefined) {
+          key = row.platform;
+        } else if (groupBy === 'location' && row.location !== undefined) {
+          key = row.location;
+        } else if (groupBy === 'age') {
+          // Handle age buckets
+          const ageBuckets = [
+            row.ageBucket0, row.ageBucket1, row.ageBucket2, row.ageBucket3,
+            row.ageBucket4, row.ageBucket5, row.ageBucket6, row.ageBucket7
+          ];
+          
+          ageBuckets.forEach((count, index) => {
+            if (count && count > 0) {
+              const ageGroup = this.getAgeGroupLabel(index);
+              if (!map[ageGroup]) {
+                map[ageGroup] = { impressions: 0, clicks: 0, conversions: 0 };
+              }
+              
+              const type = Number(row.eventType);
+              if (type === 0) {
+                map[ageGroup].impressions += Number(count) || 0;
+              } else if (type === 1) {
+                map[ageGroup].clicks += Number(count) || 0;
+              } else if (type === 2) {
+                map[ageGroup].conversions += Number(count) || 0;
+              }
+            }
+          });
+          return; // Skip the normal processing for age buckets
+        }
 
         if (!map[key]) {
           map[key] = { impressions: 0, clicks: 0, conversions: 0 };
@@ -432,6 +444,12 @@ class AnalyticsService {
     })).sort((a, b) => b.value - a.value);
   }
 
+  // Helper to get age group labels
+  private getAgeGroupLabel(bucketIndex: number): string {
+    const ageGroups = ['13-18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'NA'];
+    return ageGroups[bucketIndex] || 'Unknown';
+  }
+
   // Helper function to get date range based on time period
   getDateRange(timeRange: string): { from: string; to: string } {
     const now = new Date();
@@ -458,201 +476,85 @@ class AnalyticsService {
     return { from, to };
   }
 
-  /**
-   * Convert any single-element array filters to a scalar value – backend expects numbers not arrays.
-   * Keeps multi-element arrays intact so we can support future bulk queries.
-   */
-  private preparePayload(payload: MetricsPayload): Record<string, any> {
-    const cloned: any = { ...payload };
-    ['campaignId', 'slotId', 'siteId', 'adId'].forEach((key) => {
-      const value = cloned[key];
-      if (Array.isArray(value)) {
-        cloned[key] = value.length === 1 ? value[0] : value;
-      }
-    });
-    
-    // Handle ad name filters
-    if (cloned.adNameExact && Array.isArray(cloned.adNameExact) && cloned.adNameExact.length === 0) {
-      delete cloned.adNameExact;
+  // Prepare payload for /metrics/all endpoint
+  private preparePayloadForAll(payload: MetricsPayload): Record<string, any> {
+    const body: any = {
+      from: payload.from,
+      to: payload.to
+    };
+
+    // Add filters if they exist - backend expects arrays
+    if (payload.campaignId !== undefined) {
+      body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
     
-    if (cloned.adNameStartsWith && Array.isArray(cloned.adNameStartsWith) && cloned.adNameStartsWith.length === 0) {
-      delete cloned.adNameStartsWith;
+    if (payload.slotId !== undefined) {
+      body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
     }
     
-    return cloned;
+    if (payload.siteId !== undefined) {
+      body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
+    }
+    
+    if (payload.adId !== undefined) {
+      body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
+    }
+
+    return body;
   }
 
-  async fetchAnalyticsData(params: AnalyticsParams) {
-    try {
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      queryParams.append('startDate', params.startDate);
-      queryParams.append('endDate', params.endDate);
-      
-      // Add array parameters
-      if (params.campaignIds && params.campaignIds.length > 0) {
-        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
-      }
-      
-      if (params.slotIds && params.slotIds.length > 0) {
-        params.slotIds.forEach(id => queryParams.append('slotIds', id));
-      }
-      
-      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
-        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
-      }
-      
-      // Handle exact match ad names
-      if (params.adNamesExact && params.adNamesExact.length > 0) {
-        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
-      }
-      
-      // Handle starts with ad names
-      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
-        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
-      }
-      
-      if (params.metrics && params.metrics.length > 0) {
-        params.metrics.forEach(metric => queryParams.append('metrics', metric));
-      }
-      
-      const response = await fetch(`${this.API_BASE_URL}?${queryParams.toString()}`);
-      const data = await response.json();
-      
-      if (data.status === 1) {
-        return {
-          success: true,
-          data: data.data
-        };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Failed to fetch analytics data'
-        };
-      }
-    } catch (error) {
-      console.error('Error in fetchAnalyticsData:', error);
-      return {
-        success: false,
-        message: 'An unexpected error occurred'
-      };
+  // Prepare payload for /metrics/trend endpoint
+  private preparePayloadForTrend(payload: MetricsPayload): Record<string, any> {
+    const body: any = {
+      interval: payload.interval || '7d'
+    };
+
+    // Add filters if they exist - backend expects arrays
+    if (payload.campaignId !== undefined) {
+      body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
+    
+    if (payload.slotId !== undefined) {
+      body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
+    }
+    
+    if (payload.siteId !== undefined) {
+      body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
+    }
+    
+    if (payload.adId !== undefined) {
+      body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
+    }
+
+    return body;
   }
 
-  async fetchTrendData(params: AnalyticsParams) {
-    try {
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      queryParams.append('startDate', params.startDate);
-      queryParams.append('endDate', params.endDate);
-      
-      // Add array parameters
-      if (params.campaignIds && params.campaignIds.length > 0) {
-        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
-      }
-      
-      if (params.slotIds && params.slotIds.length > 0) {
-        params.slotIds.forEach(id => queryParams.append('slotIds', id));
-      }
-      
-      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
-        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
-      }
-      
-      // Handle exact match ad names
-      if (params.adNamesExact && params.adNamesExact.length > 0) {
-        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
-      }
-      
-      // Handle starts with ad names
-      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
-        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
-      }
-      
-      if (params.metrics && params.metrics.length > 0) {
-        params.metrics.forEach(metric => queryParams.append('metrics', metric));
-      }
-      
-      const response = await fetch(`${this.API_BASE_URL}/trend?${queryParams.toString()}`);
-      const data = await response.json();
-      
-      if (data.status === 1) {
-        return {
-          success: true,
-          data: data.data
-        };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Failed to fetch trend data'
-        };
-      }
-    } catch (error) {
-      console.error('Error in fetchTrendData:', error);
-      return {
-        success: false,
-        message: 'An unexpected error occurred'
-      };
-    }
-  }
+  // Prepare payload for /metrics/breakdown endpoint
+  private preparePayloadForBreakdown(payload: MetricsPayload): Record<string, any> {
+    const body: any = {
+      from: payload.from,
+      to: payload.to,
+      by: payload.by || 'platform'
+    };
 
-  async fetchBreakdownData(params: AnalyticsParams, breakdownBy: string) {
-    try {
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      queryParams.append('startDate', params.startDate);
-      queryParams.append('endDate', params.endDate);
-      queryParams.append('breakdownBy', breakdownBy);
-      
-      // Add array parameters
-      if (params.campaignIds && params.campaignIds.length > 0) {
-        params.campaignIds.forEach(id => queryParams.append('campaignIds', id));
-      }
-      
-      if (params.slotIds && params.slotIds.length > 0) {
-        params.slotIds.forEach(id => queryParams.append('slotIds', id));
-      }
-      
-      if (params.marketplaceIds && params.marketplaceIds.length > 0) {
-        params.marketplaceIds.forEach(id => queryParams.append('marketplaceIds', id));
-      }
-      
-      // Handle exact match ad names
-      if (params.adNamesExact && params.adNamesExact.length > 0) {
-        params.adNamesExact.forEach(name => queryParams.append('adNamesExact', name));
-      }
-      
-      // Handle starts with ad names
-      if (params.adNamesStartsWith && params.adNamesStartsWith.length > 0) {
-        params.adNamesStartsWith.forEach(name => queryParams.append('adNamesStartsWith', name));
-      }
-      
-      if (params.metrics && params.metrics.length > 0) {
-        params.metrics.forEach(metric => queryParams.append('metrics', metric));
-      }
-      
-      const response = await fetch(`${this.API_BASE_URL}/breakdown?${queryParams.toString()}`);
-      const data = await response.json();
-      
-      if (data.status === 1) {
-        return {
-          success: true,
-          data: data.data
-        };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Failed to fetch breakdown data'
-        };
-      }
-    } catch (error) {
-      console.error('Error in fetchBreakdownData:', error);
-      return {
-        success: false,
-        message: 'An unexpected error occurred'
-      };
+    // Add filters if they exist - backend expects arrays
+    if (payload.campaignId !== undefined) {
+      body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
+    
+    if (payload.slotId !== undefined) {
+      body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
+    }
+    
+    if (payload.siteId !== undefined) {
+      body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
+    }
+    
+    if (payload.adId !== undefined) {
+      body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
+    }
+
+    return body;
   }
 }
 

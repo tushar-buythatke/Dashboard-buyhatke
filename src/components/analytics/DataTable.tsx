@@ -21,16 +21,26 @@ export const DataTable = memo<DataTableProps>(({
   maxRows = 5 
 }) => {
   const formatValue = (value: any, format?: string) => {
+    // Handle null/undefined values
+    if (value === null || value === undefined || value === '') {
+      return format === 'number' ? '0' : format === 'percentage' ? '0%' : '-';
+    }
+
     if (format === 'number') {
-      return value > 1000 ? `${(value / 1000).toFixed(0)}K` : value.toLocaleString();
+      const numValue = Number(value);
+      if (isNaN(numValue)) return '0';
+      return numValue > 1000 ? `${(numValue / 1000).toFixed(0)}K` : numValue.toLocaleString();
     }
     if (format === 'percentage') {
-      return `${value}%`;
+      const numValue = Number(value);
+      if (isNaN(numValue)) return '0%';
+      return `${numValue}%`;
     }
     if (format === 'url') {
-      return value.length > 30 ? `${value.substring(0, 30)}...` : value;
+      const strValue = String(value || '');
+      return strValue.length > 30 ? `${strValue.substring(0, 30)}...` : strValue;
     }
-    return value;
+    return String(value || '-');
   };
 
   const getRankBadge = (index: number) => {

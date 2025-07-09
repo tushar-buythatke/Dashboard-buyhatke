@@ -16,6 +16,7 @@ import { FilterDropdown } from '@/components/analytics/FilterDropdown';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
 import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
 import { DateRangePicker } from '@/components/analytics/DateRangePicker';
+import { useFilters } from '@/context/FilterContext';
 import { DataTable } from '@/components/analytics/DataTable';
 
 // Analytics Components
@@ -51,17 +52,23 @@ interface AdOption {
   label: string;
 }
 
-const kpiOptions = [
-  { value: 'impressions', label: 'Impressions' },
-  { value: 'clicks', label: 'Clicks' },
-  { value: 'conversions', label: 'Conversions' },
-  { value: 'ctr', label: 'CTR' },
-  { value: 'conversionRate', label: 'Conversion Rate' }
-];
 
-export function Analytics() {
+
+// Helper function to get default metrics
+const getDefaultMetrics = (): MetricsData => ({
+  impressions: 0,
+  clicks: 0,
+  ctr: 0,
+  conversions: 0,
+  revenue: 0,
+  roi: 0
+});
+
+export default function Analytics() {
+  const { filters } = useFilters(); // Get filters from context
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
+  const [dataGrouping, setDataGrouping] = useState<'1d' | '7d' | '30d'>('7d'); // For data aggregation
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [activeView, setActiveView] = useState<'campaign' | 'slot' | 'ad' | 'pos'>('campaign');
   
@@ -69,7 +76,7 @@ export function Analytics() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<(string | number)[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<(string | number)[]>([]);
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
-  const [selectedKPIs, setSelectedKPIs] = useState<(string | number)[]>(['impressions', 'clicks']);
+
   
   // Ad name filter states
   const [selectedExactAdNames, setSelectedExactAdNames] = useState<string[]>([]);
@@ -107,10 +114,7 @@ export function Analytics() {
     fetchDropdownData();
   }, []);
 
-  // Fetch analytics data when filters change
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [selectedTimeRange, selectedCampaigns, selectedSlots, selectedPOS, selectedExactAdNames, selectedStartsWithAdNames, activeView]);
+  // Manual fetch - removed automatic fetching on filter changes
 
   // Fetch ad names when selected campaigns change
   useEffect(() => {
@@ -181,87 +185,333 @@ export function Analytics() {
     try {
       setDataLoading(true);
       
-      const dateRange = analyticsService.getDateRange(selectedTimeRange);
+      // Use date range from context (DateRangePicker) with safety check
+      const dateRange = filters.dateRange || {
+        from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        to: new Date().toISOString().split('T')[0]
+      };
+      
+      console.log('Fetching analytics data with:', { dateRange, activeView, selectedCampaigns, selectedSlots, selectedPOS });
 
-      // Build payload suited for the updated analytics backend – filters are arrays
+      // Build payload based on active view
+      let trendSeries: TrendChartSeries[] = [];
+      let aggregatedMetrics: MetricsData = getDefaultMetrics();
+
+      if (activeView === 'campaign' && selectedCampaigns.length > 0) {
+        // Campaign-wise comparison
+        const campaignResults = await Promise.all(
+          selectedCampaigns.map(async (campaignId) => {
+            const payload: MetricsPayload = {
+              ...dateRange,
+              campaignId: [Number(campaignId)],
+              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+              interval: dataGrouping
+            };
+
+            const [metricsRes, trendRes] = await Promise.all([
+              analyticsService.getMetrics(payload),
+              analyticsService.getTrendData(payload)
+            ]);
+
+            const campaign = campaigns.find(c => c.campaignId === campaignId);
+            return {
+              campaignId,
+              campaignName: campaign?.brandName || `Campaign ${campaignId}`,
+              metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
+              trendData: trendRes.success ? trendRes.data : []
+            };
+          })
+        );
+
+        // Create series for each campaign + combined total
+        campaignResults.forEach(result => {
+          try {
+            if (result.trendData && Array.isArray(result.trendData) && result.trendData.length > 0) {
+              trendSeries.push({
+                name: result.campaignName,
+                data: result.trendData
+              });
+            }
+          } catch (error) {
+            console.error('Error processing campaign trend data:', error, result);
+          }
+        });
+
+        // Calculate combined metrics
+        campaignResults.forEach(result => {
+          try {
+            if (result.metrics) {
+              aggregatedMetrics.impressions += result.metrics.impressions || 0;
+              aggregatedMetrics.clicks += result.metrics.clicks || 0;
+              aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.revenue += result.metrics.revenue || 0;
+            }
+          } catch (error) {
+            console.error('Error processing campaign metrics:', error, result);
+          }
+        });
+
+        // Recalculate derived metrics
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
+          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
+
+      } else if (activeView === 'slot' && selectedSlots.length > 0) {
+        // Slot-wise comparison
+        const slotResults = await Promise.all(
+          selectedSlots.map(async (slotId) => {
+            const payload: MetricsPayload = {
+              ...dateRange,
+              slotId: [Number(slotId)],
+              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+              interval: dataGrouping
+            };
+
+            const [metricsRes, trendRes] = await Promise.all([
+              analyticsService.getMetrics(payload),
+              analyticsService.getTrendData(payload)
+            ]);
+
+            const slot = slots.find(s => s.slotId === slotId);
+            return {
+              slotId,
+              slotName: slot?.name || `Slot ${slotId}`,
+              metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
+              trendData: trendRes.success ? trendRes.data : []
+            };
+          })
+        );
+
+        // Create series for each slot
+        slotResults.forEach(result => {
+          try {
+            if (result.trendData && Array.isArray(result.trendData) && result.trendData.length > 0) {
+              trendSeries.push({
+                name: result.slotName,
+                data: result.trendData
+              });
+            }
+          } catch (error) {
+            console.error('Error processing slot trend data:', error, result);
+          }
+        });
+
+        // Calculate combined metrics
+        slotResults.forEach(result => {
+          try {
+            if (result.metrics) {
+              aggregatedMetrics.impressions += result.metrics.impressions || 0;
+              aggregatedMetrics.clicks += result.metrics.clicks || 0;
+              aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.revenue += result.metrics.revenue || 0;
+            }
+          } catch (error) {
+            console.error('Error processing slot metrics:', error, result);
+          }
+        });
+
+        // Recalculate derived metrics
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
+          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
+
+      } else if (activeView === 'pos' && selectedPOS.length > 0) {
+        // POS-wise comparison
+        const posResults = await Promise.all(
+          selectedPOS.map(async (posId) => {
+            const payload: MetricsPayload = {
+              ...dateRange,
+              siteId: [Number(posId)],
+              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+              interval: dataGrouping
+            };
+
+            const [metricsRes, trendRes] = await Promise.all([
+              analyticsService.getMetrics(payload),
+              analyticsService.getTrendData(payload)
+            ]);
+
+            const site = sites.find(s => s.posId === posId.toString());
+            return {
+              posId,
+              posName: site?.name || `POS ${posId}`,
+              metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
+              trendData: trendRes.success ? trendRes.data : []
+            };
+          })
+        );
+
+        // Create series for each POS
+        posResults.forEach(result => {
+          try {
+            if (result.trendData && Array.isArray(result.trendData) && result.trendData.length > 0) {
+              trendSeries.push({
+                name: result.posName,
+                data: result.trendData
+              });
+            }
+          } catch (error) {
+            console.error('Error processing POS trend data:', error, result);
+          }
+        });
+
+        // Calculate combined metrics
+        posResults.forEach(result => {
+          try {
+            if (result.metrics) {
+              aggregatedMetrics.impressions += result.metrics.impressions || 0;
+              aggregatedMetrics.clicks += result.metrics.clicks || 0;
+              aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.revenue += result.metrics.revenue || 0;
+            }
+          } catch (error) {
+            console.error('Error processing POS metrics:', error, result);
+          }
+        });
+
+        // Recalculate derived metrics
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
+          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
+
+      } else if (activeView === 'ad' && (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0)) {
+        // Ad-wise comparison (when ad names are selected)
+        const basePayload: MetricsPayload = {
+          ...dateRange,
+          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          interval: dataGrouping
+        };
+
+        const [metricsResult, trendResult] = await Promise.all([
+          analyticsService.getMetrics(basePayload),
+          analyticsService.getTrendData(basePayload)
+        ]);
+
+        if (metricsResult.success && metricsResult.data) {
+          aggregatedMetrics = metricsResult.data;
+        }
+
+        if (trendResult.success && trendResult.data) {
+          trendSeries = [{
+            name: 'Ad Performance',
+            data: trendResult.data
+          }];
+        }
+
+      } else {
+        // Default: overall analytics
+        const basePayload: MetricsPayload = {
+          ...dateRange,
+          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          interval: dataGrouping
+        };
+
+        const [metricsResult, trendResult] = await Promise.all([
+          analyticsService.getMetrics(basePayload),
+          analyticsService.getTrendData(basePayload)
+        ]);
+
+        if (metricsResult.success && metricsResult.data) {
+          aggregatedMetrics = metricsResult.data;
+        }
+
+        if (trendResult.success && trendResult.data) {
+          trendSeries = [{
+            name: 'Overall Performance',
+            data: trendResult.data
+          }];
+        }
+      }
+
+      // Set the processed data
+      setMetricsData(aggregatedMetrics);
+      setTrendData(trendSeries);
+
+      // Fetch breakdown data and tables (non-view-specific)
       const basePayload: MetricsPayload = {
         ...dateRange,
         campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
         slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
         siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
       };
-      
-      // Add ad name filters
-      if (selectedExactAdNames.length > 0) {
-        basePayload.adNameExact = selectedExactAdNames;
-      }
-      
-      if (selectedStartsWithAdNames.length > 0) {
-        basePayload.adNameStartsWith = selectedStartsWithAdNames;
-      }
 
-      // Build payload based on the active view
-      const trendPayload: MetricsPayload = { ...basePayload, interval: selectedTimeRange };
-      
-      // Setup comparison logic for trend data
-      if (activeView === 'slot' && selectedSlots.length > 0) {
-        trendPayload.slotId = selectedSlots.map(Number);
-      } else if (activeView === 'ad') {
-        // Apply ad name filters for ad view
-        trendPayload.adNameExact = selectedExactAdNames;
-        trendPayload.adNameStartsWith = selectedStartsWithAdNames;
-      } else if (activeView === 'pos' && selectedPOS.length > 0) {
-        trendPayload.siteId = selectedPOS.map(Number);
-      }
-
-      // Fetch metrics, trend data, breakdowns & tables in parallel
-      const [metricsResult, trendResult, ...breakdownResults] = await Promise.all([
-        analyticsService.getMetrics(basePayload),
-        analyticsService.getTrendData(trendPayload),
+      const [genderResult, ageResult, platformResult, locationResult, locationTableResult, slotTableResult] = await Promise.all([
         analyticsService.getBreakdownData({ ...basePayload, by: 'gender' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'age' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'platform' }),
         analyticsService.getBreakdownData({ ...basePayload, by: 'location' }),
-        // table data
         analyticsService.getTableData('location', 'impressions'),
         analyticsService.getTableData('slotId', 'impressions')
       ]);
 
-      if (metricsResult.success && metricsResult.data) {
-        setMetricsData(metricsResult.data);
+      // Safely process breakdown data
+      try {
+        setBreakdownData({
+          gender: (genderResult.success && Array.isArray(genderResult.data)) ? genderResult.data : [],
+          age: (ageResult.success && Array.isArray(ageResult.data)) ? ageResult.data : [],
+          platform: (platformResult.success && Array.isArray(platformResult.data)) ? platformResult.data : [],
+          location: (locationResult.success && Array.isArray(locationResult.data)) ? locationResult.data : []
+        });
+      } catch (error) {
+        console.error('Error setting breakdown data:', error);
+        setBreakdownData({ gender: [], age: [], platform: [], location: [] });
       }
 
-      if (trendResult.success && trendResult.data) {
-        // Transform the flat TrendDataPoint[] to TrendChartSeries[]
-        const series: TrendChartSeries[] = [{
-          name: 'Overall Performance',
-          data: trendResult.data,
-        }];
-        setTrendData(series);
+      // Safely process table data
+      try {
+        if (locationTableResult && locationTableResult.success && Array.isArray(locationTableResult.data)) {
+          setTopLocations(locationTableResult.data);
+        } else {
+          setTopLocations([]);
+        }
+      } catch (error) {
+        console.error('Error setting location table data:', error);
+        setTopLocations([]);
       }
 
-      // Process breakdown & table data
-      const [genderResult, ageResult, platformResult, locationResult, locationTableResult, slotTableResult] = breakdownResults;
-      setBreakdownData({
-        gender: genderResult.success ? genderResult.data || [] : [],
-        age: ageResult.success ? ageResult.data || [] : [],
-        platform: platformResult.success ? platformResult.data || [] : [],
-        location: locationResult.success ? locationResult.data || [] : []
+      try {
+        if (slotTableResult && slotTableResult.success && Array.isArray(slotTableResult.data)) {
+          setTopSlotsData(slotTableResult.data);
+        } else {
+          setTopSlotsData([]);
+        }
+      } catch (error) {
+        console.error('Error setting slot table data:', error);
+        setTopSlotsData([]);
+      }
+
+      console.log('Analytics data fetch completed successfully:', { 
+        metricsData: aggregatedMetrics, 
+        trendSeries: trendSeries.length,
+        breakdownDataItems: Object.keys(breakdownData).length
       });
-
-      // Table data processing
-      if (locationTableResult && locationTableResult.success && locationTableResult.data) {
-        setTopLocations(locationTableResult.data);
-      }
-      if (slotTableResult && slotTableResult.success && slotTableResult.data) {
-        setTopSlotsData(slotTableResult.data);
-      }
+      
+      toast.success('Analytics data fetched successfully!');
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      toast.error('Failed to load analytics data');
+      toast.error(`Failed to load analytics data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Reset data to safe defaults on error
+      setMetricsData(getDefaultMetrics());
+      setTrendData([]);
+      setBreakdownData({ gender: [], age: [], platform: [], location: [] });
+      setTopLocations([]);
+      setTopSlotsData([]);
+      
     } finally {
       setDataLoading(false);
+      console.log('Data loading completed');
     }
   };
 
@@ -288,60 +538,9 @@ export function Analytics() {
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
 
-  // Get default metrics for loading state
-  const getDefaultMetrics = (): MetricsData => ({
-    impressions: 0,
-    clicks: 0,
-    ctr: 0,
-    conversions: 0,
-    revenue: 0,
-    roi: 0
-  });
 
-  // Fallback mock data – used only if API fails
-  const mockTopLocations = [
-    { location: 'Mumbai', impressions: 45000, clicks: 1350 },
-    { location: 'Delhi', impressions: 38000, clicks: 1140 },
-    { location: 'Bangalore', impressions: 32000, clicks: 960 },
-    { location: 'Chennai', impressions: 28000, clicks: 840 },
-    { location: 'Hyderabad', impressions: 25000, clicks: 750 }
-  ];
 
-  const mockTopSlots = [
-    { slotId: 1, impressions: 52000, clicks: 1560 },
-    { slotId: 2, impressions: 41000, clicks: 1230 },
-    { slotId: 3, impressions: 38000, clicks: 1140 },
-    { slotId: 4, impressions: 28000, clicks: 840 },
-    { slotId: 5, impressions: 25000, clicks: 750 }
-  ];
-
-  const mockImpressionsVsConversions = [
-    { date: '2024-01-01', impressions: 12000, conversions: 18 },
-    { date: '2024-01-02', impressions: 13500, conversions: 21 },
-    { date: '2024-01-03', impressions: 11800, conversions: 16 },
-    { date: '2024-01-04', impressions: 14200, conversions: 23 },
-    { date: '2024-01-05', impressions: 15600, conversions: 26 },
-    { date: '2024-01-06', impressions: 13900, conversions: 19 },
-    { date: '2024-01-07', impressions: 16200, conversions: 28 }
-  ];
-
-  const mockImpressionsVsCTR = [
-    { date: '2024-01-01', impressions: 12000, ctr: 2.5 },
-    { date: '2024-01-02', impressions: 13500, ctr: 2.6 },
-    { date: '2024-01-03', impressions: 11800, ctr: 2.4 },
-    { date: '2024-01-04', impressions: 14200, ctr: 2.7 },
-    { date: '2024-01-05', impressions: 15600, ctr: 2.8 },
-    { date: '2024-01-06', impressions: 13900, ctr: 2.5 },
-    { date: '2024-01-07', impressions: 16200, ctr: 2.9 }
-  ];
-
-  const mockBrandAgeData = [
-    { ageGroup: '18-24', 'TechGear Pro': 145, 'Fashion Forward': 120, 'Sports Elite': 98, 'Home & Garden': 76 },
-    { ageGroup: '25-34', 'TechGear Pro': 289, 'Fashion Forward': 245, 'Sports Elite': 178, 'Home & Garden': 134 },
-    { ageGroup: '35-44', 'TechGear Pro': 234, 'Fashion Forward': 198, 'Sports Elite': 145, 'Home & Garden': 167 },
-    { ageGroup: '45-54', 'TechGear Pro': 156, 'Fashion Forward': 134, 'Sports Elite': 89, 'Home & Garden': 198 },
-    { ageGroup: '55+', 'TechGear Pro': 67, 'Fashion Forward': 45, 'Sports Elite': 34, 'Home & Garden': 123 }
-  ];
+  // No mock data - all data comes from API
 
   if (loading) {
     return (
@@ -395,9 +594,39 @@ export function Analytics() {
                 </SelectContent>
               </Select>
 
-              {/* Time Range Selector */}
+              {/* Date Range Picker */}
               <DateRangePicker />
 
+              {/* Data Grouping Toggle */}
+              <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
+                <SelectTrigger className="h-9 sm:h-10 w-full sm:w-auto text-xs sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                  <SelectValue placeholder="Data Grouping" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1d">Daily</SelectItem>
+                  <SelectItem value="7d">Weekly</SelectItem>
+                  <SelectItem value="30d">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                onClick={fetchAnalyticsData}
+                disabled={dataLoading}
+                className="h-9 sm:h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                {dataLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Fetch Results
+                  </>
+                )}
+              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -470,13 +699,9 @@ export function Analytics() {
                   placeholder="Select marketplaces..."
                 />
                 
-                <MultiSelectDropdown
-                  label="KPIs"
-                  options={kpiOptions}
-                  selectedValues={selectedKPIs}
-                  onChange={setSelectedKPIs}
-                  placeholder="Select KPIs..."
-                />
+
+
+
 
                 {adNameOptions.length > 0 && (
                   <div className="md:col-span-2">
@@ -517,7 +742,7 @@ export function Analytics() {
                     {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm">
-                    {selectedTimeRange} • Real-time data
+                    {dataGrouping === '1d' ? 'Daily' : dataGrouping === '7d' ? 'Weekly' : 'Monthly'} Grouping • Real-time data
                   </p>
                 </div>
               </div>
@@ -561,10 +786,18 @@ export function Analytics() {
                 <span className="ml-3 text-base font-medium">Loading chart data...</span>
               </div>
             ) : (
-              <TrendChart
-                series={trendData}
-                title={`${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
-              />
+              <div className="w-full">
+                {trendData && trendData.length > 0 ? (
+                  <TrendChart
+                    series={trendData}
+                    title={`${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400">No trend data available. Please select filters and click "Fetch Results".</p>
+                  </div>
+                )}
+              </div>
             )}
           </motion.div>
 
@@ -577,12 +810,18 @@ export function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
               <DataTable
-                title="Top 5 Locations by Impressions"
-                data={topLocations.length > 0 ? topLocations : mockTopLocations}
+                title="Top 5 Locations (Cities/States) Based on Impressions"
+                data={topLocations.map(item => ({
+                  location: item.location || 'Unknown',
+                  impressions: item.impressions || 0,
+                  clicks: item.clicks || 0,
+                  conversions: item.conversions || 0
+                }))}
                 columns={[
-                  { key: 'location', label: 'Location' },
+                  { key: 'location', label: 'Location (City/State)' },
                   { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' }
+                  { key: 'clicks', label: 'Clicks', format: 'number' },
+                  { key: 'conversions', label: 'Conversions', format: 'number' }
                 ]}
               />
             </motion.div>
@@ -594,12 +833,20 @@ export function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
               <DataTable
-                title="Top Slots by Performance"
-                data={topSlotsData.length > 0 ? topSlotsData : mockTopSlots}
+                title="Top Slots Sorted by Impressions, Clicks, and Conversion Rate"
+                data={topSlotsData.map(slot => ({
+                  slotName: `Slot ${slot.slotId || 'Unknown'}`,
+                  impressions: slot.impressions || 0,
+                  clicks: slot.clicks || 0,
+                  conversionRate: (slot.clicks && slot.clicks > 0) ? 
+                    `${(((slot.conversions || 0) / slot.clicks) * 100).toFixed(2)}%` : 
+                    '0%'
+                }))}
                 columns={[
-                  { key: 'slotId', label: 'Slot ID' },
+                  { key: 'slotName', label: 'Slot Name' },
                   { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' }
+                  { key: 'clicks', label: 'Clicks', format: 'number' },
+                  { key: 'conversionRate', label: 'Conversion Rate (CR)' }
                 ]}
               />
             </motion.div>
@@ -614,7 +861,14 @@ export function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
               <ComboChart
-                data={mockImpressionsVsConversions}
+                data={trendData.length > 0 && trendData[0]?.data ? 
+                  trendData[0].data.map(d => ({ 
+                    date: d.date, 
+                    impressions: d.impressions || 0, 
+                    conversions: d.conversions || 0 
+                  })) : 
+                  []
+                }
                 title="Impressions vs Conversions"
                 barKey="impressions"
                 lineKey="conversions"
@@ -632,7 +886,14 @@ export function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
             >
               <ComboChart
-                data={mockImpressionsVsCTR}
+                data={trendData.length > 0 && trendData[0]?.data ? 
+                  trendData[0].data.map(d => ({ 
+                    date: d.date, 
+                    impressions: d.impressions || 0, 
+                    ctr: d.ctr || 0 
+                  })) : 
+                  []
+                }
                 title="Impressions vs CTR"
                 barKey="impressions"
                 lineKey="ctr"
@@ -690,11 +951,10 @@ export function Analytics() {
             transition={{ duration: 0.5, delay: 1.2 }}
             className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
           >
-            <GroupedBarChart
-              data={mockBrandAgeData}
-              title="Per-Brand Age-wise Performance"
-              xAxisKey="ageGroup"
-              seriesKeys={['TechGear Pro', 'Fashion Forward', 'Sports Elite', 'Home & Garden']}
+            <BreakdownPieChart 
+              data={breakdownData.age || []} 
+              title="Age-wise Performance Distribution" 
+              height={400} 
             />
           </motion.div>
         </div>
