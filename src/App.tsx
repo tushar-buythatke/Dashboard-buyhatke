@@ -8,7 +8,7 @@ import { Analytics } from '@/pages/Analytics';
 import { CampaignList } from '@/components/campaigns/CampaignList';
 import { CampaignForm } from '@/components/campaigns/CampaignForm';
 import { AdList } from '@/components/ads/AdList';
-import AdForm from '@/components/ads/AdForm';
+import { AdForm } from '@/components/ads/AdForm';
 import { AdDetail } from '@/components/ads/AdDetail';
 import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';

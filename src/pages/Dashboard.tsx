@@ -23,11 +23,11 @@ const formattedTrendData = [{
   name: 'Performance',
   data: mockTrendData.map(item => ({
     date: item.date,
-    impressions: item.value,
-    clicks: Math.round(item.value * 0.025),
-    conversions: Math.round(item.value * 0.005),
-    ctr: 2.5,
-    conversionRate: 0.5
+    impressions: item.impressions,
+    clicks: item.clicks,
+    conversions: item.conversions,
+    ctr: item.ctr,
+    conversionRate: item.conversionRate
   }))
 }];
 
