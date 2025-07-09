@@ -28,24 +28,34 @@ export function DateRangePicker() {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-start text-left font-normal"
+          className="w-full justify-start text-left font-normal text-sm bg-transparent border-0 hover:bg-transparent hover:text-gray-900 dark:hover:text-gray-100 p-0 h-auto shadow-none focus:ring-0"
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {format(date.from, 'MMM dd, yyyy')} - {format(date.to, 'MMM dd, yyyy')}
+          <CalendarIcon className="mr-3 h-4 w-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+          <span className="font-medium text-gray-700 dark:text-gray-300 truncate">
+            {format(date.from, 'MMM dd')} - {format(date.to, 'MMM dd, yyyy')}
+          </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          initialFocus
-          mode="range"
-          defaultMonth={date.from}
-          selected={date}
-          onSelect={(range) => {
-            if (range && range.from && range.to) {
-              setDate({ from: range.from, to: range.to });
-            }
-          }}
-        />
+      <PopoverContent 
+        className="w-auto p-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[70]" 
+        align="start"
+        side="bottom"
+        sideOffset={8}
+      >
+        <div className="p-4">
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={date.from}
+            selected={date}
+            onSelect={(range) => {
+              if (range && range.from && range.to) {
+                setDate({ from: range.from, to: range.to });
+              }
+            }}
+            className="rounded-lg"
+          />
+        </div>
       </PopoverContent>
     </Popover>
   );

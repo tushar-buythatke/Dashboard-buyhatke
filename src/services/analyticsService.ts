@@ -129,6 +129,8 @@ class AnalyticsService {
   async getBreakdownData(payload: MetricsPayload): Promise<{ success: boolean; data?: BreakdownData[]; message?: string }> {
     try {
       const body = this.preparePayloadForBreakdown(payload);
+      console.log(`Making breakdown API call for ${payload.by}:`, body);
+      
       const response = await fetch(`${API_BASE_URL}/metrics/breakdown?userId=1`, {
         method: 'POST',
         headers: {
@@ -138,6 +140,7 @@ class AnalyticsService {
       });
 
       const result: MetricsResponse = await response.json();
+      console.log(`Breakdown API response for ${payload.by}:`, result);
       
       if (result.status === 1 && result.data) {
         const processedData = this.processBreakdownData(result.data, payload.by);
@@ -147,13 +150,14 @@ class AnalyticsService {
           message: result.message
         };
       } else {
+        console.error(`Breakdown API failed for ${payload.by}:`, result);
         return {
           success: false,
           message: result.message || 'Failed to fetch breakdown data'
         };
       }
     } catch (error) {
-      console.error('Error fetching breakdown data:', error);
+      console.error(`Error fetching breakdown data for ${payload.by}:`, error);
       return {
         success: false,
         message: 'Failed to fetch breakdown data'

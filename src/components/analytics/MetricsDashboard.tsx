@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface MetricsDashboardProps {
   data: MetricsData;
+  comparisonData?: MetricsData;
+  period?: '1d' | '7d' | '30d';
 }
 
 const NumberCounter = memo(({ end, duration = 1.5 }: { end: number; duration?: number }) => {
@@ -29,10 +31,31 @@ const NumberCounter = memo(({ end, duration = 1.5 }: { end: number; duration?: n
   return <span>{Math.round(count).toLocaleString()}</span>;
 });
 
-export function MetricsDashboard({ data }: MetricsDashboardProps) {
+export function MetricsDashboard({ data, comparisonData, period }: MetricsDashboardProps) {
   const formatNumber = (num: number) => num.toLocaleString();
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString()}`;
   const formatPercentage = (num: number) => `${num.toFixed(2)}%`;
+
+  // Calculate percentage change between current and comparison data
+  const calculateChange = (current: number, previous: number): { change: string; isPositive: boolean } | null => {
+    if (!comparisonData || previous === 0) return null;
+    
+    const percentChange = ((current - previous) / previous) * 100;
+    const isPositive = percentChange >= 0;
+    const formattedChange = `${isPositive ? '+' : ''}${percentChange.toFixed(1)}%`;
+    
+    return { change: formattedChange, isPositive };
+  };
+
+  // Get period label for comparison text
+  const getPeriodLabel = () => {
+    switch (period) {
+      case '1d': return 'yesterday';
+      case '7d': return 'last week';
+      case '30d': return 'last month';
+      default: return 'last period';
+    }
+  };
 
   const metrics = [
     {
@@ -42,7 +65,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: Eye,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-      change: '+12.5%'
+      changeData: calculateChange(data.impressions, comparisonData?.impressions || 0)
     },
     {
       title: 'Clicks',
@@ -51,7 +74,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: MousePointerClick,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
-      change: '+8.2%'
+      changeData: calculateChange(data.clicks, comparisonData?.clicks || 0)
     },
     {
       title: 'CTR',
@@ -60,7 +83,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: TrendingUp,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-      change: '+0.3%'
+      changeData: calculateChange(data.ctr, comparisonData?.ctr || 0)
     },
     {
       title: 'Conversions',
@@ -69,7 +92,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: Target,
       color: 'text-orange-600 dark:text-orange-400',
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-      change: '+15.7%'
+      changeData: calculateChange(data.conversions, comparisonData?.conversions || 0)
     },
     {
       title: 'Revenue',
@@ -78,7 +101,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: Banknote,
       color: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
-      change: '+22.1%'
+      changeData: calculateChange(data.revenue, comparisonData?.revenue || 0)
     },
     {
       title: 'ROI',
@@ -87,7 +110,7 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
       icon: TrendingDown,
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-      change: '+18.9%'
+      changeData: calculateChange(data.roi, comparisonData?.roi || 0)
     }
   ];
 
@@ -127,9 +150,22 @@ export function MetricsDashboard({ data }: MetricsDashboardProps) {
                     ? metric.value 
                     : <NumberCounter end={metric.rawValue} />}
                 </div>
-                <div className="text-sm text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md inline-block">
-                  {metric.change} from last period
-                </div>
+                {metric.changeData && (
+                  <div className={`text-sm font-medium px-2 py-1 rounded-md inline-block ${
+                    metric.changeData.isPositive 
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                      : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                  }`}>
+                    <div className="flex items-center space-x-1">
+                      {metric.changeData.isPositive ? (
+                        <TrendingUp className="w-3 h-3" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3" />
+                      )}
+                      <span>{metric.changeData.change} from {getPeriodLabel()}</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

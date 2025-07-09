@@ -88,6 +88,7 @@ export default function Analytics() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
+  const [comparisonMetricsData, setComparisonMetricsData] = useState<MetricsData | null>(null);
   const [trendData, setTrendData] = useState<TrendChartSeries[]>([]);
   const [breakdownData, setBreakdownData] = useState<{
     gender: BreakdownData[];
@@ -191,7 +192,35 @@ export default function Analytics() {
         to: new Date().toISOString().split('T')[0]
       };
       
-      console.log('Fetching analytics data with:', { dateRange, activeView, selectedCampaigns, selectedSlots, selectedPOS });
+      // Calculate comparison date range based on period
+      const calculateComparisonDateRange = (currentRange: any, period: '1d' | '7d' | '30d') => {
+        const fromDate = new Date(currentRange.from);
+        const toDate = new Date(currentRange.to);
+        const rangeDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Calculate previous period
+        const comparisonToDate = new Date(fromDate);
+        comparisonToDate.setDate(comparisonToDate.getDate() - 1); // End one day before current period starts
+        
+        const comparisonFromDate = new Date(comparisonToDate);
+        comparisonFromDate.setDate(comparisonFromDate.getDate() - rangeDays + 1); // Go back the same number of days
+        
+        return {
+          from: comparisonFromDate.toISOString().split('T')[0],
+          to: comparisonToDate.toISOString().split('T')[0]
+        };
+      };
+      
+      const comparisonDateRange = calculateComparisonDateRange(dateRange, dataGrouping);
+      
+      console.log('Fetching analytics data with:', { 
+        dateRange, 
+        comparisonDateRange,
+        activeView, 
+        selectedCampaigns, 
+        selectedSlots, 
+        selectedPOS 
+      });
 
       // Build payload based on active view
       let trendSeries: TrendChartSeries[] = [];
@@ -437,6 +466,30 @@ export default function Analytics() {
       setMetricsData(aggregatedMetrics);
       setTrendData(trendSeries);
 
+      // Fetch comparison metrics for the previous period
+      try {
+        const comparisonPayload: MetricsPayload = {
+          ...comparisonDateRange,
+          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          interval: dataGrouping
+        };
+
+        const comparisonResult = await analyticsService.getMetrics(comparisonPayload);
+        
+        if (comparisonResult.success && comparisonResult.data) {
+          setComparisonMetricsData(comparisonResult.data);
+          console.log('Comparison metrics fetched successfully:', comparisonResult.data);
+        } else {
+          setComparisonMetricsData(null);
+          console.log('No comparison data available');
+        }
+      } catch (error) {
+        console.error('Error fetching comparison metrics:', error);
+        setComparisonMetricsData(null);
+      }
+
       // Fetch breakdown data and tables (non-view-specific)
       const basePayload: MetricsPayload = {
         ...dateRange,
@@ -445,11 +498,26 @@ export default function Analytics() {
         siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
       };
 
+      // Ensure we have at least one filter for breakdown queries (backend requirement)
+      const hasValidCampaignId = basePayload.campaignId && (Array.isArray(basePayload.campaignId) ? basePayload.campaignId.length > 0 : true);
+      const hasValidSlotId = basePayload.slotId && (Array.isArray(basePayload.slotId) ? basePayload.slotId.length > 0 : true);
+      const hasValidSiteId = basePayload.siteId && (Array.isArray(basePayload.siteId) ? basePayload.siteId.length > 0 : true);
+
+      const breakdownPayload = {
+        ...basePayload,
+        // Add a default campaignId if no filters are selected
+        ...(!hasValidCampaignId && !hasValidSlotId && !hasValidSiteId && {
+          campaignId: campaigns.length > 0 ? [campaigns[0].campaignId] : [1] // Use first campaign or default
+        })
+      };
+
+      console.log('Breakdown payload:', breakdownPayload);
+
       const [genderResult, ageResult, platformResult, locationResult, locationTableResult, slotTableResult] = await Promise.all([
-        analyticsService.getBreakdownData({ ...basePayload, by: 'gender' }),
-        analyticsService.getBreakdownData({ ...basePayload, by: 'age' }),
-        analyticsService.getBreakdownData({ ...basePayload, by: 'platform' }),
-        analyticsService.getBreakdownData({ ...basePayload, by: 'location' }),
+        analyticsService.getBreakdownData({ ...breakdownPayload, by: 'gender' }),
+        analyticsService.getBreakdownData({ ...breakdownPayload, by: 'age' }),
+        analyticsService.getBreakdownData({ ...breakdownPayload, by: 'platform' }),
+        analyticsService.getBreakdownData({ ...breakdownPayload, by: 'location' }),
         analyticsService.getTableData('location', 'impressions'),
         analyticsService.getTableData('slotId', 'impressions')
       ]);
@@ -458,10 +526,16 @@ export default function Analytics() {
       try {
         setBreakdownData({
           gender: (genderResult.success && Array.isArray(genderResult.data)) ? genderResult.data : [],
-          age: (ageResult.success && Array.isArray(ageResult.data)) ? ageResult.data : [],
+          age: (ageResult.success && Array.isArray(ageResult.data)) ? transformAgeBucketData(ageResult.data) : [],
           platform: (platformResult.success && Array.isArray(platformResult.data)) ? platformResult.data : [],
           location: (locationResult.success && Array.isArray(locationResult.data)) ? locationResult.data : []
         });
+        
+        // Log transformed age data for debugging
+        if (ageResult.success && ageResult.data) {
+          console.log('Raw age data from backend:', ageResult.data);
+          console.log('Transformed age data for chart:', transformAgeBucketData(ageResult.data));
+        }
       } catch (error) {
         console.error('Error setting breakdown data:', error);
         setBreakdownData({ gender: [], age: [], platform: [], location: [] });
@@ -504,6 +578,7 @@ export default function Analytics() {
       
       // Reset data to safe defaults on error
       setMetricsData(getDefaultMetrics());
+      setComparisonMetricsData(null);
       setTrendData([]);
       setBreakdownData({ gender: [], age: [], platform: [], location: [] });
       setTopLocations([]);
@@ -538,6 +613,76 @@ export default function Analytics() {
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
 
+  // Transform age bucket data from backend to frontend format
+  const transformAgeBucketData = (rawData: any[]): any[] => {
+    if (!rawData || rawData.length === 0) {
+      console.log('No age data to transform');
+      return [];
+    }
+
+    try {
+      console.log('Transforming age bucket data:', rawData);
+      
+      // Age bucket definitions (adjust these ranges based on your backend logic)
+      const ageBucketLabels = [
+        '13-17', // ageBucket0
+        '18-24', // ageBucket1
+        '25-34', // ageBucket2
+        '35-44', // ageBucket3
+        '45-54', // ageBucket4
+        '55-64', // ageBucket5
+        '65-74', // ageBucket6
+        '75+'    // ageBucket7
+      ];
+
+      // Initialize age distribution
+      const ageDistribution: { [key: string]: number } = {};
+      ageBucketLabels.forEach(label => {
+        ageDistribution[label] = 0;
+      });
+
+      // Process each data row
+      rawData.forEach((row, index) => {
+        console.log(`Processing row ${index}:`, row);
+        
+        // Sum up each age bucket
+        ageBucketLabels.forEach((label, bucketIndex) => {
+          const bucketKey = `ageBucket${bucketIndex}`;
+          const bucketValue = row[bucketKey];
+          
+          if (typeof bucketValue === 'number' && bucketValue > 0) {
+            ageDistribution[label] += bucketValue;
+            console.log(`Added ${bucketValue} to ${label} from ${bucketKey}`);
+          } else if (typeof bucketValue === 'string' && !isNaN(parseInt(bucketValue))) {
+            const parsedValue = parseInt(bucketValue);
+            ageDistribution[label] += parsedValue;
+            console.log(`Added ${parsedValue} to ${label} from ${bucketKey} (parsed from string)`);
+          } else if (bucketValue !== undefined && bucketValue !== null) {
+            console.log(`Unexpected value for ${bucketKey}:`, bucketValue, typeof bucketValue);
+          }
+        });
+      });
+
+      console.log('Final age distribution:', ageDistribution);
+
+      // Convert to array format expected by pie chart
+      const result = Object.entries(ageDistribution)
+        .filter(([_, value]) => value > 0) // Only include non-zero values
+        .map(([name, value]) => ({
+          name,
+          value,
+          percentage: 0 // Will be calculated by the chart component
+        }));
+
+      console.log('Transformed age data for chart:', result);
+      return result;
+
+    } catch (error) {
+      console.error('Error transforming age bucket data:', error, rawData);
+      return [];
+    }
+  };
+
 
 
   // No mock data - all data comes from API
@@ -558,164 +703,251 @@ export default function Analytics() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Enhanced Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse delay-100"></div>
-                <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-200"></div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 transition-all duration-500">
+      {/* Stunning Header with Glassmorphism */}
+      <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 px-4 sm:px-6 py-6 sm:py-8 shadow-lg shadow-blue-500/5">
+        {/* Animated background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-pulse"></div>
+        
+        <div className="relative max-w-7xl mx-auto">
+          {/* Title Section */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              {/* Enhanced animated dots */}
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/30"></div>
+                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-ping opacity-20"></div>
+                </div>
+                <div className="relative">
+                  <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-pulse delay-150 shadow-lg shadow-blue-500/30"></div>
+                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-ping opacity-20 delay-150"></div>
+                </div>
+                <div className="relative">
+                  <div className="w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-pulse delay-300 shadow-lg shadow-purple-500/30"></div>
+                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-ping opacity-20 delay-300"></div>
+                </div>
               </div>
+              
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
                   Advanced Analytics
                 </h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-                  Your central hub for performance insights.
+                <p className="text-gray-600 dark:text-gray-300 mt-2 text-base font-medium tracking-wide">
+                  🚀 Your central hub for performance insights
                 </p>
               </div>
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
+          </div>
+
+          {/* Control Panel - More Spacious */}
+          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/40 dark:border-gray-700/40 shadow-xl p-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
               {/* View Selector */}
-              <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
-                <SelectTrigger className="h-9 sm:h-10 w-full sm:w-auto text-xs sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-                  <SelectValue placeholder="View By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="campaign">Campaign wise</SelectItem>
-                  <SelectItem value="slot">Slots wise</SelectItem>
-                  <SelectItem value="ad">Ads wise</SelectItem>
-                  <SelectItem value="pos">POS wise</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  📊 View Type
+                </label>
+                <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
+                  <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
+                    <SelectValue placeholder="Select View" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
+                    <SelectItem value="campaign" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📈 Campaign wise</SelectItem>
+                    <SelectItem value="slot" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🎯 Slots wise</SelectItem>
+                    <SelectItem value="ad" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📝 Ads wise</SelectItem>
+                    <SelectItem value="pos" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🏪 POS wise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Date Range Picker */}
-              <DateRangePicker />
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  📅 Date Range
+                </label>
+                <div className="h-11 flex items-center px-3 text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl relative z-50">
+                  <DateRangePicker />
+                </div>
+              </div>
 
-              {/* Data Grouping Toggle */}
-              <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
-                <SelectTrigger className="h-9 sm:h-10 w-full sm:w-auto text-xs sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-                  <SelectValue placeholder="Data Grouping" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1d">Daily</SelectItem>
-                  <SelectItem value="7d">Weekly</SelectItem>
-                  <SelectItem value="30d">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Data Grouping */}
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  ⏱️ Data Grouping
+                </label>
+                <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
+                  <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
+                    <SelectValue placeholder="Select Grouping" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
+                    <SelectItem value="1d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📅 Daily (1d)</SelectItem>
+                    <SelectItem value="7d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📊 Weekly (7d)</SelectItem>
+                    <SelectItem value="30d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📈 Monthly (30d)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Button
-                onClick={fetchAnalyticsData}
-                disabled={dataLoading}
-                className="h-9 sm:h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                {dataLoading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    Fetching...
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Fetch Results
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-9 sm:h-10"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="h-9 sm:h-10"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {/* Action Buttons */}
+              <div className="lg:col-span-3 xl:col-span-2 flex flex-wrap items-end gap-3">
+                {/* Main Fetch Button */}
+                <div className="flex-1 min-w-[140px]">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    🚀 Actions
+                  </label>
+                  <Button
+                    onClick={fetchAnalyticsData}
+                    disabled={dataLoading}
+                    className="h-11 w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 rounded-xl border-0 relative overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    {dataLoading ? (
+                      <>
+                        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                        <span className="relative z-10">Fetching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-5 w-5 mr-2" />
+                        <span className="relative z-10">🚀 Fetch Results</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Secondary Actions */}
+                <div className="flex items-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="h-11 w-11 border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
+                  >
+                    <RefreshCw className={`h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} />
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    className="h-11 w-11 border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
+                  >
+                    <Download className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-y-0.5 transition-all duration-300" />
+                  </Button>
 
-              {/* Filter Toggle */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                className="h-9 sm:h-10"
-              >
-                <Filter className="h-4 w-4" />
-                <Badge variant="secondary" className="ml-2">
-                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
-                </Badge>
-              </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                    className="h-11 px-4 border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-950 hover:border-purple-400 dark:hover:border-purple-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
+                  >
+                    <Filter className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 mr-2 group-hover:rotate-12 transition-all duration-300" />
+                    <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 border-0 shadow-sm">
+                      {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
+                    </Badge>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Expandable Filter Section */}
+      {/* Enhanced Expandable Filter Section */}
       <AnimatePresence>
         {isFilterExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+            initial={{ height: 0, opacity: 0, y: -20 }}
+            animate={{ height: 'auto', opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-xl z-10"
           >
-            <div className="max-w-7xl mx-auto p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MultiSelectDropdown
-                  label="Campaigns"
-                  options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
-                  selectedValues={selectedCampaigns}
-                  onChange={setSelectedCampaigns}
-                  placeholder="Select campaigns..."
-                />
-                
-                <MultiSelectDropdown
-                  label="Slots"
-                  options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
-                  selectedValues={selectedSlots}
-                  onChange={setSelectedSlots}
-                  placeholder="Select slots..."
-                />
-                
-                <MultiSelectDropdown
-                  label="Marketplaces (POS)"
-                  options={sites.map(site => ({ value: site.posId, label: site.name }))}
-                  selectedValues={selectedPOS}
-                  onChange={setSelectedPOS}
-                  placeholder="Select marketplaces..."
-                />
-                
-
-
-
-
-                {adNameOptions.length > 0 && (
-                  <div className="md:col-span-2">
-                    <AdNameFilterDropdown
-                      options={adNameOptions}
-                      selectedExactValues={selectedExactAdNames}
-                      selectedStartsWithValues={selectedStartsWithAdNames}
-                      onExactChange={setSelectedExactAdNames}
-                      onStartsWithChange={setSelectedStartsWithAdNames}
-                      placeholder="Filter ad names..."
-                      label="Ad Names (Starts With / Exact)"
+            <div className="max-w-7xl mx-auto p-6 sm:p-8">
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  🎯 Advanced Filters
+                  <div className="ml-4 h-0.5 flex-1 bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600"></div>
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">Fine-tune your analytics with precision targeting</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Campaign Filter */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    📈 Campaigns
+                  </label>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-blue-300 dark:hover:border-blue-600">
+                    <MultiSelectDropdown
+                      label=""
+                      options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
+                      selectedValues={selectedCampaigns}
+                      onChange={setSelectedCampaigns}
+                      placeholder="Select campaigns..."
                     />
                   </div>
+                </div>
+                
+                {/* Slots Filter */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    🎯 Slots
+                  </label>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
+                    <MultiSelectDropdown
+                      label=""
+                      options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
+                      selectedValues={selectedSlots}
+                      onChange={setSelectedSlots}
+                      placeholder="Select slots..."
+                    />
+                  </div>
+                </div>
+                
+                {/* Marketplaces Filter */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    🏪 Marketplaces (POS)
+                  </label>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
+                    <MultiSelectDropdown
+                      label=""
+                      options={sites.map(site => ({ value: site.posId, label: site.name }))}
+                      selectedValues={selectedPOS}
+                      onChange={setSelectedPOS}
+                      placeholder="Select marketplaces..."
+                    />
+                  </div>
+                </div>
+
+                {/* Ad Names Filter - Full Width */}
+                {adNameOptions.length > 0 && (
+                  <div className="md:col-span-2 lg:col-span-3 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      📝 Ad Names (Starts With / Exact)
+                    </label>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-indigo-300 dark:hover:border-indigo-600">
+                      <AdNameFilterDropdown
+                        options={adNameOptions}
+                        selectedExactValues={selectedExactAdNames}
+                        selectedStartsWithValues={selectedStartsWithAdNames}
+                        onExactChange={setSelectedExactAdNames}
+                        onStartsWithChange={setSelectedStartsWithAdNames}
+                        placeholder="Filter ad names..."
+                        label=""
+                      />
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              {/* Filter Summary */}
+              <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-xl border border-blue-200 dark:border-blue-800">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  📊 {getFilterSummary()}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -723,35 +955,50 @@ export default function Analytics() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2">
-        <div className="space-y-6 sm:space-y-8">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-8 relative z-0">
+        <div className="space-y-8 sm:space-y-10">
           {/* Performance Summary */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-xl p-4 sm:p-6 border border-green-200 dark:border-green-800"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl border-2 border-gray-200/50 dark:border-gray-700/50 shadow-xl p-6 sm:p-8 overflow-hidden"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg">
-                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-4 sm:space-x-6">
+                {/* Professional icon */}
+                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
+                
                 <div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                    {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    ✨ {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
-                    {dataGrouping === '1d' ? 'Daily' : dataGrouping === '7d' ? 'Weekly' : 'Monthly'} Grouping • Real-time data
-                  </p>
+                  <div className="flex items-center space-x-3 mt-2">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                      📊 {dataGrouping === '1d' ? 'Daily (1d)' : dataGrouping === '7d' ? 'Weekly (7d)' : 'Monthly (30d)'} Grouping
+                    </p>
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                      🔄 Real-time data
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                  Live Data
+              
+              <div className="flex items-center space-x-3">
+                {/* Live Badge */}
+                <Badge className="bg-emerald-500 text-white border-0 shadow-md font-medium px-3 py-1 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <span>Live Data</span>
+                  </div>
                 </Badge>
-                <Badge variant="outline" className="capitalize">
-                  {activeView} View
+                
+                {/* View Badge */}
+                <Badge variant="outline" className="border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 font-medium px-3 py-1 rounded-lg capitalize">
+                  🎯 {activeView} View
                 </Badge>
               </div>
             </div>
@@ -759,42 +1006,67 @@ export default function Analytics() {
 
           {/* Metrics Dashboard */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-600"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
           >
-            <div className="flex items-center space-x-2 mb-4 sm:mb-6">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Key Metrics</h2>
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  📊 Key Metrics
+                </h2>
+              </div>
+              
+              <div className="hidden sm:flex items-center space-x-2">
+                <Badge variant="outline" className="text-xs font-medium">
+                  Real-time
+                </Badge>
+              </div>
             </div>
-            <MetricsDashboard data={metricsData || getDefaultMetrics()} />
+            
+            <MetricsDashboard 
+              data={metricsData || getDefaultMetrics()} 
+              comparisonData={comparisonMetricsData || undefined}
+              period={dataGrouping}
+            />
           </motion.div>
           
-          {/* Main Analytics Chart */}
+          {/* Analytics Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-shadow duration-200"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
           >
             {dataLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.2s' }}></div>
-                <span className="ml-3 text-base font-medium">Loading chart data...</span>
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+                <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                  Loading chart data...
+                </span>
               </div>
             ) : (
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
                   <TrendChart
                     series={trendData}
-                    title={`${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
+                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
                   />
                 ) : (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400">No trend data available. Please select filters and click "Fetch Results".</p>
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="text-6xl mb-4">📊</div>
+                    <p className="text-gray-600 dark:text-gray-400 text-lg font-medium text-center">
+                      No trend data available yet
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm text-center mt-2">
+                      Please select filters and click "🚀 Fetch Results" to view analytics
+                    </p>
                   </div>
                 )}
               </div>
@@ -802,15 +1074,22 @@ export default function Analytics() {
           </motion.div>
 
           {/* Data Tables Section */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 gap-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
+              <div className="mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  🏆 Top Performing Locations
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Cities and states ranked by impression volume</p>
+              </div>
+              
               <DataTable
-                title="Top 5 Locations (Cities/States) Based on Impressions"
+                title=""
                 data={topLocations.map(item => ({
                   location: item.location || 'Unknown',
                   impressions: item.impressions || 0,
@@ -818,22 +1097,29 @@ export default function Analytics() {
                   conversions: item.conversions || 0
                 }))}
                 columns={[
-                  { key: 'location', label: 'Location (City/State)' },
-                  { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' },
-                  { key: 'conversions', label: 'Conversions', format: 'number' }
+                  { key: 'location', label: '📍 Location (City/State)' },
+                  { key: 'impressions', label: '👁️ Impressions', format: 'number' },
+                  { key: 'clicks', label: '🎯 Clicks', format: 'number' },
+                  { key: 'conversions', label: '💰 Conversions', format: 'number' }
                 ]}
               />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
+              <div className="mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  🎯 Ad Slots Performance
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Slots sorted by performance metrics</p>
+              </div>
+              
               <DataTable
-                title="Top Slots Sorted by Impressions, Clicks, and Conversion Rate"
+                title=""
                 data={topSlotsData.map(slot => ({
                   slotName: `Slot ${slot.slotId || 'Unknown'}`,
                   impressions: slot.impressions || 0,
@@ -843,22 +1129,22 @@ export default function Analytics() {
                     '0%'
                 }))}
                 columns={[
-                  { key: 'slotName', label: 'Slot Name' },
-                  { key: 'impressions', label: 'Impressions', format: 'number' },
-                  { key: 'clicks', label: 'Clicks', format: 'number' },
-                  { key: 'conversionRate', label: 'Conversion Rate (CR)' }
+                  { key: 'slotName', label: '🎪 Slot Name' },
+                  { key: 'impressions', label: '👁️ Impressions', format: 'number' },
+                  { key: 'clicks', label: '🎯 Clicks', format: 'number' },
+                  { key: 'conversionRate', label: '📈 Conversion Rate (CR)' }
                 ]}
               />
             </motion.div>
           </div>
 
           {/* Combo Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ? 
@@ -869,21 +1155,21 @@ export default function Analytics() {
                   })) : 
                   []
                 }
-                title="Impressions vs Conversions"
+                title="📊 Impressions vs Conversions"
                 barKey="impressions"
                 lineKey="conversions"
                 barName="Impressions"
                 lineName="Conversions"
-                barColor="#6366F1"
-                lineColor="#059669"
+                barColor="#059669"
+                lineColor="#DC2626"
               />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, x: 20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.7, ease: 'easeOut' }}
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ? 
@@ -894,7 +1180,7 @@ export default function Analytics() {
                   })) : 
                   []
                 }
-                title="Impressions vs CTR"
+                title="🎯 Impressions vs CTR"
                 barKey="impressions"
                 lineKey="ctr"
                 barName="Impressions"
@@ -906,12 +1192,12 @@ export default function Analytics() {
           </div>
 
           {/* Demographic and Platform Analytics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
             >
               <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" height={250} />
             </motion.div>
@@ -920,7 +1206,7 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.9 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
             >
               <BreakdownPieChart data={breakdownData.age} title="Age Distribution" height={250} />
             </motion.div>
@@ -929,7 +1215,7 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
             >
               <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" height={250} />
             </motion.div>
@@ -938,18 +1224,18 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
             >
               <BreakdownPieChart data={breakdownData.location} title="Location Distribution" height={250} />
             </motion.div>
           </div>
 
-          {/* Per-Brand Age-wise Analysis */}
+          {/* Age-wise Analysis */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
           >
             <BreakdownPieChart 
               data={breakdownData.age || []} 
