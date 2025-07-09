@@ -82,6 +82,7 @@ export default function Analytics() {
   const [selectedExactAdNames, setSelectedExactAdNames] = useState<string[]>([]);
   const [selectedStartsWithAdNames, setSelectedStartsWithAdNames] = useState<string[]>([]);
   const [adNameOptions, setAdNameOptions] = useState<AdOption[]>([]);
+  const [adNamesLoading, setAdNamesLoading] = useState(false);
 
   // Data states
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -124,31 +125,48 @@ export default function Analytics() {
         setAdNameOptions([]);
         setSelectedExactAdNames([]);
         setSelectedStartsWithAdNames([]);
+        setAdNamesLoading(false);
         return;
       }
+      
       try {
+        setAdNamesLoading(true);
+        console.log('Loading ad names for campaigns:', selectedCampaigns);
+        
         const adOptions: AdOption[] = [];
         await Promise.all(
           selectedCampaigns.map(async (campId) => {
+            console.log('Fetching ads for campaign ID:', campId);
             const res = await adService.getAdLabels(Number(campId));
+            console.log('Ad labels response for campaign', campId, ':', res);
+            
             if (res.success && res.data) {
               // Add each ad option with name and label fields
               res.data.forEach((adInfo) => {
+                console.log('Processing ad info:', adInfo);
                 adOptions.push({
                   name: adInfo.name,
                   label: adInfo.label
                 });
               });
+            } else {
+              console.warn('Failed to get ad labels for campaign', campId, ':', res.message);
             }
           })
         );
+        
         // Remove duplicates based on name field
         const uniqueOptions = adOptions.filter((option, index, self) =>
           index === self.findIndex((t) => t.name === option.name)
         );
+        
+        console.log('Final ad options:', uniqueOptions);
         setAdNameOptions(uniqueOptions);
       } catch (err) {
         console.error('Failed to fetch ad names', err);
+        toast.error('Failed to load ad names');
+      } finally {
+        setAdNamesLoading(false);
       }
     };
     loadAdNames();
@@ -922,22 +940,36 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                {/* Ad Names Filter - Full Width */}
-                {adNameOptions.length > 0 && (
+                {/* Ad Names Filter - Show when campaigns are selected */}
+                {selectedCampaigns.length > 0 && (
                   <div className="md:col-span-2 lg:col-span-3 space-y-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       📝 Ad Names (Starts With / Exact)
                     </label>
                     <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-indigo-300 dark:hover:border-indigo-600">
-                      <AdNameFilterDropdown
-                        options={adNameOptions}
-                        selectedExactValues={selectedExactAdNames}
-                        selectedStartsWithValues={selectedStartsWithAdNames}
-                        onExactChange={setSelectedExactAdNames}
-                        onStartsWithChange={setSelectedStartsWithAdNames}
-                        placeholder="Filter ad names..."
-                        label=""
-                      />
+                      {adNamesLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading ad names...</span>
+                        </div>
+                      ) : adNameOptions.length > 0 ? (
+                        <AdNameFilterDropdown
+                          options={adNameOptions}
+                          selectedExactValues={selectedExactAdNames}
+                          selectedStartsWithValues={selectedStartsWithAdNames}
+                          onExactChange={setSelectedExactAdNames}
+                          onStartsWithChange={setSelectedStartsWithAdNames}
+                          placeholder="Filter ad names..."
+                          label=""
+                        />
+                      ) : (
+                        <div className="text-center py-4">
+                          <div className="text-gray-500 dark:text-gray-400 text-sm">
+                            <div className="mb-2">📭 No ads found</div>
+                            <div>Create some ads in the selected campaigns to enable ad-level filtering</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1015,7 +1047,7 @@ export default function Analytics() {
               <div className="flex items-center space-x-4">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  📊 Key Metrics
+                  Key Metrics
                 </h2>
               </div>
               
@@ -1026,11 +1058,40 @@ export default function Analytics() {
               </div>
             </div>
             
-            <MetricsDashboard 
-              data={metricsData || getDefaultMetrics()} 
-              comparisonData={comparisonMetricsData || undefined}
-              period={dataGrouping}
-            />
+            {/* Show metrics only after data has been fetched */}
+            {metricsData ? (
+              <MetricsDashboard 
+                data={metricsData} 
+                comparisonData={comparisonMetricsData || undefined}
+                period={dataGrouping}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                  <TrendingUp className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  No Data Available
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                  Configure your filters and click "Fetch Results" to view analytics data
+                </p>
+                <div className="flex flex-col space-y-2 text-sm text-gray-400 dark:text-gray-500">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Select view type and filters</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span>Click the "Fetch Results" button</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>View your analytics insights</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
           
           {/* Analytics Chart */}

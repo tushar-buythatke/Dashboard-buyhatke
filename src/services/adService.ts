@@ -328,37 +328,65 @@ class AdService {
   // Get ad labels for suggestion
   async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string }>; message?: string }> {
     try {
+      console.log(`🔍 Fetching ad labels for campaign ID: ${campaignId}`);
+      
       // Using the correct API endpoint
       const response = await fetch(`${API_BASE_URL}?campaignId=${campaignId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const result = await response.json();
+      console.log(`📊 Raw API response for campaign ${campaignId}:`, result);
 
       if (result.status === 1 && result.data?.adsList) {
-        // Extract both name and label for each ad
+        console.log(`📝 Found ${result.data.adsList.length} ads in campaign ${campaignId}`);
+        
+        // Extract both name and label for each ad with better error handling
         const adInfo = result.data.adsList
-          .map((ad: { name: string; label: string }) => ({
-            name: ad.name,
-            label: ad.label
-          }))
-          .filter((info: { name: string; label: string }) => 
-            info.name && info.name.trim() !== '' && 
-            info.label && info.label.trim() !== ''
-          );
+          .map((ad: any, index: number) => {
+            console.log(`🔍 Processing ad ${index + 1}:`, ad);
+            
+            // Use label as name if name is missing (common pattern)
+            const name = ad.name || ad.label || `Ad ${ad.adId || index + 1}`;
+            const label = ad.label || ad.name || `Label ${ad.adId || index + 1}`;
+            
+            return {
+              name: String(name).trim(),
+              label: String(label).trim()
+            };
+          })
+          .filter((info: { name: string; label: string }) => {
+            const isValid = info.name && info.name !== '' && info.label && info.label !== '';
+            if (!isValid) {
+              console.warn(`⚠️ Filtered out invalid ad info:`, info);
+            }
+            return isValid;
+          });
+        
+        console.log(`✅ Processed ${adInfo.length} valid ad labels for campaign ${campaignId}:`, adInfo);
         
         return {
           success: true,
-          data: adInfo
+          data: adInfo,
+          message: `Found ${adInfo.length} ads`
         };
       } else {
+        const message = result.message || 'No ads found in this campaign';
+        console.log(`ℹ️ No ads found for campaign ${campaignId}:`, message);
+        
         return {
-          success: false,
-          message: result.message || 'Failed to fetch ad labels',
+          success: true, // Changed to true since this is not an error, just no data
+          data: [],
+          message: message,
         };
       }
     } catch (error) {
-      console.error('Error fetching ad labels:', error);
+      console.error(`❌ Error fetching ad labels for campaign ${campaignId}:`, error);
       return {
         success: false,
-        message: 'An unexpected error occurred',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
       };
     }
   }
