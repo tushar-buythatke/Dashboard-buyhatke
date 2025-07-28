@@ -2,12 +2,23 @@ import { Filter, X, Calendar, Users, Monitor, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useFilters } from '@/context/FilterContext';
-import { mockCampaigns, platforms } from '@/data/mockData';
+import { useEffect, useState } from 'react';
+import { analyticsService } from '@/services/analyticsService';
 
 const genderOptions = ['Male', 'Female'];
+const platforms = ["Web", "Mobile", "Extension"];
 
 export function FilterDropdown() {
   const { filters, updateFilters, resetFilters } = useFilters();
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchCampaigns() {
+      const res = await analyticsService.getCampaigns();
+      if (res.success && res.data) setCampaigns(res.data);
+    }
+    fetchCampaigns();
+  }, []);
 
   const handleFilterChange = (filterType: keyof typeof filters, value: string, checked: boolean) => {
     const currentValues = filters[filterType] as string[];
@@ -128,7 +139,7 @@ export function FilterDropdown() {
               </div>
               
               <div className="space-y-2 max-h-32 overflow-y-auto">
-                {mockCampaigns.slice(0, 4).map((campaign: any) => (
+                {campaigns.slice(0, 4).map((campaign: any) => (
                   <label
                     key={campaign.campaignId}
                     className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"

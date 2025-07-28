@@ -111,6 +111,10 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
+  // Add state for toggles
+  const [showCombinedTotal, setShowCombinedTotal] = useState(true);
+  const [trendPeriod, setTrendPeriod] = useState<'1d' | '7d' | '30d'>(dataGrouping);
+
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData();
@@ -171,6 +175,13 @@ export default function Analytics() {
     };
     loadAdNames();
   }, [selectedCampaigns]);
+
+  // When trendPeriod changes, refetch analytics data with new interval
+  useEffect(() => {
+    setDataGrouping(trendPeriod);
+    fetchAnalyticsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trendPeriod]);
 
   const fetchDropdownData = async () => {
     try {
@@ -1101,6 +1112,35 @@ export default function Analytics() {
             transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
             className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
           >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+              <div className="flex items-center gap-4">
+                <span className="font-medium text-gray-700 dark:text-gray-200">Period:</span>
+                <div className="flex gap-2">
+                  <button
+                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '1d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+                    onClick={() => setTrendPeriod('1d')}
+                  >Daily</button>
+                  <button
+                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '7d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+                    onClick={() => setTrendPeriod('7d')}
+                  >Weekly</button>
+                  <button
+                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '30d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+                    onClick={() => setTrendPeriod('30d')}
+                  >Monthly</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="showCombinedTotal"
+                  checked={showCombinedTotal}
+                  onChange={e => setShowCombinedTotal(e.target.checked)}
+                  className="accent-blue-600 w-4 h-4"
+                />
+                <label htmlFor="showCombinedTotal" className="text-sm text-gray-700 dark:text-gray-200 font-medium">Show Combined Total</label>
+              </div>
+            </div>
             {dataLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex items-center space-x-3 mb-4">
@@ -1115,8 +1155,32 @@ export default function Analytics() {
             ) : (
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
-              <TrendChart
-                series={trendData}
+                  <TrendChart
+                    series={(() => {
+                      // Filter trendData for the selected period
+                      // (Assume trendData is updated on period change, or you may need to refetch)
+                      let chartSeries = [...trendData];
+                      if (showCombinedTotal && trendData.length > 1) {
+                        // Calculate combined total series
+                        const dateMap = new Map();
+                        trendData.forEach(s => {
+                          s.data.forEach(d => {
+                            if (d.date && !isNaN(new Date(d.date).getTime())) {
+                              if (!dateMap.has(d.date)) dateMap.set(d.date, { ...d, impressions: 0 });
+                              dateMap.get(d.date).impressions += d.impressions || 0;
+                            }
+                          });
+                        });
+                        const combinedSeries = {
+                          name: 'Combined Total',
+                          data: Array.from(dateMap.values())
+                            .filter(item => item.date && !isNaN(new Date(item.date).getTime()))
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                        };
+                        chartSeries = [...trendData, combinedSeries];
+                      }
+                      return chartSeries;
+                    })()}
                     title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
                   />
                 ) : (
@@ -1151,12 +1215,16 @@ export default function Analytics() {
               
               <DataTable
                 title=""
-                data={topLocations.map(item => ({
-                  location: item.location || 'Unknown',
-                  impressions: item.impressions || 0,
-                  clicks: item.clicks || 0,
-                  conversions: item.conversions || 0
-                }))}
+                data={
+                  [...topLocations]
+                    .sort((a, b) => ((b.impressions || 0) + (b.clicks || 0)) - ((a.impressions || 0) + (a.clicks || 0)))
+                    .map(item => ({
+                      location: item.location || 'Unknown',
+                      impressions: item.impressions || 0,
+                      clicks: item.clicks || 0,
+                      conversions: item.conversions || 0
+                    }))
+                }
                 columns={[
                   { key: 'location', label: '📍 Location (City/State)' },
                   { key: 'impressions', label: '👁️ Impressions', format: 'number' },
@@ -1181,14 +1249,20 @@ export default function Analytics() {
               
               <DataTable
                 title=""
-                data={topSlotsData.map(slot => ({
-                  slotName: `Slot ${slot.slotId || 'Unknown'}`,
-                  impressions: slot.impressions || 0,
-                  clicks: slot.clicks || 0,
-                  conversionRate: (slot.clicks && slot.clicks > 0) ? 
-                    `${(((slot.conversions || 0) / slot.clicks) * 100).toFixed(2)}%` : 
-                    '0%'
-                }))}
+                data={
+                  [...topSlotsData]
+                    .sort((a, b) => ((b.impressions || 0) + (b.clicks || 0)) - ((a.impressions || 0) + (a.clicks || 0)))
+                    .map(slot => {
+                      const impressions = slot.impressions || 0;
+                      const clicks = slot.clicks || 0;
+                      return {
+                        slotName: `Slot ${slot.slotId || 'Unknown'}`,
+                        impressions,
+                        clicks,
+                        conversionRate: impressions > 0 ? `${((clicks / impressions) * 100).toFixed(2)}%` : '0.00%'
+                      };
+                    })
+                }
                 columns={[
                   { key: 'slotName', label: '🎪 Slot Name' },
                   { key: 'impressions', label: '👁️ Impressions', format: 'number' },

@@ -1,18 +1,26 @@
 import { Filter, X, Calendar, Users, Monitor, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFilters } from '@/context/FilterContext';
-import { mockCampaigns, platforms } from '@/data/mockData';
-import { DateRangePicker } from '@/components/analytics/DateRangePicker';
-import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
+import { useEffect, useState } from 'react';
+import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
-import { useState, useEffect } from 'react';
 
 const genderOptions = ['Male', 'Female'];
-const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55+'];
+const ageGroups = ["13-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+", "NA"];
+const platforms = ["Web", "Mobile", "Extension"];
 
 export function FilterSidebar() {
   const { filters, updateFilters, resetFilters } = useFilters();
   const [adNameOptions, setAdNameOptions] = useState<string[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchCampaigns() {
+      const res = await analyticsService.getCampaigns();
+      if (res.success && res.data) setCampaigns(res.data);
+    }
+    fetchCampaigns();
+  }, []);
 
   useEffect(() => {
     const loadAdNames = async () => {
@@ -96,7 +104,23 @@ export function FilterSidebar() {
             </div>
 
             {/* Date Range Dropdown */}
-            <DateRangePicker />
+            {/* DateRangePicker component was removed, so this will be a placeholder or removed if not needed */}
+            <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+              <span>From:</span>
+              <input
+                type="date"
+                value={filters.dateRange.from}
+                onChange={(e) => updateFilters({ dateRange: { ...filters.dateRange, from: e.target.value } })}
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1"
+              />
+              <span>To:</span>
+              <input
+                type="date"
+                value={filters.dateRange.to}
+                onChange={(e) => updateFilters({ dateRange: { ...filters.dateRange, to: e.target.value } })}
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1"
+              />
+            </div>
           </div>
         </div>
 
@@ -108,15 +132,15 @@ export function FilterSidebar() {
           </div>
           
           <div className="space-y-2 max-h-32 overflow-y-auto">
-            {mockCampaigns.slice(0, 4).map((campaign: any) => (
+            {campaigns.slice(0, 4).map((campaign: any) => (
               <label
-                key={campaign.id}
+                key={campaign.campaignId}
                 className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
               >
                 <input
                   type="checkbox"
-                  checked={filters.campaigns.includes(campaign.id)}
-                  onChange={(e) => handleFilterChange('campaigns', campaign.id, e.target.checked)}
+                  checked={filters.campaigns.includes(campaign.campaignId.toString())}
+                  onChange={(e) => handleFilterChange('campaigns', campaign.campaignId.toString(), e.target.checked)}
                   className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
                   style={{
                     accentColor: '#9333ea'
@@ -137,13 +161,28 @@ export function FilterSidebar() {
               <Tag className="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400" />
               <h4 className="font-medium text-gray-900 dark:text-white">Ad Names</h4>
             </div>
-            <MultiSelectDropdown
-              options={adNameOptions.map((n) => ({ value: n, label: n }))}
-              selectedValues={filters.adNames}
-              onChange={(vals) => updateFilters({ adNames: vals as string[] })}
-              placeholder="Select ad names..."
-              maxSelections={10}
-            />
+            {/* MultiSelectDropdown component was removed, so this will be a placeholder or removed if not needed */}
+            <div className="flex flex-wrap gap-2">
+              {adNameOptions.map((n) => (
+                <span
+                  key={n}
+                  className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
+                    filters.adNames.includes(n)
+                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {n}
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ adNames: filters.adNames.filter((v: string) => v !== n) })}
+                    className="ml-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
