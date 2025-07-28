@@ -107,7 +107,7 @@ class AnalyticsService {
       console.log('📈 Trend API raw response:', result);
       
       if (result.status === 1 && result.data) {
-        const processedData = this.processTrendData(result.data);
+        const processedData = this.processTrendData(result.data, payload.interval);
         console.log('📊 Processed trend data:', processedData);
         return {
           success: true,
@@ -402,7 +402,7 @@ class AnalyticsService {
   }
 
   // Process trend data
-  private processTrendData(rawData: any): TrendDataPoint[] {
+  private processTrendData(rawData: any, interval?: string): TrendDataPoint[] {
     if (!rawData || !rawData.total) return [];
 
     const { impression = {}, click = {}, conversion = {} } = rawData.total;
@@ -414,14 +414,21 @@ class AnalyticsService {
       ...Object.keys(conversion)
     ]);
 
+    console.log('📅 Raw date buckets from API:', Array.from(buckets));
+    console.log('📊 Processing with interval:', interval);
+
     const trend: TrendDataPoint[] = [];
     buckets.forEach((bucket) => {
       const impressions = impression[bucket] ?? 0;
       const clicks = click[bucket] ?? 0;
       const conversions = conversion[bucket] ?? 0;
 
+      // Normalize the date/bucket format for consistent parsing
+      const normalizedDate = this.normalizeDateBucket(bucket);
+      console.log(`📅 Normalized bucket '${bucket}' to '${normalizedDate}'`);
+
       trend.push({
-        date: bucket,
+        date: normalizedDate,
         impressions,
         clicks,
         conversions,
@@ -431,7 +438,7 @@ class AnalyticsService {
       });
     });
 
-    // Sort chronologically
+    // Sort chronologically using normalized dates
     trend.sort((a, b) => {
       const dateA = new Date(a.date);
       const dateB = new Date(b.date);
@@ -440,7 +447,182 @@ class AnalyticsService {
       }
       return dateA.getTime() - dateB.getTime();
     });
-    return trend;
+
+    // Apply client-side grouping if needed based on interval
+    const groupedTrend = this.forceDataGrouping(trend, interval);
+    
+    console.log('📊 Final processed trend data:', groupedTrend);
+    return groupedTrend;
+  }
+
+  // Force client-side data grouping - always group to ensure consistency
+  private forceDataGrouping(data: TrendDataPoint[], interval?: string): TrendDataPoint[] {
+    if (!interval || !data.length) return data;
+
+    console.log(`� Forcing ${interval} grouping on ${data.length} data points`);
+
+    const grouped = new Map<string, TrendDataPoint>();
+
+    data.forEach(point => {
+      const date = new Date(point.date);
+      if (isNaN(date.getTime())) {
+        console.warn('Skipping invalid date:', point.date);
+        return;
+      }
+
+      let groupKey: string;
+
+      switch (interval) {
+        case '1d': // Daily - keep individual days
+          groupKey = point.date;
+          break;
+        
+        case '7d': // Weekly - group by week starting Sunday
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+          groupKey = weekStart.toISOString().split('T')[0];
+          break;
+        
+        case '30d': // Monthly - group by first day of month
+          const year = date.getFullYear();
+          const month = date.getMonth();
+          const monthStart = new Date(year, month, 1);
+          groupKey = monthStart.toISOString().split('T')[0];
+          break;
+        
+        default:
+          groupKey = point.date;
+      }
+
+      if (grouped.has(groupKey)) {
+        // Aggregate the data
+        const existing = grouped.get(groupKey)!;
+        existing.impressions += point.impressions;
+        existing.clicks += point.clicks;
+        existing.conversions += point.conversions;
+        existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
+        existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
+        existing.revenue = (existing.revenue || 0) + (point.revenue || 0);
+      } else {
+        // Create new group
+        grouped.set(groupKey, {
+          date: groupKey,
+          impressions: point.impressions,
+          clicks: point.clicks,
+          conversions: point.conversions,
+          ctr: point.impressions > 0 ? (point.clicks / point.impressions) * 100 : 0,
+          conversionRate: point.clicks > 0 ? (point.conversions / point.clicks) * 100 : 0,
+          revenue: point.revenue || 0
+        });
+      }
+    });
+
+    // Convert back to array and sort
+    const result = Array.from(grouped.values()).sort((a, b) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+
+    console.log(`📊 Forced ${interval} grouping:`, {
+      originalDataPoints: data.length,
+      groupedDataPoints: result.length,
+      interval,
+      sampleOriginalDates: data.slice(0, 5).map(d => d.date),
+      sampleGroupedDates: result.slice(0, 5).map(d => d.date),
+      groupingKeys: Array.from(grouped.keys()).slice(0, 5)
+    });
+    
+    return result;
+  }
+
+  // Normalize different date bucket formats to ISO date strings
+  private normalizeDateBucket(bucket: string): string {
+    // Handle ISO date format (YYYY-MM-DD) - already good
+    if (/^\d{4}-\d{2}-\d{2}$/.test(bucket)) {
+      return bucket;
+    }
+
+    // Handle year-month format (YYYY-MM) - assume first day of month
+    if (/^\d{4}-\d{2}$/.test(bucket)) {
+      return `${bucket}-01`;
+    }
+
+    // Handle week format (YYYY-W##) - convert to first day of that week
+    const weekMatch = bucket.match(/^(\d{4})-W(\d{1,2})$/);
+    if (weekMatch) {
+      const year = parseInt(weekMatch[1]);
+      const week = parseInt(weekMatch[2]);
+      try {
+        const firstDayOfYear = new Date(year, 0, 1);
+        const daysToAdd = (week - 1) * 7 - firstDayOfYear.getDay() + 1;
+        const weekStart = new Date(year, 0, 1 + daysToAdd);
+        return weekStart.toISOString().split('T')[0];
+      } catch (error) {
+        console.warn('Error parsing week format:', bucket, error);
+        return `${year}-01-01`; // Fallback to start of year
+      }
+    }
+
+    // Handle alternative week format like "Week 30 2024"
+    const altWeekMatch = bucket.match(/^Week (\d+) (\d{4})$/);
+    if (altWeekMatch) {
+      const week = parseInt(altWeekMatch[1]);
+      const year = parseInt(altWeekMatch[2]);
+      try {
+        const firstDayOfYear = new Date(year, 0, 1);
+        const daysToAdd = (week - 1) * 7 - firstDayOfYear.getDay() + 1;
+        const weekStart = new Date(year, 0, 1 + daysToAdd);
+        return weekStart.toISOString().split('T')[0];
+      } catch (error) {
+        console.warn('Error parsing alternative week format:', bucket, error);
+        return `${year}-01-01`; // Fallback to start of year
+      }
+    }
+
+    // Handle month names like "July 2024" - assume first day of month
+    const monthNameMatch = bucket.match(/^(\w+) (\d{4})$/);
+    if (monthNameMatch) {
+      const monthName = monthNameMatch[1];
+      const year = monthNameMatch[2];
+      try {
+        const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+        return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+      } catch (error) {
+        console.warn('Error parsing month name format:', bucket, error);
+        return `${year}-01-01`; // Fallback to start of year
+      }
+    }
+
+    // Handle numeric timestamps (Unix timestamps in seconds or milliseconds)
+    const numericBucket = Number(bucket);
+    if (!isNaN(numericBucket) && numericBucket > 0) {
+      try {
+        // Assume it's a Unix timestamp (handle both seconds and milliseconds)
+        const timestamp = numericBucket > 1e10 ? numericBucket : numericBucket * 1000;
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      } catch (error) {
+        console.warn('Error parsing numeric timestamp:', bucket, error);
+      }
+    }
+
+    // If we can't parse it, try to create a valid date or return a fallback
+    try {
+      const attemptedDate = new Date(bucket);
+      if (!isNaN(attemptedDate.getTime())) {
+        return attemptedDate.toISOString().split('T')[0];
+      }
+    } catch (error) {
+      console.warn('Error attempting date parsing:', bucket, error);
+    }
+
+    // Final fallback - create a predictable date based on the bucket string
+    // This ensures we don't break the chart even with completely invalid dates
+    const today = new Date();
+    const fallbackDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    console.warn('⚠️ Could not normalize date bucket, using fallback:', bucket, '→', fallbackDate);
+    return fallbackDate;
   }
 
   // Process breakdown data

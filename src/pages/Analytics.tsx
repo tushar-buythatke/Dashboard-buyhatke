@@ -29,6 +29,9 @@ import {
 } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
 
+// Utils
+import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
+
 // Types
 import { 
   Campaign, 
@@ -63,6 +66,21 @@ const getDefaultMetrics = (): MetricsData => ({
   revenue: 0,
   roi: 0
 });
+
+// Helper function to map platform IDs to proper names
+const getPlatformName = (platformId: number | string): string => {
+  const id = Number(platformId);
+  switch (id) {
+    case 0:
+      return 'Web Extension';
+    case 1:
+      return 'Mobile App';
+    case 2:
+      return 'Desktop Web';
+    default:
+      return typeof platformId === 'string' ? platformId : 'Unknown Platform';
+  }
+};
 
 export default function Analytics() {
   const { filters } = useFilters(); // Get filters from context
@@ -111,35 +129,37 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
-  // Add state for toggles
+  // Add state for toggles - ensure proper initialization
   const [showCombinedTotal, setShowCombinedTotal] = useState(true);
-  const [trendPeriod, setTrendPeriod] = useState<'1d' | '7d' | '30d'>(dataGrouping);
 
   // Fetch dropdown data on component mount
   useEffect(() => {
     fetchDropdownData();
+    // Don't auto-fetch analytics data on mount, let user manually trigger it
   }, []);
 
   // Manual fetch - removed automatic fetching on filter changes
 
-  // Fetch ad names when selected campaigns change
+  // Fetch ad names when selected campaigns change or load all if none selected
   useEffect(() => {
+    // Don't fetch ad names if data is still loading or no campaigns available
+    if (loading || campaigns.length === 0) return;
+    
     const loadAdNames = async () => {
-      if (selectedCampaigns.length === 0) {
-        setAdNameOptions([]);
-        setSelectedExactAdNames([]);
-        setSelectedStartsWithAdNames([]);
-        setAdNamesLoading(false);
-        return;
-      }
-      
       try {
         setAdNamesLoading(true);
-        console.log('Loading ad names for campaigns:', selectedCampaigns);
+        
+        // If no campaigns selected, load ad names for ALL campaigns
+        const campaignsToProcess = selectedCampaigns.length > 0 
+          ? selectedCampaigns 
+          : campaigns.map(c => c.campaignId);
+          
+        console.log('Loading ad names for campaigns:', 
+          selectedCampaigns.length > 0 ? selectedCampaigns : 'ALL CAMPAIGNS');
         
         const adOptions: AdOption[] = [];
         await Promise.all(
-          selectedCampaigns.map(async (campId) => {
+          campaignsToProcess.map(async (campId) => {
             console.log('Fetching ads for campaign ID:', campId);
             const res = await adService.getAdLabels(Number(campId));
             console.log('Ad labels response for campaign', campId, ':', res);
@@ -174,14 +194,23 @@ export default function Analytics() {
       }
     };
     loadAdNames();
-  }, [selectedCampaigns]);
+  }, [selectedCampaigns, campaigns]); // Added campaigns dependency for auto-loading
 
-  // When trendPeriod changes, refetch analytics data with new interval
-  useEffect(() => {
-    setDataGrouping(trendPeriod);
-    fetchAnalyticsData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trendPeriod]);
+  // Removed automatic fetching on dataGrouping change to prevent infinite loops
+  // Data fetching is now manual via "Fetch Results" button
+  // useEffect(() => {
+  //   if (!dataGrouping || dataLoading || loading) {
+  //     console.log('⏭️ Skipping data fetch:', { dataGrouping, dataLoading, loading });
+  //     return;
+  //   }
+  //   
+  //   if (campaigns.length > 0 || slots.length > 0 || sites.length > 0) {
+  //     console.log('🔄 Triggering analytics data fetch due to dataGrouping change:', dataGrouping);
+  //     fetchAnalyticsData();
+  //   } else {
+  //     console.log('⚠️ No dropdown data available yet, skipping analytics fetch');
+  //   }
+  // }, [dataGrouping]);
 
   const fetchDropdownData = async () => {
     try {
@@ -212,6 +241,12 @@ export default function Analytics() {
   };
 
   const fetchAnalyticsData = async () => {
+    // Prevent concurrent calls
+    if (dataLoading) {
+      console.log('⏳ Skipping fetch - already loading data');
+      return;
+    }
+    
     try {
       setDataLoading(true);
       
@@ -255,17 +290,37 @@ export default function Analytics() {
       let trendSeries: TrendChartSeries[] = [];
       let aggregatedMetrics: MetricsData = getDefaultMetrics();
 
-      if (activeView === 'campaign' && selectedCampaigns.length > 0) {
+      if (activeView === 'campaign') {
+        // Auto-select all campaigns if none are selected - using ONLY valid campaign IDs
+        const campaignsToProcess = selectedCampaigns.length > 0 
+          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id)) // Validate selected IDs
+          : campaigns.map(c => c.campaignId); // Use all available campaign IDs
+        
+        // Also filter slots and POS to ensure only valid IDs are used
+        const validSlotIds = selectedSlots.length > 0 
+          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+          : undefined;
+        const validPOSIds = selectedPOS.length > 0 
+          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+          : undefined;
+        
+        console.log(`📊 Processing ${campaignsToProcess.length} campaigns:`, 
+          selectedCampaigns.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
+        console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
+        console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
+
         // Campaign-wise comparison
         const campaignResults = await Promise.all(
-          selectedCampaigns.map(async (campaignId) => {
+          campaignsToProcess.map(async (campaignId) => {
             const payload: MetricsPayload = {
         ...dateRange,
               campaignId: [Number(campaignId)],
-        slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-        siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+        slotId: validSlotIds?.map(Number),
+        siteId: validPOSIds?.map(Number),
               interval: dataGrouping
             };
+
+            console.log(`📊 Campaign ${campaignId} payload with interval:`, payload);
 
             const [metricsRes, trendRes] = await Promise.all([
               analyticsService.getMetrics(payload),
@@ -316,15 +371,33 @@ export default function Analytics() {
         aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
           ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
-      } else if (activeView === 'slot' && selectedSlots.length > 0) {
+      } else if (activeView === 'slot') {
+        // Auto-select all slots if none are selected - using ONLY valid slot IDs
+        const slotsToProcess = selectedSlots.length > 0 
+          ? selectedSlots.filter(id => slots.some(s => s.slotId === id)) // Validate selected IDs
+          : slots.map(s => s.slotId); // Use all available slot IDs
+          
+        // Also filter campaigns and POS to ensure only valid IDs are used
+        const validCampaignIds = selectedCampaigns.length > 0 
+          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+          : undefined;
+        const validPOSIds = selectedPOS.length > 0 
+          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+          : undefined;
+          
+        console.log(`📊 Processing ${slotsToProcess.length} slots:`, 
+          selectedSlots.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
+        console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
+        console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
+
         // Slot-wise comparison
         const slotResults = await Promise.all(
-          selectedSlots.map(async (slotId) => {
+          slotsToProcess.map(async (slotId) => {
             const payload: MetricsPayload = {
               ...dateRange,
               slotId: [Number(slotId)],
-              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+              campaignId: validCampaignIds?.map(Number),
+              siteId: validPOSIds?.map(Number),
               interval: dataGrouping
             };
 
@@ -377,15 +450,33 @@ export default function Analytics() {
         aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
           ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
-      } else if (activeView === 'pos' && selectedPOS.length > 0) {
+      } else if (activeView === 'pos') {
+        // Auto-select all POS if none are selected - using ONLY valid POS IDs
+        const posToProcess = selectedPOS.length > 0 
+          ? selectedPOS.filter(id => sites.some(s => s.posId === id)) // Validate selected IDs
+          : sites.map(s => s.posId); // Use all available POS IDs
+          
+        // Also filter campaigns and slots to ensure only valid IDs are used
+        const validCampaignIds = selectedCampaigns.length > 0 
+          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+          : undefined;
+        const validSlotIds = selectedSlots.length > 0 
+          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+          : undefined;
+          
+        console.log(`📊 Processing ${posToProcess.length} POS:`, 
+          selectedPOS.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
+        console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
+        console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
+
         // POS-wise comparison
         const posResults = await Promise.all(
-          selectedPOS.map(async (posId) => {
+          posToProcess.map(async (posId) => {
             const payload: MetricsPayload = {
               ...dateRange,
               siteId: [Number(posId)],
-              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+              campaignId: validCampaignIds?.map(Number),
+              slotId: validSlotIds?.map(Number),
               interval: dataGrouping
             };
 
@@ -438,13 +529,28 @@ export default function Analytics() {
         aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
           ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
-      } else if (activeView === 'ad' && (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0)) {
-        // Ad-wise comparison (when ad names are selected)
+      } else if (activeView === 'ad') {
+        // Ad-wise comparison - if no specific ad names selected, show overall ad performance
+        console.log(`📊 Processing ads:`, 
+          (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0) 
+            ? 'USER SELECTED AD FILTERS' : 'ALL ADS (NO FILTERS)');
+        
+        // Validate all filter IDs to ensure they exist in the fetched data
+        const validCampaignIds = selectedCampaigns.length > 0 
+          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+          : undefined;
+        const validSlotIds = selectedSlots.length > 0 
+          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+          : undefined;
+        const validPOSIds = selectedPOS.length > 0 
+          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+          : undefined;
+            
         const basePayload: MetricsPayload = {
           ...dateRange,
-          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          campaignId: validCampaignIds?.map(Number),
+          slotId: validSlotIds?.map(Number),
+          siteId: validPOSIds?.map(Number),
           interval: dataGrouping
         };
 
@@ -465,12 +571,25 @@ export default function Analytics() {
         }
 
       } else {
-        // Default: overall analytics
+        // Default: overall analytics for all available data
+        console.log(`📊 Processing overall analytics - showing ALL available data`);
+        
+        // Validate all filter IDs to ensure they exist in the fetched data
+        const validCampaignIds = selectedCampaigns.length > 0 
+          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+          : undefined;
+        const validSlotIds = selectedSlots.length > 0 
+          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+          : undefined;
+        const validPOSIds = selectedPOS.length > 0 
+          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+          : undefined;
+        
         const basePayload: MetricsPayload = {
           ...dateRange,
-          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          campaignId: validCampaignIds?.map(Number),
+          slotId: validSlotIds?.map(Number),
+          siteId: validPOSIds?.map(Number),
           interval: dataGrouping
         };
 
@@ -519,28 +638,38 @@ export default function Analytics() {
         setComparisonMetricsData(null);
       }
 
-      // Fetch breakdown data and tables (non-view-specific)
+      // Fetch breakdown data and tables (non-view-specific) with validated filters
+      const validCampaignIds = selectedCampaigns.length > 0 
+        ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+        : undefined;
+      const validSlotIds = selectedSlots.length > 0 
+        ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+        : undefined;
+      const validPOSIds = selectedPOS.length > 0 
+        ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+        : undefined;
+
       const basePayload: MetricsPayload = {
         ...dateRange,
-        campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-        slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-        siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+        campaignId: validCampaignIds?.map(Number),
+        slotId: validSlotIds?.map(Number),
+        siteId: validPOSIds?.map(Number),
       };
 
       // Ensure we have at least one filter for breakdown queries (backend requirement)
-      const hasValidCampaignId = basePayload.campaignId && (Array.isArray(basePayload.campaignId) ? basePayload.campaignId.length > 0 : true);
-      const hasValidSlotId = basePayload.slotId && (Array.isArray(basePayload.slotId) ? basePayload.slotId.length > 0 : true);
-      const hasValidSiteId = basePayload.siteId && (Array.isArray(basePayload.siteId) ? basePayload.siteId.length > 0 : true);
+      const hasValidCampaignId = basePayload.campaignId && Array.isArray(basePayload.campaignId) && basePayload.campaignId.length > 0;
+      const hasValidSlotId = basePayload.slotId && Array.isArray(basePayload.slotId) && basePayload.slotId.length > 0;
+      const hasValidSiteId = basePayload.siteId && Array.isArray(basePayload.siteId) && basePayload.siteId.length > 0;
 
       const breakdownPayload = {
         ...basePayload,
-        // Add a default campaignId if no filters are selected
+        // Add a default campaignId if no filters are selected - use first VALID campaign
         ...(!hasValidCampaignId && !hasValidSlotId && !hasValidSiteId && {
-          campaignId: campaigns.length > 0 ? [campaigns[0].campaignId] : [1] // Use first campaign or default
+          campaignId: campaigns.length > 0 ? [campaigns[0].campaignId] : undefined
         })
       };
 
-      console.log('Breakdown payload:', breakdownPayload);
+      console.log('📊 Breakdown payload with validated filters:', breakdownPayload);
 
       const [genderResult, ageResult, platformResult, locationResult, locationTableResult, slotTableResult] = await Promise.all([
         analyticsService.getBreakdownData({ ...breakdownPayload, by: 'gender' }),
@@ -553,10 +682,19 @@ export default function Analytics() {
 
       // Safely process breakdown data
       try {
+        // Process platform data with proper mapping
+        let mappedPlatformData: BreakdownData[] = [];
+        if (platformResult.success && Array.isArray(platformResult.data)) {
+          mappedPlatformData = platformResult.data.map(item => ({
+            ...item,
+            name: getPlatformName(item.name || 'Unknown')
+          }));
+        }
+        
       setBreakdownData({
           gender: (genderResult.success && Array.isArray(genderResult.data)) ? genderResult.data : [],
           age: (ageResult.success && Array.isArray(ageResult.data)) ? transformAgeBucketData(ageResult.data) : [],
-          platform: (platformResult.success && Array.isArray(platformResult.data)) ? platformResult.data : [],
+          platform: mappedPlatformData,
           location: (locationResult.success && Array.isArray(locationResult.data)) ? locationResult.data : []
         });
         
@@ -626,8 +764,57 @@ export default function Analytics() {
   };
 
   const handleExport = () => {
-    console.log('Exporting analytics data...');
-    toast.success('Export started');
+    try {
+      console.log('Exporting analytics data...');
+      
+      // Format the current analytics data for CSV export
+      const csvData = formatMetricsForCSV(
+        metricsData,
+        breakdownData,
+        trendData,
+        topLocations,
+        topSlotsData
+      );
+
+      if (csvData.length === 0) {
+        toast.error('No data available to export');
+        return;
+      }
+
+      // Create filename with current filters
+      const filterSummary = getFilterSummary();
+      const baseFilename = filterSummary ? `analytics_${filterSummary.replace(/[^a-zA-Z0-9]/g, '_')}` : 'analytics_data';
+      
+      // Export to CSV with clean headers
+      exportToCSV({
+        filename: baseFilename,
+        data: csvData,
+        headers: {
+          sheet_section: 'Data Section',
+          metric_name: 'Metric',
+          value: 'Value',
+          description: 'Description',
+          export_date: 'Export Date',
+          demographic: 'Demographic',
+          platform: 'Platform',
+          age_group: 'Age Group',
+          impressions: 'Impressions',
+          clicks: 'Clicks',
+          conversions: 'Conversions',
+          ctr_percent: 'CTR %',
+          date: 'Date',
+          rank: 'Rank',
+          location_name: 'Location',
+          slot_identifier: 'Slot',
+          performance_score: 'Performance Score'
+        }
+      });
+
+      toast.success('Analytics data exported successfully! 📊');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export data. Please try again.');
+    }
   };
 
   const getFilterSummary = () => {
@@ -883,6 +1070,33 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Auto-Selection Info Banner - Only show when no filters are selected */}
+      {(selectedCampaigns.length === 0 && selectedSlots.length === 0 && selectedPOS.length === 0 && selectedExactAdNames.length === 0 && selectedStartsWithAdNames.length === 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-xl border border-blue-200 dark:border-blue-800 p-4 mx-4 sm:mx-6 mb-6"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+              <span className="font-bold">🎯 Smart Auto-Selection:</span> When no specific {
+                activeView === 'campaign' ? 'campaigns' :
+                activeView === 'slot' ? 'slots' :
+                activeView === 'pos' ? 'marketplaces' :
+                'ads'
+              } are selected, we automatically fetch data for <span className="font-bold text-blue-900 dark:text-blue-100">ALL available {
+                activeView === 'campaign' ? `${campaigns.length} campaigns` :
+                activeView === 'slot' ? `${slots.length} slots` :
+                activeView === 'pos' ? `${sites.length} marketplaces` :
+                'ads'
+              }</span> to give you the complete picture! 🚀
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Enhanced Expandable Filter Section */}
       <AnimatePresence>
         {isFilterExpanded && (
@@ -905,8 +1119,13 @@ export default function Analytics() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Campaign Filter */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     📈 Campaigns
+                    {selectedCampaigns.length === 0 && campaigns.length > 0 && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                        Auto: All {campaigns.length}
+                      </Badge>
+                    )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-blue-300 dark:hover:border-blue-600">
                 <MultiSelectDropdown
@@ -921,8 +1140,13 @@ export default function Analytics() {
                 
                 {/* Slots Filter */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     🎯 Slots
+                    {selectedSlots.length === 0 && slots.length > 0 && (
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 text-xs">
+                        Auto: All {slots.length}
+                      </Badge>
+                    )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
                 <MultiSelectDropdown
@@ -937,8 +1161,13 @@ export default function Analytics() {
                 
                 {/* Marketplaces Filter */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     🏪 Marketplaces (POS)
+                    {selectedPOS.length === 0 && sites.length > 0 && (
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-xs">
+                        Auto: All {sites.length}
+                      </Badge>
+                    )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
                 <MultiSelectDropdown
@@ -1113,23 +1342,6 @@ export default function Analytics() {
             className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-              <div className="flex items-center gap-4">
-                <span className="font-medium text-gray-700 dark:text-gray-200">Period:</span>
-                <div className="flex gap-2">
-                  <button
-                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '1d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
-                    onClick={() => setTrendPeriod('1d')}
-                  >Daily</button>
-                  <button
-                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '7d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
-                    onClick={() => setTrendPeriod('7d')}
-                  >Weekly</button>
-                  <button
-                    className={`px-3 py-1 rounded-md text-sm font-semibold border ${trendPeriod === '30d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
-                    onClick={() => setTrendPeriod('30d')}
-                  >Monthly</button>
-                </div>
-              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -1141,6 +1353,26 @@ export default function Analytics() {
                 <label htmlFor="showCombinedTotal" className="text-sm text-gray-700 dark:text-gray-200 font-medium">Show Combined Total</label>
               </div>
             </div>
+            
+            {/* Data Grouping Info */}
+            <div className="mb-4 flex items-center gap-2">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                  📊 Data grouped by: {
+                    dataGrouping === '1d' ? 'Daily intervals' : 
+                    dataGrouping === '7d' ? 'Weekly intervals' : 
+                    dataGrouping === '30d' ? 'Monthly intervals' : 
+                    'Custom intervals'
+                  }
+                </span>
+              </div>
+              {trendData.length > 0 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Showing {trendData.reduce((sum, series) => sum + series.data.length, 0)} data points across {trendData.length} series
+                </div>
+              )}
+            </div>
+            
             {dataLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex items-center space-x-3 mb-4">
@@ -1166,8 +1398,22 @@ export default function Analytics() {
                         trendData.forEach(s => {
                           s.data.forEach(d => {
                             if (d.date && !isNaN(new Date(d.date).getTime())) {
-                              if (!dateMap.has(d.date)) dateMap.set(d.date, { ...d, impressions: 0 });
-                              dateMap.get(d.date).impressions += d.impressions || 0;
+                              if (!dateMap.has(d.date)) {
+                                dateMap.set(d.date, { 
+                                  ...d, 
+                                  impressions: 0, 
+                                  clicks: 0, 
+                                  conversions: 0,
+                                  ctr: 0,
+                                  conversionRate: 0
+                                });
+                              }
+                              const existing = dateMap.get(d.date);
+                              existing.impressions += d.impressions || 0;
+                              existing.clicks += d.clicks || 0;
+                              existing.conversions += d.conversions || 0;
+                              existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
+                              existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
                             }
                           });
                         });
@@ -1181,7 +1427,12 @@ export default function Analytics() {
                       }
                       return chartSeries;
                     })()}
-                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time`}
+                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time ${
+                      dataGrouping === '1d' ? '(Daily)' : 
+                      dataGrouping === '7d' ? '(Weekly)' : 
+                      dataGrouping === '30d' ? '(Monthly)' : ''
+                    }`}
+                    period={dataGrouping}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16">
@@ -1332,36 +1583,36 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
+              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
             >
-              <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" />
             </motion.div>
             
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.9 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
+              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
             >
-              <BreakdownPieChart data={breakdownData.age} title="Age Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.age} title="Age Distribution" />
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
+              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
             >
-              <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" height={250} />
+              <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" />
             </motion.div>
             
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.1 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
+              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
             >
-              <BreakdownPieChart data={breakdownData.location} title="Location Distribution" height={250} />
+              <BreakdownPieChart data={breakdownData.location} title="Location Distribution" />
             </motion.div>
           </div>
 
@@ -1370,12 +1621,11 @@ export default function Analytics() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.2 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg p-6"
+            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[500px]"
           >
             <BreakdownPieChart 
               data={breakdownData.age || []} 
               title="Age-wise Performance Distribution" 
-              height={400} 
             />
           </motion.div>
         </div>

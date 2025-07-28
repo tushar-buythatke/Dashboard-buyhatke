@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Filter, Play, Pause, Edit, Copy, MoreHorizontal, RefreshCw, Download, Search, BarChart3, Calendar, Target, Zap, TrendingUp, Eye, MousePointer, DollarSign, Sparkles, Star, Activity } from 'lucide-react';
+import { Plus, Filter, Play, Pause, Edit, Copy, MoreHorizontal, RefreshCw, Download, Search, BarChart3, Calendar, Target, Zap, TrendingUp, Eye, MousePointer, DollarSign, Sparkles, Star, Activity, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { Campaign, CampaignResponse } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyticsService } from '@/services/analyticsService';
+import { campaignService } from '@/services/campaignService';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { exportToCsv } from '@/utils/csvExport';
 
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
@@ -18,6 +21,7 @@ const statusOptions = [
   { value: '1', label: 'Live' },
   { value: '2', label: 'Test' },
   { value: '3', label: 'Paused' },
+  { value: '-1', label: 'Archived' },
 ];
 
 const statusMap = {
@@ -25,6 +29,7 @@ const statusMap = {
   1: { label: 'Live', variant: 'success' as const },
   2: { label: 'Test', variant: 'info' as const },
   3: { label: 'Paused', variant: 'outline' as const },
+  '-1': { label: 'Archived', variant: 'destructive' as const },
 } as const;
 
 export function CampaignList() {
@@ -36,6 +41,13 @@ export function CampaignList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    campaignId?: number;
+    campaignName?: string;
+  }>({ isOpen: false });
   
   const statusFilter = searchParams.get('status') || 'all';
   const brandNameFilter = searchParams.get('brandName') || '';
@@ -89,28 +101,69 @@ export function CampaignList() {
   };
 
   const handleExport = () => {
-    console.log('Exporting campaigns data...');
-    toast.success('Export started');
+    if (filteredCampaigns.length === 0) {
+      toast.error('No campaigns to export');
+      return;
+    }
+
+    // Prepare CSV data
+    const csvData = filteredCampaigns.map(campaign => ({
+      'Campaign ID': campaign.campaignId,
+      'Brand Name': campaign.brandName,
+      'Status': campaign.status === 1 ? 'Live' : campaign.status === 0 ? 'Draft' : campaign.status === 2 ? 'Test' : 'Paused',
+      'Impression Target': campaign.impressionTarget || 0,
+      'Click Target': campaign.clickTarget || 0,
+      'Total Budget': campaign.totalBudget || 'N/A',
+      'Created By': campaign.createdBy || 'N/A',
+      'Created Date': campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : 'N/A',
+      'Last Updated': campaign.updatedAt ? new Date(campaign.updatedAt).toLocaleDateString() : 'N/A'
+    }));
+
+    const filename = `campaigns_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCsv(csvData, filename);
+    toast.success(`Exported ${filteredCampaigns.length} campaigns to ${filename}`);
   };
 
   const handleCloneCampaign = async (campaignId: number) => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns/clone?userId=1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId })
-      });
-
-      if (!response.ok) throw new Error('Failed to clone campaign');
+      const response = await campaignService.cloneCampaign(campaignId, 1);
       
-      const result = await response.json();
-      if (result.status === 1) {
+      if (response.success) {
         toast.success('Campaign cloned successfully');
         fetchCampaigns();
+      } else {
+        toast.error(response.message || 'Failed to clone campaign');
       }
     } catch (error) {
       console.error('Error cloning campaign:', error);
       toast.error('Failed to clone campaign');
+    }
+  };
+
+  const handleArchiveCampaign = async (campaignId: number) => {
+    const campaign = campaigns.find(c => c.campaignId === campaignId);
+    setConfirmationModal({
+      isOpen: true,
+      campaignId,
+      campaignName: campaign?.brandName || `Campaign ${campaignId}`
+    });
+  };
+
+  const confirmArchiveCampaign = async () => {
+    if (!confirmationModal.campaignId) return;
+    
+    try {
+      const response = await campaignService.archiveCampaign(confirmationModal.campaignId, 1);
+      
+      if (response.success) {
+        toast.success(`Campaign "${confirmationModal.campaignName}" and associated ads archived successfully`);
+        fetchCampaigns(); // Refresh the list
+      } else {
+        toast.error(response.message || 'Failed to archive campaign');
+      }
+    } catch (error) {
+      console.error('Error archiving campaign:', error);
+      toast.error('Failed to archive campaign');
     }
   };
 
@@ -291,7 +344,7 @@ export function CampaignList() {
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Target className="h-5 w-5 text-purple-600" />
-                    <p className="text-purple-700 dark:text-purple-400 text-sm font-bold">Target Impressions</p>
+                    <p className="text-purple-700 dark:text-purple-400 text-sm font-bold">Live Impressions</p>
                   </div>
                   <p className="text-3xl font-black text-purple-800 dark:text-purple-300">{totalImpressions.toLocaleString()}</p>
                 </div>
@@ -610,6 +663,16 @@ export function CampaignList() {
                                   <Copy className="mr-2 h-4 w-4 text-purple-600" />
                                   Clone
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleArchiveCampaign(campaign.campaignId);
+                                  }}
+                                  className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive
+                                </DropdownMenuItem>
                                 {campaign.status !== 3 && (
                                   <DropdownMenuItem
                                     onClick={(e) => {
@@ -647,6 +710,18 @@ export function CampaignList() {
           </motion.div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ isOpen: false })}
+        onConfirm={confirmArchiveCampaign}
+        title="Archive Campaign"
+        message="Are you sure you want to archive this campaign? This will also archive all associated ads and cannot be undone."
+        itemName={confirmationModal.campaignName}
+        itemType="campaign"
+        variant="danger"
+      />
     </div>
   );
 }

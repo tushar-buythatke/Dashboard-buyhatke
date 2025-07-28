@@ -32,7 +32,8 @@ import {
   Star,
   CheckCircle,
   Clock,
-  MoreHorizontal
+  MoreHorizontal,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
@@ -86,7 +87,7 @@ function FloatingParticle({ delay = 0 }: { delay?: number }) {
 
 // Notification dropdown component
 function NotificationDropdown() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications, openNotificationsModal } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications, clearAllNotifications, removeNotification, openNotificationsModal } = useNotifications();
   const navigate = useNavigate();
 
   const getMetricIcon = (metric?: string) => {
@@ -122,52 +123,67 @@ function NotificationDropdown() {
   };
 
   return (
-    <DropdownMenuContent align="end" className="w-80 sm:w-96 p-0 max-h-[550px] overflow-hidden z-[100000]">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-              Notifications
-            </h3>
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {unreadCount}
-              </Badge>
-            )}
+    <DropdownMenuContent align="end" className="w-72 sm:w-80 lg:w-96 p-0 max-h-[80vh] sm:max-h-[550px] overflow-hidden z-[100000]">
+      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+                Notifications
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                {notifications.length} total • {unreadCount} unread
+              </p>
+            </div>
           </div>
-          {notifications.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={markAllAsRead}>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Mark all as read
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={clearNotifications} className="text-red-600">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Clear all
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {unreadCount > 0 && (
+            <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-red-500 rounded-full">
+              <span className="text-xs font-bold text-white">{unreadCount}</span>
+            </div>
           )}
         </div>
+        
+        {notifications.length > 0 && (
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            {unreadCount > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={markAllAsRead}
+                className="flex-1 text-xs sm:text-sm text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 dark:text-indigo-400 dark:border-indigo-700 dark:hover:bg-indigo-900/30 py-1.5 sm:py-2"
+              >
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Mark all read</span>
+                <span className="sm:hidden">Read all</span>
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={clearAllNotifications}
+              className="flex-1 text-xs sm:text-sm text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 py-1.5 sm:py-2"
+            >
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Clear All</span>
+              <span className="sm:hidden">Clear</span>
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div className="max-h-[420px] overflow-y-auto">
+      <div className="max-h-[300px] sm:max-h-[420px] overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="flex flex-col items-center space-y-3">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <Bell className="h-8 w-8 text-gray-400" />
+          <div className="p-6 sm:p-8 text-center">
+            <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <Bell className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
               </div>
               <div>
-                <p className="font-medium text-gray-900 dark:text-gray-100">No notifications yet</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">No notifications yet</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   We'll notify you when your ads hit their targets!
                 </p>
               </div>
@@ -179,8 +195,8 @@ function NotificationDropdown() {
               key={notification.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all duration-200 ${
-                !notification.isRead ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
+              className={`group p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all duration-300 ${
+                !notification.isRead ? 'bg-blue-50/70 dark:bg-blue-900/20' : ''
               }`}
               onClick={() => {
                 markAsRead(notification.id);
@@ -191,27 +207,40 @@ function NotificationDropdown() {
                 }
               }}
             >
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-2 sm:space-x-3">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                     {getTypeIcon(notification.type)}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate pr-1 sm:pr-2">
                       {notification.title}
                     </p>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2" />
-                    )}
+                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                      {!notification.isRead && (
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full" />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 sm:h-6 sm:w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeNotification(notification.id);
+                        }}
+                      >
+                        <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                     {notification.message}
                   </p>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                      <Clock className="h-3 w-3" />
+                  <div className="flex items-center justify-between mt-1 sm:mt-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       <span>{formatTimeAgo(notification.timestamp)}</span>
                     </div>
                     {notification.metadata?.metric && (
@@ -224,7 +253,7 @@ function NotificationDropdown() {
                     )}
                   </div>
                   {notification.metadata?.improvement && (
-                    <div className="mt-2">
+                    <div className="mt-1 sm:mt-2">
                       <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         +{notification.metadata.improvement}% improvement
                       </Badge>
@@ -238,11 +267,11 @@ function NotificationDropdown() {
       </div>
 
       {notifications.length > 4 && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+        <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-full h-10 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 font-medium"
+            className="w-full h-8 sm:h-10 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 font-medium text-xs sm:text-sm"
             onClick={openNotificationsModal}
           >
             View all {notifications.length} notifications
@@ -497,7 +526,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center justify-between max-w-7xl mx-auto relative z-10">
         {/* Left Section - Mobile Menu + Logo & Title */}
         <motion.div 
-          className="flex items-center space-x-2 sm:space-x-4"
+          className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
@@ -539,7 +568,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               />
             </motion.div>
             <motion.div 
-              className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"
+              className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-green-400 rounded-full border border-white dark:border-gray-800 shadow-sm"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
@@ -554,7 +583,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             <motion.h1 
-              className="text-xl sm:text-2xl font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200"
+              className="text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -566,7 +595,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                 >
-                  <Sparkles className="h-5 w-5 text-yellow-300" />
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-300" />
                 </motion.div>
               </span>
             </motion.h1>
@@ -582,18 +611,21 @@ export function Header({ onMenuClick }: HeaderProps) {
           {/* Mobile title */}
           <motion.div 
             onClick={() => navigate('/')}
-            className="sm:hidden cursor-pointer"
+            className="sm:hidden cursor-pointer ml-2"
             whileHover={{ x: 5 }}
           >
-            <h1 className="text-lg font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200">
+            <h1 className="text-lg font-black text-white tracking-tight hover:text-blue-100 transition-colors duration-200">
               Hatke!
             </h1>
+            <p className="text-blue-100 text-xs font-medium -mt-1">
+              Dashboard
+            </p>
           </motion.div>
         </motion.div>
 
         {/* Right Section - Actions & Profile */}
         <motion.div 
-          className="flex items-center space-x-2 sm:space-x-4"
+          className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
@@ -618,7 +650,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                     exit={{ opacity: 0, rotate: 90 }}
                     transition={{ duration: 0.3 }}
                   >
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -628,7 +660,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                     exit={{ opacity: 0, rotate: 90 }}
                     transition={{ duration: 0.3 }}
                   >
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </motion.div>
             )}
               </AnimatePresence>
@@ -652,7 +684,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                       animate={unreadCount > 0 ? { rotate: [0, -10, 10, 0] } : {}}
                       transition={{ duration: 0.5, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                     </motion.div>
                   </Button>
                 </motion.div>
@@ -660,11 +692,12 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white"
+                  className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border border-white sm:border-2"
                 >
                     <motion.span
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 1, repeat: Infinity }}
+                      className="text-xs"
                     >
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </motion.span>
@@ -687,7 +720,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   variant="ghost"
                     className="h-10 sm:h-12 px-2 sm:px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-300 focus:ring-2 focus:ring-white/30 focus:outline-none"
                 >
-                  <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
                       <motion.div
                         whileHover={{ scale: 1.1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -696,15 +729,15 @@ export function Header({ onMenuClick }: HeaderProps) {
                         <div className="h-6 w-6 sm:h-8 sm:w-8 bg-white/20 rounded-lg flex items-center justify-center border border-white/30 shadow-lg">
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
-                            width="20" 
-                            height="20" 
+                            width="16" 
+                            height="16" 
                             viewBox="0 0 24 24" 
                             fill="none" 
                             stroke="currentColor" 
                             strokeWidth="1.5" 
                             strokeLinecap="round" 
                             strokeLinejoin="round" 
-                            className="text-white"
+                            className="sm:w-5 sm:h-5 text-white"
                           >
                             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
@@ -713,7 +746,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                       </motion.div>
                     
                     <div className="hidden sm:flex items-center space-x-1">
-                      <span className="text-sm font-medium text-white truncate max-w-24">
+                      <span className="text-xs sm:text-sm font-medium text-white truncate max-w-16 sm:max-w-24">
                         {user.userName}
                       </span>
                         <motion.div
@@ -721,58 +754,58 @@ export function Header({ onMenuClick }: HeaderProps) {
                           transition={{ duration: 0.3, ease: "easeInOut" }}
                           className="group-data-[state=open]:rotate-180"
                         >
-                      <ChevronDown className="h-4 w-4 text-white/80" />
+                      <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-white/80" />
                         </motion.div>
                     </div>
                     
                     {/* Mobile view - only show chevron */}
-                    <ChevronDown className="h-4 w-4 text-white/80 sm:hidden" />
+                    <ChevronDown className="h-3 w-3 sm:hidden text-white/80" />
                   </div>
                 </Button>
                 </motion.div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-0 mt-2 border shadow-lg bg-white dark:bg-slate-800 rounded-lg z-[100000]">
+              <DropdownMenuContent align="end" className="w-56 sm:w-64 p-0 mt-2 border shadow-lg bg-white dark:bg-slate-800 rounded-lg z-[100000]">
                 {/* Clean Header Section */}
-                <div className="py-4 px-5 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
-                  <div className="text-center space-y-3">
+                <div className="py-3 sm:py-4 px-4 sm:px-5 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600">
+                  <div className="text-center space-y-2 sm:space-y-3">
                     <div className="relative mx-auto w-fit">
                       {/* Clean Profile SVG Icon */}
-                      <div className="h-14 w-14 mx-auto bg-white dark:bg-slate-700 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-500 shadow-sm">
+                      <div className="h-10 w-10 sm:h-14 sm:w-14 mx-auto bg-white dark:bg-slate-700 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-500 shadow-sm">
                         <svg 
                           xmlns="http://www.w3.org/2000/svg" 
-                          width="28" 
-                          height="28" 
+                          width="20" 
+                          height="20" 
                           viewBox="0 0 24 24" 
                           fill="none" 
                           stroke="currentColor" 
                           strokeWidth="1.5" 
                           strokeLinecap="round" 
                           strokeLinejoin="round" 
-                          className="text-slate-600 dark:text-slate-300"
+                          className="sm:w-7 sm:h-7 text-slate-600 dark:text-slate-300"
                         >
                           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
                           <circle cx="12" cy="7" r="4"/>
                         </svg>
                       </div>
                       {/* Fixed Online Indicator Position */}
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-700 shadow-sm">
+                      <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-700 shadow-sm">
                         <div className="w-full h-full bg-green-500 rounded-full animate-pulse"></div>
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">
+                    <div className="space-y-1 sm:space-y-2">
+                      <h3 className="font-semibold text-base sm:text-lg text-slate-800 dark:text-slate-200">
                         Welcome back!
                       </h3>
-                      <p className="font-medium text-slate-600 dark:text-slate-400 text-sm">
+                      <p className="font-medium text-slate-600 dark:text-slate-400 text-xs sm:text-sm truncate">
                         {user.userName}
                       </p>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Badge className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 border-0 text-xs font-medium px-2 py-1">
+                      <div className="flex items-center justify-center space-x-1 sm:space-x-2">
+                        <Badge className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 border-0 text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1">
                           {user.type === 0 ? 'Admin' : 'User'}
                         </Badge>
-                        <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 rounded-full px-2 py-1">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                        <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
+                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full"></div>
                           <span className="text-xs text-green-700 dark:text-green-300 font-medium">Online</span>
                         </div>
                       </div>
@@ -781,16 +814,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </div>
 
                 {/* Static Logout Section */}
-                <div className="py-3 px-5">
+                <div className="py-2 sm:py-3 px-4 sm:px-5">
                   <button
-                    className="w-full flex items-center space-x-3 p-2 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 transition-colors duration-200 border border-red-100 dark:border-red-900/30"
+                    className="w-full flex items-center space-x-2 sm:space-x-3 p-2 rounded-md bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 transition-colors duration-200 border border-red-100 dark:border-red-900/30"
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                   >
-                    <div className="w-6 h-6 bg-red-100 dark:bg-red-900/50 rounded-md flex items-center justify-center flex-shrink-0">
-                      <LogOut className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-red-100 dark:bg-red-900/50 rounded-md flex items-center justify-center flex-shrink-0">
+                      <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-600 dark:text-red-400" />
                     </div>
-                    <span className="font-medium text-red-700 dark:text-red-300 text-sm">
+                    <span className="font-medium text-red-700 dark:text-red-300 text-xs sm:text-sm">
                       {isLoggingOut ? 'Signing out...' : 'Sign out'}
                     </span>
                   </button>

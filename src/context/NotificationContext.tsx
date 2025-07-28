@@ -26,6 +26,9 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
+  clearAllNotifications: () => void;
+  removeNotification: (id: string) => void;
+  handleNotificationClick: (notification: Notification) => void;
   checkPerformanceAlerts: (campaignData: any[], adData: any[]) => void;
   openNotificationsModal: () => void;
   closeNotificationsModal: () => void;
@@ -46,6 +49,7 @@ interface NotificationProviderProps {
 }
 
 const STORAGE_KEY = 'hatke-notifications';
+const CHECKED_TARGETS_KEY = 'hatke-checked-targets';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
@@ -56,6 +60,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Load notifications from localStorage on mount
   useEffect(() => {
     loadNotificationsFromStorage();
+    loadCheckedTargetsFromStorage();
     // Set up cleanup interval to run every hour
     const cleanupInterval = setInterval(cleanupOldNotifications, 60 * 60 * 1000);
     return () => clearInterval(cleanupInterval);
@@ -65,6 +70,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   useEffect(() => {
     saveNotificationsToStorage();
   }, [notifications]);
+
+  // Save checkedTargets to localStorage whenever they change
+  useEffect(() => {
+    saveCheckedTargetsToStorage();
+  }, [checkedTargets]);
 
   const loadNotificationsFromStorage = () => {
     try {
@@ -97,14 +107,52 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   };
 
+  const loadCheckedTargetsFromStorage = () => {
+    try {
+      const stored = localStorage.getItem(CHECKED_TARGETS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCheckedTargets(new Set(parsed));
+      }
+    } catch (error) {
+      console.error('Error loading checked targets from storage:', error);
+    }
+  };
+
+  const saveCheckedTargetsToStorage = () => {
+    try {
+      localStorage.setItem(CHECKED_TARGETS_KEY, JSON.stringify(Array.from(checkedTargets)));
+    } catch (error) {
+      console.error('Error saving checked targets to storage:', error);
+    }
+  };
+
   const cleanupOldNotifications = () => {
     const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
     setNotifications(prev => 
       prev.filter(notif => notif.timestamp > sevenDaysAgo)
     );
+
+    // Clear checked targets daily to allow fresh notifications for the same targets
+    // This ensures that performance achievements can be notified again each day
+    setCheckedTargets(new Set());
   };
 
   const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
+    // Check for duplicates based on title, message, adId, campaignId, and metric
+    const isDuplicate = notifications.some(existing => 
+      existing.title === notification.title && 
+      existing.message === notification.message &&
+      existing.metadata?.adId === notification.metadata?.adId &&
+      existing.metadata?.campaignId === notification.metadata?.campaignId &&
+      existing.metadata?.metric === notification.metadata?.metric
+    );
+
+    if (isDuplicate) {
+      console.log('Duplicate notification prevented:', notification.title);
+      return;
+    }
+
     const newNotification: Notification = {
       ...notification,
       id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -113,9 +161,22 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     };
 
     setNotifications(prev => {
+      // Double-check for duplicates in current state as well
+      const currentDuplicate = prev.some(existing => 
+        existing.title === notification.title && 
+        existing.message === notification.message &&
+        existing.metadata?.adId === notification.metadata?.adId &&
+        existing.metadata?.campaignId === notification.metadata?.campaignId &&
+        existing.metadata?.metric === notification.metadata?.metric
+      );
+      
+      if (currentDuplicate) {
+        console.log('Duplicate notification prevented in state:', notification.title);
+        return prev;
+      }
+      
       // Add new notification at the beginning
       const updated = [newNotification, ...prev];
-      // Keep unlimited notifications (will be cleaned up by 7-day rule)
       return updated;
     });
 
@@ -154,6 +215,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setNotifications([]);
     setCheckedTargets(new Set());
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CHECKED_TARGETS_KEY);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
   };
 
   const openNotificationsModal = () => {
@@ -184,6 +250,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             message: `Ad "${ad.name}" exceeded its impression target by ${overPerformance}%`,
             metadata: {
               adId: ad.adId,
+              campaignId: ad.campaignId,
               metric: 'impressions',
               target: ad.impressionTarget,
               actual: ad.liveImpressions,
@@ -199,6 +266,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             message: `Ad "${ad.name}" is at ${impressionProgress.toFixed(1)}% of impression target`,
             metadata: {
               adId: ad.adId,
+              campaignId: ad.campaignId,
               metric: 'impressions',
               target: ad.impressionTarget,
               actual: ad.liveImpressions
@@ -222,6 +290,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             message: `Ad "${ad.name}" exceeded its click target by ${overPerformance}%`,
             metadata: {
               adId: ad.adId,
+              campaignId: ad.campaignId,
               metric: 'clicks',
               target: ad.clickTarget,
               actual: ad.liveClicks,
@@ -252,6 +321,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
               message: `Ad "${ad.name}" has ${improvement}% better CTR than target (${liveCTR.toFixed(2)}% vs ${targetCTR.toFixed(2)}%)`,
               metadata: {
                 adId: ad.adId,
+                campaignId: ad.campaignId,
                 metric: 'ctr',
                 target: targetCTR,
                 actual: liveCTR,
@@ -299,6 +369,34 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     });
   };
 
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setCheckedTargets(new Set());
+    localStorage.removeItem(STORAGE_KEY);
+    toast.success('All notifications cleared');
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read when clicked
+    markAsRead(notification.id);
+    
+    // Navigate based on notification metadata
+    if (notification.metadata?.campaignId && notification.metadata?.adId) {
+      // Navigate to specific ad details within campaign
+      window.location.href = `/campaigns/${notification.metadata.campaignId}/ads/${notification.metadata.adId}`;
+    } else if (notification.metadata?.adId) {
+      // Navigate to ad details - need to find the campaign first
+      // For now, we'll navigate to the ad list and let user find the ad
+      window.location.href = `/campaigns/undefined/ads/${notification.metadata.adId}`;
+    } else if (notification.metadata?.campaignId) {
+      // Navigate to campaign details
+      window.location.href = `/campaigns/${notification.metadata.campaignId}`;
+    }
+    
+    // Close notifications modal
+    closeNotificationsModal();
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
@@ -311,6 +409,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         markAsRead,
         markAllAsRead,
         clearNotifications,
+        clearAllNotifications,
+        removeNotification,
+        handleNotificationClick,
         checkPerformanceAlerts,
         openNotificationsModal,
         closeNotificationsModal,

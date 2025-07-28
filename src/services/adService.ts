@@ -400,6 +400,52 @@ class AdService {
       };
     }
   }
+
+  // Archive an ad
+  async archiveAd(adId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      console.log(`📦 Archiving ad ${adId}...`);
+      
+      if (!adId || isNaN(adId) || adId < 0) {
+        return {
+          success: false,
+          message: 'Invalid ad ID'
+        };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/archive?userId=${userId}`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ adId })
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 1) {
+        console.log(`✅ Ad ${adId} archived successfully`);
+        return {
+          success: true,
+          data: result.data,
+          message: result.message || 'Ad archived successfully'
+        };
+      } else {
+        console.error(`❌ Failed to archive ad ${adId}:`, result.message);
+        return {
+          success: false,
+          message: result.message || 'Failed to archive ad'
+        };
+      }
+    } catch (error) {
+      console.error(`❌ Error archiving ad ${adId}:`, error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'An unexpected error occurred while archiving ad'
+      };
+    }
+  }
 }
 
 export const adService = new AdService(); 

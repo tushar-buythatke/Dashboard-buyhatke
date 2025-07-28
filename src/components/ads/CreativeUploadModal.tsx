@@ -107,7 +107,7 @@ export default function CreativeUploadModal({
       const formData = new FormData();
       formData.append('image', selectedFile);
       
-      const response = await fetch(`/api/uploadCreative?userId=1`, {
+      const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/uploadCreative?userId=1`, {
         method: 'POST',
         body: formData
       });

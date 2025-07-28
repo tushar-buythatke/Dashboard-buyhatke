@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Ad, Slot, ApiAd, mapApiAdToAd } from '@/types';
 import { motion } from 'framer-motion';
 import { analyticsService } from '@/services/analyticsService';
+import { exportToCsv } from '@/utils/csvExport';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -124,6 +125,50 @@ export function AdDetail() {
       console.error('Error cloning ad:', error);
       toast.error('Failed to clone ad');
     }
+  };
+
+  const handleExport = () => {
+    if (!ad) {
+      toast.error('No ad data to export');
+      return;
+    }
+
+    // Prepare detailed CSV data for single ad
+    const csvData = [{
+      'Ad ID': ad.adId,
+      'Ad Name': ad.name,
+      'Campaign ID': campaignId,
+      'Campaign Name': campaign?.brandName || 'N/A',
+      'Status': ad.status === 1 ? 'Live' : ad.status === 0 ? 'Draft' : 'Paused',
+      'Slot ID': ad.slotId,
+      'Slot Name': slot?.name || 'N/A',
+      'Platform': slot?.platform === 0 ? 'Web' : slot?.platform === 1 ? 'Mobile' : slot?.platform === 2 ? 'Extension' : 'Unknown',
+      'Impression Target': ad.impressionTarget || 0,
+      'Click Target': ad.clickTarget || 0,
+      'Creative URL': ad.creativeUrl || 'N/A',
+      'Impression Pixel': ad.impressionPixel || 'N/A',
+      'Click Pixel': ad.clickPixel || 'N/A',
+      'Categories': ad.categories ? Object.keys(ad.categories).join(', ') : 'N/A',
+      'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
+      'Locations': ad.location ? Object.keys(ad.location).join(', ') : 'N/A',
+      'Brand Targets': ad.brandTargets ? Object.keys(ad.brandTargets).join(', ') : 'N/A',
+      'Start Date': ad.startDate || 'N/A',
+      'End Date': ad.endDate || 'N/A',
+      'Start Time': ad.startTime || 'N/A',
+      'End Time': ad.endTime || 'N/A',
+      'Priority': ad.priority || 'N/A',
+      'Gender Target': ad.gender || 'N/A',
+      'Age Range': `${ad.ageRangeMin || 'N/A'} - ${ad.ageRangeMax || 'N/A'}`,
+      'Price Range': `${ad.priceRangeMin || 'N/A'} - ${ad.priceRangeMax || 'N/A'}`,
+      'Is Test Phase': ad.isTestPhase ? 'Yes' : 'No',
+      'Serve Strategy': ad.serveStrategy || 'N/A',
+      'Created Date': ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : 'N/A',
+      'Last Updated': ad.updatedAt ? new Date(ad.updatedAt).toLocaleDateString() : 'N/A'
+    }];
+
+    const filename = `ad_${ad.adId}_${ad.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCsv(csvData, filename);
+    toast.success(`Exported ad details to ${filename}`);
   };
 
   const handleStatusChange = async (newStatus: 0 | 1) => {
@@ -246,6 +291,16 @@ export function AdDetail() {
                 >
                   <Copy className="h-4 w-4" />
                   <span>Clone</span>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  className="flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export</span>
                 </Button>
                 
                 {ad.status === 1 ? (

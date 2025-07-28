@@ -1,35 +1,59 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X, Target, Activity, Zap, Star, Sparkles } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X, Target, Activity, Zap, Star, Sparkles, Archive, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { toast } from 'sonner';
 import { Ad, Slot, SlotListResponse, ApiAd, mapApiAdToAd } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { analyticsService } from '@/services/analyticsService';
+import { adService } from '@/services/adService';
+import { exportToCsv } from '@/utils/csvExport';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
 
+const statusOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: '0', label: 'Paused' },
+  { value: '1', label: 'Live' },
+  { value: '-1', label: 'Archived' },
+];
+
+const statusMap = {
+  0: { label: 'Paused', variant: 'outline' as const },
+  1: { label: 'Live', variant: 'success' as const },
+  '-1': { label: 'Archived', variant: 'destructive' as const },
+} as const;
+
 export function AdList() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { theme } = useTheme();
   const { checkPerformanceAlerts, addNotification } = useNotifications();
   const [ads, setAds] = useState<Ad[]>([]);
   const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const statusFilter = searchParams.get('status') || 'all';
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<Record<number, Slot>>({});
   const [campaign, setCampaign] = useState<{ brandName?: string; id?: number }>({});
   const [error, setError] = useState<string | null>(null);
   const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    adId?: number;
+    adName?: string;
+  }>({ isOpen: false });
   // We use adService for auto-numbering, but don't need visual indicators in the UI
 
   useEffect(() => {
@@ -249,23 +273,83 @@ export function AdList() {
 
   const handleCloneAd = async (adId: number) => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/clone?userId=1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId })
-      });
-
-      if (!response.ok) throw new Error('Failed to clone ad');
+      const response = await adService.cloneAd(adId, 1);
       
-      const result = await response.json();
-      if (result.status === 1) {
+      if (response.success) {
         toast.success('Ad cloned successfully');
         fetchAds();
+      } else {
+        toast.error(response.message || 'Failed to clone ad');
       }
     } catch (error) {
       console.error('Error cloning ad:', error);
       toast.error('Failed to clone ad');
     }
+  };
+
+  const handleArchiveAd = (adId: number) => {
+    const ad = ads.find(a => a.adId === adId);
+    setConfirmationModal({
+      isOpen: true,
+      adId,
+      adName: ad?.name || 'Unknown Ad'
+    });
+  };
+
+  const confirmArchiveAd = async () => {
+    try {
+      if (!confirmationModal.adId) return;
+
+      const response = await adService.archiveAd(confirmationModal.adId, 1);
+      
+      if (response.success) {
+        toast.success(`Ad "${confirmationModal.adName}" archived successfully`);
+        fetchAds(); // Refresh the list
+      } else {
+        toast.error(response.message || 'Failed to archive ad');
+      }
+    } catch (error) {
+      console.error('Error archiving ad:', error);
+      toast.error('Failed to archive ad');
+    } finally {
+      setConfirmationModal({ isOpen: false });
+    }
+  };
+
+  const handleExport = () => {
+    if (filteredAds.length === 0) {
+      toast.error('No ads to export');
+      return;
+    }
+
+    // Prepare CSV data
+    const csvData = filteredAds.map(ad => ({
+      'Ad ID': ad.adId,
+      'Ad Name': ad.name,
+      'Campaign ID': campaignId,
+      'Campaign Name': campaign.brandName || 'N/A',
+      'Status': ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown',
+      'Slot ID': ad.slotId,
+      'Slot Name': slots[ad.slotId]?.name || 'N/A',
+      'Platform': slots[ad.slotId]?.platform === 0 ? 'Web' : slots[ad.slotId]?.platform === 1 ? 'Mobile' : slots[ad.slotId]?.platform === 2 ? 'Extension' : 'Unknown',
+      'Impression Target': ad.impressionTarget || 0,
+      'Click Target': ad.clickTarget || 0,
+      'Creative URL': ad.creativeUrl || 'N/A',
+      'Start Date': ad.startDate || 'N/A',
+      'End Date': ad.endDate || 'N/A',
+      'Start Time': ad.startTime || 'N/A',
+      'End Time': ad.endTime || 'N/A',
+      'Priority': ad.priority || 'N/A',
+      'Gender Target': ad.gender || 'N/A',
+      'Age Range': `${ad.ageRangeMin || 'N/A'} - ${ad.ageRangeMax || 'N/A'}`,
+      'Price Range': `${ad.priceRangeMin || 'N/A'} - ${ad.priceRangeMax || 'N/A'}`,
+      'Created Date': ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : 'N/A',
+      'Last Updated': ad.updatedAt ? new Date(ad.updatedAt).toLocaleDateString() : 'N/A'
+    }));
+
+    const filename = `ads_campaign_${campaignId}_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCsv(csvData, filename);
+    toast.success(`Exported ${filteredAds.length} ads to ${filename}`);
   };
 
   const handleStatusChange = async (adId: number, newStatus: 0 | 1) => {
@@ -294,20 +378,25 @@ export function AdList() {
     setFilteredAds(ads);
   }, [ads]);
 
-  // Filter ads when search query changes
+  // Filter ads when search query or status changes
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredAds(ads);
-      return;
+    let filtered = ads;
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(ad => ad.status.toString() === statusFilter);
     }
-    
-    const query = searchQuery.toLowerCase().trim();
-    const filtered = ads.filter(ad => 
-      ad.name.toLowerCase().includes(query)
-    );
-    
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(ad => 
+        ad.name.toLowerCase().includes(query)
+      );
+    }
+
     setFilteredAds(filtered);
-  }, [ads, searchQuery]);
+  }, [ads, searchQuery, statusFilter]);
 
   // We handle auto-numbering in the AdForm component when selecting existing names
 
@@ -366,16 +455,18 @@ export function AdList() {
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <Badge 
-                  variant={ad.status === 1 ? 'success' : 'outline'} 
+                  variant={ad.status === 1 ? 'success' : ad.status === -1 ? 'destructive' : 'outline'} 
                   className={`text-xs ${
                     ad.status === 1 
                       ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
                       : ad.status === 0 
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700' 
-                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
+                        : ad.status === -1
+                          ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
+                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
+                  {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
                 </Badge>
                 {ad.slotName && (
                   <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
@@ -429,6 +520,16 @@ export function AdList() {
                 >
                   <Copy className="mr-2 h-4 w-4 text-purple-600" />
                   <span>Clone</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleArchiveAd(ad.adId);
+                  }}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  <span>Archive</span>
                 </DropdownMenuItem>
                 {ad.status === 1 ? (
                   <DropdownMenuItem 
@@ -578,6 +679,7 @@ export function AdList() {
                 </Button>
                 <Button
                   variant="outline"
+                  onClick={handleExport}
                   className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 h-10 px-4"
                 >
                   <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -742,7 +844,7 @@ export function AdList() {
                   Search & Filter
                 </h3>
               </div>
-              {searchQuery && (
+              {(searchQuery || statusFilter !== 'all') && (
                 <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg">
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                     {filteredAds.length} results
@@ -774,15 +876,43 @@ export function AdList() {
                   </div>
                 )}
               </div>
+              
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    const newSearchParams = new URLSearchParams(searchParams);
+                    if (value === 'all') {
+                      newSearchParams.delete('status');
+                    } else {
+                      newSearchParams.set('status', value);
+                    }
+                    setSearchParams(newSearchParams);
+                  }}
+                >
+                  <SelectTrigger className="w-40 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
-            {searchQuery && filteredAds.length === 0 && (
+            {(searchQuery || statusFilter !== 'all') && filteredAds.length === 0 && (
               <div className="mt-4 text-center py-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
                 <div className="text-amber-700 dark:text-amber-300 font-medium">
-                  No ads found matching <span className="font-semibold">"{searchQuery}"</span>
+                  No ads found {searchQuery && `matching "${searchQuery}"`}
+                  {statusFilter !== 'all' && ` with status "${statusOptions.find(opt => opt.value === statusFilter)?.label}"`}
                 </div>
                 <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                  Try adjusting your search terms or create a new ad
+                  Try adjusting your filters or create a new ad
                 </p>
               </div>
             )}
@@ -906,7 +1036,7 @@ export function AdList() {
                                     : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
                               }`}
                             >
-                              {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : 'Draft'}
+                              {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
                             </Badge>
                           </motion.div>
                         </TableCell>
@@ -1004,6 +1134,16 @@ export function AdList() {
                                 <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
                                 <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleArchiveAd(ad.adId);
+                                }}
+                                className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                              >
+                                <Archive className="mr-2 h-4 w-4" />
+                                <span className="font-medium">Archive</span>
+                              </DropdownMenuItem>
                               {ad.status === 1 ? (
                                 <DropdownMenuItem
                                   onClick={(e) => {
@@ -1058,6 +1198,18 @@ export function AdList() {
           </div>
         </motion.div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ isOpen: false })}
+        onConfirm={confirmArchiveAd}
+        title="Archive Ad"
+        message="Are you sure you want to archive this ad? This action cannot be undone."
+        itemName={confirmationModal.adName}
+        itemType="ad"
+        variant="danger"
+      />
     </div>
   );
 }
