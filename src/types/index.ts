@@ -116,8 +116,6 @@ export interface MetricsData {
   clicks: number;
   ctr: number;
   conversions: number;
-  revenue: number;
-  roi: number;
 }
 
 export interface TrendDataPoint {
@@ -127,7 +125,6 @@ export interface TrendDataPoint {
   conversions: number;
   ctr: number;
   conversionRate: number;
-  revenue?: number;
 }
 
 export interface BreakdownData {

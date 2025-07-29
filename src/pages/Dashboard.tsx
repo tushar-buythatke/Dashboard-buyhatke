@@ -4,7 +4,7 @@ import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Download, TrendingUp, Users, Target, Zap, Sparkles, Rocket, Award, Crown, Star, Activity, BarChart3, PieChart, Eye, MousePointer, DollarSign } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Users, Target, Zap, Sparkles, Rocket, Award, Crown, Star, Activity, BarChart3, PieChart, Eye, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,9 +24,7 @@ const getDefaultMetrics = (): MetricsData => ({
   impressions: 0,
   clicks: 0,
   conversions: 0,
-  revenue: 0,
-  ctr: 0,
-  roi: 0
+  ctr: 0
 });
 
 // Helper function to save data to localStorage
@@ -135,23 +133,31 @@ export function Dashboard() {
       
       console.log('📊 Fetching LAST 7 DAYS data using individual campaign approach like Analytics');
       
-      // Create last 7 days date range
+      // Create last 7 days date range (exactly 7 days from today)
+      const today = new Date();
+      const sevenDaysAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000); // 6 days ago + today = 7 days
+      
       const last7DaysPayload: MetricsPayload = {
-        from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        to: new Date().toISOString().split('T')[0],
+        from: sevenDaysAgo.toISOString().split('T')[0],
+        to: today.toISOString().split('T')[0],
         interval: '1d' // Daily intervals for better line chart
       };
       
-      console.log('📊 Date range:', last7DaysPayload);
+      console.log('📊 Date range (exactly 7 days):', {
+        from: last7DaysPayload.from,
+        to: last7DaysPayload.to,
+        totalDays: Math.ceil((today.getTime() - sevenDaysAgo.getTime()) / (24 * 60 * 60 * 1000)) + 1
+      });
       
       // Create comparison period (previous 7 days)
+      const fourteenDaysAgo = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000); // 13 days ago + 7 days ago = previous 7 days
       const comparisonPayload: MetricsPayload = {
-        from: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days ago
-        to: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],    // 7 days ago
+        from: fourteenDaysAgo.toISOString().split('T')[0],
+        to: sevenDaysAgo.toISOString().split('T')[0],
         interval: '1d'
       };
 
-      console.log('📊 Comparison date range:', comparisonPayload);
+      console.log('📊 Comparison date range (previous 7 days):', comparisonPayload);
 
       // First, fetch campaigns list
       const campaignsResult = await analyticsService.getCampaigns();
@@ -230,7 +236,6 @@ export function Dashboard() {
             aggregatedMetrics.impressions += result.metrics.impressions || 0;
             aggregatedMetrics.clicks += result.metrics.clicks || 0;
             aggregatedMetrics.conversions += result.metrics.conversions || 0;
-            aggregatedMetrics.revenue += result.metrics.revenue || 0;
           }
 
           // Aggregate trend data by date
@@ -243,15 +248,13 @@ export function Dashboard() {
                     date,
                     impressions: 0,
                     clicks: 0,
-                    conversions: 0,
-                    revenue: 0
+                    conversions: 0
                   };
                 }
                 
                 trendDataPoints[date].impressions += point.impressions || 0;
                 trendDataPoints[date].clicks += point.clicks || 0;
                 trendDataPoints[date].conversions += point.conversions || 0;
-                trendDataPoints[date].revenue += point.revenue || 0;
               }
             });
           }
@@ -263,8 +266,6 @@ export function Dashboard() {
       // Recalculate derived metrics (like Analytics does)
       aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
         (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
-      aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
-        ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
       console.log('📊 Aggregated metrics (parallel processing):', aggregatedMetrics);
 
@@ -335,7 +336,6 @@ export function Dashboard() {
                 impressions: 0,
                 clicks: 0,
                 conversions: 0,
-                revenue: 0,
                 value: 0
               };
             }
@@ -343,18 +343,28 @@ export function Dashboard() {
             breakdownByType[key].impressions += item.impressions || 0;
             breakdownByType[key].clicks += item.clicks || 0;
             breakdownByType[key].conversions += item.conversions || 0;
-            breakdownByType[key].revenue += item.revenue || 0;
             breakdownByType[key].value = breakdownByType[key].impressions; // For chart display
           });
         });
 
-        // Convert to array and calculate CTR
+        // Convert to array and calculate CTR and proper percentages
+        const breakdownArray = Object.values(breakdownByType).map((item: any) => ({
+          ...item,
+          ctr: item.impressions > 0 ? (item.clicks / item.impressions) * 100 : 0
+        }));
+
+        // Calculate total impressions for percentage calculation
+        const totalImpressions = breakdownArray.reduce((sum, item: any) => sum + (item.impressions || 0), 0);
+        
+        // Calculate proper percentages based on total impressions
+        const breakdownWithPercentages = breakdownArray.map((item: any) => ({
+          ...item,
+          percentage: totalImpressions > 0 ? (item.impressions / totalImpressions) * 100 : 0
+        }));
+
         return {
           type: breakdownType,
-          data: Object.values(breakdownByType).map((item: any) => ({
-            ...item,
-            ctr: item.impressions > 0 ? (item.clicks / item.impressions) * 100 : 0
-          }))
+          data: breakdownWithPercentages
         };
       });
 
@@ -450,7 +460,6 @@ export function Dashboard() {
             aggregatedComparison.impressions += metrics.impressions || 0;
             aggregatedComparison.clicks += metrics.clicks || 0;
             aggregatedComparison.conversions += metrics.conversions || 0;
-            aggregatedComparison.revenue += metrics.revenue || 0;
           }
         });
 
@@ -611,19 +620,19 @@ export function Dashboard() {
   };
 
   const hasComparisonData = comparisonMetricsData !== null;
-  const revenueGrowth = hasComparisonData ? 
-    calculateGrowth(metricsData.revenue, comparisonMetricsData.revenue) : null;
-  const roiGrowth = hasComparisonData ? 
-    calculateGrowth(metricsData.roi, comparisonMetricsData.roi) : null;
+  const ctrGrowth = hasComparisonData ? 
+    calculateGrowth(metricsData.ctr, comparisonMetricsData.ctr) : null;
+  const clicksGrowth = hasComparisonData ? 
+    calculateGrowth(metricsData.clicks, comparisonMetricsData.clicks) : null;
   
   console.log('📊 Growth calculations:', { 
     hasComparisonData, 
-    currentRevenue: metricsData.revenue, 
-    previousRevenue: comparisonMetricsData?.revenue,
-    revenueGrowth,
-    currentROI: metricsData.roi,
-    previousROI: comparisonMetricsData?.roi,
-    roiGrowth 
+    currentCTR: metricsData.ctr, 
+    previousCTR: comparisonMetricsData?.ctr,
+    ctrGrowth,
+    currentClicks: metricsData.clicks,
+    previousClicks: comparisonMetricsData?.clicks,
+    clicksGrowth 
   });
 
   if (loading) {
@@ -778,7 +787,7 @@ export function Dashboard() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2">
         <div className="space-y-6 sm:space-y-8">
           {/* Performance Summary Banner - Only show if we have REAL comparison data */}
-          {hasComparisonData && revenueGrowth !== null && (
+          {hasComparisonData && ctrGrowth !== null && (
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -813,9 +822,9 @@ export function Dashboard() {
                 >
                   <div>
                     <div className="text-2xl font-black text-green-600 dark:text-green-400">
-                      {revenueGrowth > 0 ? '+' : ''}{revenueGrowth.toFixed(1)}%
+                      {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
                     </div>
-                    <div className="text-sm text-green-600 dark:text-green-400 font-semibold">💰 Revenue Growth</div>
+                    <div className="text-sm text-green-600 dark:text-green-400 font-semibold">🎯 CTR Growth</div>
                   </div>
                   <Sparkles className="h-8 w-8 text-green-500" />
                 </motion.div>
@@ -826,9 +835,9 @@ export function Dashboard() {
                 >
                   <div>
                     <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                      {metricsData.roi.toFixed(1)}%
+                      {metricsData.ctr.toFixed(2)}%
                     </div>
-                    <div className="text-sm text-purple-600 dark:text-purple-400 font-semibold">👑 Total ROI</div>
+                    <div className="text-sm text-purple-600 dark:text-purple-400 font-semibold">👑 Overall CTR</div>
                   </div>
                   <Crown className="h-8 w-8 text-purple-500" />
                 </motion.div>

@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Eye, MousePointerClick, Banknote, TrendingDown, Target } from 'lucide-react';
+import { TrendingUp, Eye, MousePointerClick, TrendingDown, Target } from 'lucide-react';
 import { MetricsData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -93,29 +93,11 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
       color: 'text-orange-600 dark:text-orange-400',
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
       changeData: calculateChange(data.conversions, comparisonData?.conversions || 0)
-    },
-    {
-      title: 'Revenue',
-      value: formatCurrency(data.revenue),
-      rawValue: data.revenue,
-      icon: Banknote,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
-      changeData: calculateChange(data.revenue, comparisonData?.revenue || 0)
-    },
-    {
-      title: 'ROI',
-      value: formatPercentage(data.roi),
-      rawValue: data.roi,
-      icon: TrendingDown,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-      changeData: calculateChange(data.roi, comparisonData?.roi || 0)
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <AnimatePresence>
         {metrics.map((metric, index) => (
           <motion.div
@@ -146,7 +128,7 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  {metric.title === 'Revenue' || metric.title === 'ROI' || metric.title === 'CTR' 
+                  {metric.title === 'CTR' 
                     ? metric.value 
                     : <NumberCounter end={metric.rawValue} />}
                 </div>
