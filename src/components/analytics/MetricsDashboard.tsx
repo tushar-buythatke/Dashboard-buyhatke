@@ -31,9 +31,10 @@ const NumberCounter = memo(({ end, duration = 1.5 }: { end: number; duration?: n
   return <span>{Math.round(count).toLocaleString()}</span>;
 });
 
+NumberCounter.displayName = 'NumberCounter';
+
 export function MetricsDashboard({ data, comparisonData, period }: MetricsDashboardProps) {
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (amount: number) => `₹${amount.toLocaleString()}`;
   const formatPercentage = (num: number) => `${num.toFixed(2)}%`;
 
   // Calculate percentage change between current and comparison data
@@ -53,7 +54,7 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
       case '1d': return 'yesterday';
       case '7d': return 'last week';
       case '30d': return 'last month';
-      default: return 'last period';
+      default: return 'previous period';
     }
   };
 

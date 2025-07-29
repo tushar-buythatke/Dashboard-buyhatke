@@ -62,9 +62,7 @@ const getDefaultMetrics = (): MetricsData => ({
   impressions: 0,
   clicks: 0,
   ctr: 0,
-  conversions: 0,
-  revenue: 0,
-  roi: 0
+  conversions: 0
 });
 
 // Helper function to map platform IDs to proper names
@@ -358,7 +356,6 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.revenue += result.metrics.revenue || 0;
             }
           } catch (error) {
             console.error('Error processing campaign metrics:', error, result);
@@ -368,8 +365,6 @@ export default function Analytics() {
         // Recalculate derived metrics
         aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
-        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
-          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
       } else if (activeView === 'slot') {
         // Auto-select all slots if none are selected - using ONLY valid slot IDs
@@ -437,7 +432,6 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.revenue += result.metrics.revenue || 0;
             }
           } catch (error) {
             console.error('Error processing slot metrics:', error, result);
@@ -447,8 +441,6 @@ export default function Analytics() {
         // Recalculate derived metrics
         aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
-        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
-          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
       } else if (activeView === 'pos') {
         // Auto-select all POS if none are selected - using ONLY valid POS IDs
@@ -516,7 +508,6 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.revenue += result.metrics.revenue || 0;
             }
           } catch (error) {
             console.error('Error processing POS metrics:', error, result);
@@ -526,8 +517,6 @@ export default function Analytics() {
         // Recalculate derived metrics
         aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
-        aggregatedMetrics.roi = aggregatedMetrics.impressions > 0 ? 
-          ((aggregatedMetrics.revenue - (aggregatedMetrics.impressions * 0.1)) / (aggregatedMetrics.impressions * 0.1)) * 100 : 0;
 
       } else if (activeView === 'ad') {
         // Ad-wise comparison - if no specific ad names selected, show overall ad performance

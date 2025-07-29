@@ -54,7 +54,6 @@ const groupDataByPeriod = (data: TrendDataPoint[], viewPeriod: ViewPeriod): Tren
       existing.conversions += point.conversions;
       existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
       existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
-      existing.revenue = (existing.revenue || 0) + (point.revenue || 0);
     } else {
       // Create new group
       grouped.set(groupKey, {
@@ -63,8 +62,7 @@ const groupDataByPeriod = (data: TrendDataPoint[], viewPeriod: ViewPeriod): Tren
         clicks: point.clicks,
         conversions: point.conversions,
         ctr: point.impressions > 0 ? (point.clicks / point.impressions) * 100 : 0,
-        conversionRate: point.clicks > 0 ? (point.conversions / point.clicks) * 100 : 0,
-        revenue: point.revenue || 0
+        conversionRate: point.clicks > 0 ? (point.conversions / point.clicks) * 100 : 0
       });
     }
   });
