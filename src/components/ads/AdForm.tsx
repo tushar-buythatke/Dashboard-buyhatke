@@ -7,6 +7,7 @@ import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X,
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -194,6 +195,19 @@ const adSchema = z.object({
 
 type AdFormData = z.infer<typeof adSchema>;
 
+// Helper function to get platform name
+const getPlatformName = (platformId: number): string => {
+  switch (platformId) {
+    case 0: return 'Web Extension';
+    case 1: return 'Mobile Extension';
+    case 2: return 'Desktop Site';
+    case 3: return 'Mobile Site';
+    case 4: return 'Mobile App Overlay';
+    case 5: return 'Mobile App';
+    default: return 'Unknown Platform';
+  }
+};
+
 export function AdForm() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const { adId } = useParams<{ adId?: string }>();
@@ -201,6 +215,7 @@ export function AdForm() {
   const navigate = useNavigate();
 
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -211,6 +226,9 @@ export function AdForm() {
   const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
   const [openLabelSuggestions, setOpenLabelSuggestions] = useState(false);
   const [campaignName, setCampaignName] = useState('');
+  
+  // New states for slot filtering
+  const [slotFilterPlatform, setSlotFilterPlatform] = useState<number | undefined>(undefined);
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
@@ -308,6 +326,7 @@ export function AdForm() {
       const result = await response.json();
       if (result.status === 1 && result.data?.slotList) {
         setSlots(result.data.slotList);
+        setFilteredSlots(result.data.slotList); // Initialize filtered slots
         
         // If editing and we have an adId, set the selected slot after form data is loaded
         if (isEditMode && adId) {
@@ -319,6 +338,18 @@ export function AdForm() {
       toast.error('Failed to load slot information');
     }
   };
+
+  // Filter slots based on platform and name search
+  useEffect(() => {
+    let filtered = slots;
+
+    // Filter by platform
+    if (slotFilterPlatform !== undefined) {
+      filtered = filtered.filter(slot => slot.platform === slotFilterPlatform);
+    }
+
+    setFilteredSlots(filtered);
+  }, [slots, slotFilterPlatform]);
 
   // Fetch slots and ad data
   useEffect(() => {
@@ -748,29 +779,62 @@ export function AdForm() {
                       <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                       Ad Slot
                     </FormLabel>
+                    
+                    {/* Platform Filter */}
+                    <Select
+                      value={slotFilterPlatform?.toString() || "all"}
+                      onValueChange={(value) => {
+                        setSlotFilterPlatform(value === "all" ? undefined : parseInt(value));
+                      }}
+                    >
+                      <SelectTrigger className="transition-shadow duration-200 focus:shadow-md">
+                        <SelectValue placeholder="All Platforms" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Platforms</SelectItem>
+                        <SelectItem value="0">Web Extension</SelectItem>
+                        <SelectItem value="1">Mobile Extension</SelectItem>
+                        <SelectItem value="2">Desktop Site</SelectItem>
+                        <SelectItem value="3">Mobile Site</SelectItem>
+                        <SelectItem value="4">Mobile App Overlay</SelectItem>
+                        <SelectItem value="5">Mobile App</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Slot Selection */}
                     <Select
                       onValueChange={(value) => {
-                        const slot = slots.find(s => s.slotId === parseInt(value));
+                        const slot = filteredSlots.find(s => s.slotId === parseInt(value));
                         setSelectedSlot(slot || null);
                         field.onChange(parseInt(value));
                       }}
                       value={field.value?.toString() || ""}
                     >
                       <FormControl>
-                        <SelectTrigger className="border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 bg-white dark:bg-gray-700 h-12 text-lg rounded-xl shadow-sm transition-all duration-300">
+                        <SelectTrigger className="transition-shadow duration-200 focus:shadow-md">
                           <SelectValue placeholder="Select a slot" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg">
-                        {slots.map((slot) => (
+                      <SelectContent className="max-h-60">
+                        {filteredSlots.map((slot) => (
                           <SelectItem 
                             key={slot.slotId} 
                             value={slot.slotId.toString()}
-                            className="hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            className="py-3"
                           >
-                            {slot.name} ({slot.width} x {slot.height})
+                            <div className="flex flex-col">
+                              <div className="font-medium">{slot.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {getPlatformName(slot.platform)} • {parseFloat(slot.width.toString()).toFixed(0)} x {parseFloat(slot.height.toString()).toFixed(0)} px
+                              </div>
+                            </div>
                           </SelectItem>
                         ))}
+                        {filteredSlots.length === 0 && (
+                          <div className="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                            No slots found matching your filters
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage className="text-red-500 font-medium" />
@@ -786,10 +850,10 @@ export function AdForm() {
                     Creative
                   </FormLabel>
                   {(() => {
-                    const currentSlot = selectedSlot || slots.find(s => s.slotId === form.watch('slotId'));
+                    const currentSlot = selectedSlot || filteredSlots.find(s => s.slotId === form.watch('slotId'));
                     return currentSlot ? (
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Required: {currentSlot.width} x {currentSlot.height}px
+                        Required: {parseFloat(currentSlot.width.toString()).toFixed(0)} x {parseFloat(currentSlot.height.toString()).toFixed(0)} px
                       </span>
                     ) : null;
                   })()}

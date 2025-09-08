@@ -37,9 +37,15 @@ const getPlatformName = (platformId: number | string): string => {
     case 0:
       return 'Web Extension';
     case 1:
-      return 'Mobile App';
+      return 'Mobile Extension';
     case 2:
-      return 'Desktop Web';
+      return 'Desktop Site';
+    case 3:
+      return 'Mobile Site';
+    case 4:
+      return 'Mobile App Overlay';
+    case 5:
+      return 'Mobile App';
     default:
       return typeof platformId === 'string' ? platformId : 'Unknown Platform';
   }

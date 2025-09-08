@@ -4,7 +4,7 @@ import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Download, TrendingUp, Users, Target, Zap, Sparkles, Rocket, Award, Crown, Star, Activity, BarChart3, PieChart, Eye, MousePointer } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Users, Target, Zap, Sparkles, Rocket, Award, Crown, Star, Activity, BarChart3, PieChart, Eye, MousePointer, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -73,9 +73,15 @@ const getPlatformName = (platformId: number | string): string => {
     case 0:
       return 'Web Extension';
     case 1:
-      return 'Mobile App';
+      return 'Mobile Extension';
     case 2:
-      return 'Desktop Web';
+      return 'Desktop Site';
+    case 3:
+      return 'Mobile Site';
+    case 4:
+      return 'Mobile App Overlay';
+    case 5:
+      return 'Mobile App';
     default:
       return typeof platformId === 'string' ? platformId : 'Unknown Platform';
   }
@@ -728,6 +734,16 @@ export function Dashboard() {
                   <BarChart3 className="h-4 w-4" />
                   <span>Deep Analytics</span>
                 </Button>
+                
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => navigate('/slot-management')}
+                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold h-11 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Manage Slots</span>
+                </Button>
               </motion.div>
             )}
           </div>
@@ -860,6 +876,37 @@ export function Dashboard() {
               </Badge>
             </div>
             <MetricsDashboard data={metricsData} comparisonData={comparisonMetricsData || undefined} />
+          </motion.div>
+
+          {/* Slot Management Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-800 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-xl">
+                  <Settings className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
+                    Ad Slot Management
+                  </h3>
+                  <p className="text-emerald-700 dark:text-emerald-300 text-sm">
+                    Create, update, and manage ad slots for different platforms
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/slot-management')}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Slots
+              </Button>
+            </div>
           </motion.div>
 
           {/* Charts Section */}

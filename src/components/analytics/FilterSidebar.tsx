@@ -7,7 +7,7 @@ import { adService } from '@/services/adService';
 
 const genderOptions = ['Male', 'Female'];
 const ageGroups = ["13-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+", "NA"];
-const platforms = ["Web", "Mobile", "Extension"];
+const platforms = ["Web Extension", "Mobile Extension", "Desktop Site", "Mobile Site", "Mobile App Overlay", "Mobile App"];
 
 export function FilterSidebar() {
   const { filters, updateFilters, resetFilters } = useFilters();

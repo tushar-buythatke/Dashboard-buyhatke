@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { analyticsService } from '@/services/analyticsService';
 
 const genderOptions = ['Male', 'Female'];
-const platforms = ["Web", "Mobile", "Extension"];
+const platforms = ["Web Extension", "Mobile Extension", "Desktop Site", "Mobile Site", "Mobile App Overlay", "Mobile App"];
 
 export function FilterDropdown() {
   const { filters, updateFilters, resetFilters } = useFilters();

@@ -6,6 +6,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
+import { SlotManagement } from '@/pages/SlotManagement';
 import { CampaignList } from '@/components/campaigns/CampaignList';
 import { CampaignForm } from '@/components/campaigns/CampaignForm';
 import { AdList } from '@/components/ads/AdList';
@@ -60,6 +61,7 @@ function AppRoutes() {
               </Route>
             </Route>
             <Route path="analytics" element={<Analytics />} />
+            <Route path="slot-management" element={<SlotManagement />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
