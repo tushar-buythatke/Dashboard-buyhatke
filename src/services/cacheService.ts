@@ -1,4 +1,5 @@
 import { Slot } from '@/types';
+import { getApiBaseUrl } from '@/config/api';
 
 // Types for the new category format
 interface CategoryDetail {
@@ -82,7 +83,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/slots');
+      const response = await fetch(`${getApiBaseUrl()}/slots`);
       if (!response.ok) throw new Error('Failed to fetch slots');
       
       const result = await response.json();
@@ -106,7 +107,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/sites');
+      const response = await fetch(`${getApiBaseUrl()}/sites`);
       if (!response.ok) throw new Error('Failed to fetch sites');
       
       const result = await response.json();
@@ -133,7 +134,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/categoryDetails?param=${encodeURIComponent(searchParam || '')}`);
+      const response = await fetch(`${getApiBaseUrl()}/ads/categoryDetails?param=${encodeURIComponent(searchParam || '')}`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       
       const result = await response.json() as CategoryResponse;

@@ -1,6 +1,8 @@
 import { encryptAES } from '@/utils/encryption';
 
-const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/users';
+import { getApiBaseUrl } from '@/config/api';
+
+const getAuthApiUrl = () => `${getApiBaseUrl()}/users`;
 
 export interface User {
   userName: string;
@@ -130,7 +132,7 @@ class AuthService {
     try {
       console.debug('Checking session with backend...');
       
-      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
+      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -204,7 +206,7 @@ class AuthService {
       
       const encryptedPassword = await encryptAES(credentials.password);
       
-      const response = await fetch(`${API_BASE_URL}/validateLogin`, this.getRequestOptions({
+      const response = await fetch(`${getAuthApiUrl()}/validateLogin`, this.getRequestOptions({
         userName: credentials.userName,
         password: encryptedPassword,
       }, 'validateLogin'));
@@ -259,7 +261,7 @@ class AuthService {
       console.debug('Logging out...');
       
       // Call backend logout to clear server-side session/cookies
-      const response = await fetch(`${API_BASE_URL}/logout`, this.getRequestOptions(null, 'logout'));
+      const response = await fetch(`${getAuthApiUrl()}/logout`, this.getRequestOptions(null, 'logout'));
       
       if (response.ok) {
         const result = await response.json();
@@ -292,7 +294,7 @@ class AuthService {
     try {
       const encryptedPassword = await encryptAES(userData.password);
       
-      const response = await fetch(`${API_BASE_URL}/addUsers`, this.getRequestOptions({
+      const response = await fetch(`${getAuthApiUrl()}/addUsers`, this.getRequestOptions({
         userName: userData.userName,
         password: encryptedPassword,
         type: userData.type
@@ -424,7 +426,7 @@ if (typeof window !== 'undefined') {
   (window as any).testBackendSession = async () => {
     console.group('🔍 Testing Backend Session');
     try {
-      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
+      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -464,7 +466,7 @@ if (typeof window !== 'undefined') {
     try {
       // Test with credentials: 'include'
       console.log('Testing with credentials: "include"...');
-      const response = await fetch(`${API_BASE_URL}/isLoggedIn`, {
+      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -501,7 +503,7 @@ if (typeof window !== 'undefined') {
   (window as any).testExactRequest = async () => {
     console.group('🧪 Testing Exact Request (Your Working Version)');
     try {
-      const response = await fetch("https://ext1.buyhatke.com/buhatkeAdDashboard-test/users/isLoggedIn", {
+      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
         "headers": {
           "accept": "*/*",
           "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
@@ -539,10 +541,10 @@ if (typeof window !== 'undefined') {
     console.group('🔬 Testing All Auth Endpoints');
     
     const endpoints = [
-      { name: 'isLoggedIn', url: `${API_BASE_URL}/isLoggedIn`, body: null },
-      { name: 'validateLogin', url: `${API_BASE_URL}/validateLogin`, body: { userName: 'test', password: 'test' } },
-      { name: 'logout', url: `${API_BASE_URL}/logout`, body: null },
-      { name: 'addUsers', url: `${API_BASE_URL}/addUsers`, body: { userName: 'test', password: 'test', type: 0 } }
+      { name: 'isLoggedIn', url: `${getAuthApiUrl()}/isLoggedIn`, body: null },
+      { name: 'validateLogin', url: `${getAuthApiUrl()}/validateLogin`, body: { userName: 'test', password: 'test' } },
+      { name: 'logout', url: `${getAuthApiUrl()}/logout`, body: null },
+      { name: 'addUsers', url: `${getAuthApiUrl()}/addUsers`, body: { userName: 'test', password: 'test', type: 0 } }
     ];
 
     const results: Record<string, any> = {};

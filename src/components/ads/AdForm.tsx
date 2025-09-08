@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { LocationAutoSuggest, CategoryAutoSuggest, BrandInput } from '@/components/ui/auto-suggest';
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
+import { getApiBaseUrl } from '@/config/api';
 import { toast } from 'sonner';
 import { Slot, Ad } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -320,7 +321,7 @@ export function AdForm() {
 
   const fetchSlots = async () => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/slots');
+      const response = await fetch(`${getApiBaseUrl()}/slots`);
       if (!response.ok) throw new Error('Failed to fetch slots');
       
       const result = await response.json();
@@ -360,7 +361,7 @@ export function AdForm() {
         // Fetch campaign name
         if (campaignId) {
           try {
-            const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`);
+            const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`);
             if (response.ok) {
               const result = await response.json();
               if (result.status === 1 && result.data?.campaignList?.[0]) {
@@ -389,7 +390,7 @@ export function AdForm() {
             });
 
             const response = await fetch(
-              `https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads?${params.toString()}`
+              `${getApiBaseUrl()}/ads?${params.toString()}`
             );
 
             if (!response.ok) {
@@ -511,8 +512,8 @@ export function AdForm() {
     try {
       setLoading(true);
       const url = isEditMode 
-        ? `https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/update?userId=1`
-        : `https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads?userId=1`;
+        ? `${getApiBaseUrl()}/ads/update?userId=1`
+        : `${getApiBaseUrl()}/ads?userId=1`;
 
       const method = 'POST';
       const body = {

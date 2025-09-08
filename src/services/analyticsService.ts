@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test';
+import { getApiBaseUrl } from '@/config/api';
 
 export interface MetricsPayload {
   from: string;
@@ -56,7 +56,7 @@ class AnalyticsService {
   async getMetrics(payload: MetricsPayload): Promise<{ success: boolean; data?: MetricsData; message?: string }> {
     try {
       const body = this.preparePayloadForAll(payload);
-      const response = await fetch(`${API_BASE_URL}/metrics/all?userId=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/metrics/all?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ class AnalyticsService {
       const body = this.preparePayloadForTrend(payload);
       console.log('📈 Making trend API call with payload:', body);
       
-      const response = await fetch(`${API_BASE_URL}/metrics/trend?userId=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/metrics/trend?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ class AnalyticsService {
       const body = this.preparePayloadForBreakdown(payload);
       console.log(`Making breakdown API call for ${payload.by}:`, body);
       
-      const response = await fetch(`${API_BASE_URL}/metrics/breakdown?userId=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/metrics/breakdown?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ class AnalyticsService {
   // Get campaigns for dropdown
   async getCampaigns(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/campaigns`);
+      const response = await fetch(`${getApiBaseUrl()}/campaigns`);
       const result = await response.json();
       
       if (result.status === 1 && result.data?.campaignList) {
@@ -200,7 +200,7 @@ class AnalyticsService {
   // Get slots for dropdown
   async getSlots(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/slots`);
+      const response = await fetch(`${getApiBaseUrl()}/slots`);
       const result = await response.json();
       
       if (result.status === 1 && result.data?.slotList) {
@@ -227,7 +227,7 @@ class AnalyticsService {
   // Get sites for dropdown (marketplaces/POS)
   async getSites(): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/siteDetails`);
+      const response = await fetch(`${getApiBaseUrl()}/ads/siteDetails`);
       const result = await response.json();
       
       if (result.status === 1 && result.data?.siteDetails) {
@@ -262,7 +262,7 @@ class AnalyticsService {
   // Fetch tabular aggregated data (location, slot, ad etc.)
   async getTableData(type: 'location' | 'slotId' | 'adId', sortBy: 'impressions' | 'clicks' = 'impressions'): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/metrics/table?userId=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/metrics/table?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -303,7 +303,7 @@ class AnalyticsService {
   // Get all metrics data (simplified endpoint)
   async getAllMetrics(): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/metrics/all?userId=1`);
+      const response = await fetch(`${getApiBaseUrl()}/metrics/all?userId=1`);
       const result = await response.json();
       
       if (result.status === 1 && result.data) {

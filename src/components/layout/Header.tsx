@@ -39,6 +39,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { Card } from '@/components/ui/card';
 import { NotificationsModal } from './NotificationsModal';
+import { EnvironmentToggle } from '@/components/ui/environment-toggle';
 
 function getInitials(userName: string | null | undefined) {
   if (!userName) return 'U';
@@ -630,6 +631,9 @@ export function Header({ onMenuClick }: HeaderProps) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
         >
+          {/* Environment Toggle */}
+          <EnvironmentToggle />
+
           {/* Theme Toggle */}
           <motion.div
             whileHover={{ scale: 1.05, rotate: 180 }}

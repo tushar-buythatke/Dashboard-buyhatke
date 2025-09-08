@@ -1,4 +1,6 @@
-const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads';
+import { getApiBaseUrl } from '@/config/api';
+
+const getAdApiUrl = () => `${getApiBaseUrl()}/ads`;
 
 export interface SiteDetail {
   domain: string[];
@@ -102,7 +104,7 @@ class AdService {
       if (filters?.adId) params.append('adId', filters.adId.toString());
       if (filters?.status !== undefined) params.append('status', filters.status.toString());
 
-      const url = `${API_BASE_URL}${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `${getAdApiUrl()}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'omit',
@@ -129,7 +131,7 @@ class AdService {
   // Get site details for dropdown
   async getSiteDetails(): Promise<{ success: boolean; data?: SiteDetails; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/siteDetails`, {
+      const response = await fetch(`${getAdApiUrl()}/siteDetails`, {
         method: 'GET',
         credentials: 'omit',
         headers: {
@@ -155,7 +157,7 @@ class AdService {
   // Get location details for auto-suggestion
   async getLocationDetails(): Promise<{ success: boolean; data?: LocationDetails; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/locationDetails`, {
+      const response = await fetch(`${getAdApiUrl()}/locationDetails`, {
         method: 'GET',
         credentials: 'omit',
         headers: {
@@ -191,7 +193,7 @@ class AdService {
   // Get category suggestions based on search term
   async getCategoryDetails(searchTerm: string): Promise<{ success: boolean; data?: CategoryDetails; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/categoryDetails?param=${encodeURIComponent(searchTerm)}`, {
+      const response = await fetch(`${getAdApiUrl()}/categoryDetails?param=${encodeURIComponent(searchTerm)}`, {
         method: 'GET',
         credentials: 'omit',
         headers: {
@@ -221,7 +223,7 @@ class AdService {
     formData.append('slotId', slotId.toString());
 
     try {
-      const response = await fetch(`${API_BASE_URL}/uploadCreative?userId=1`, {
+      const response = await fetch(`${getAdApiUrl()}/uploadCreative?userId=1`, {
         method: 'POST',
         body: formData,
       });
@@ -251,7 +253,7 @@ class AdService {
   // Create new ad
   async createAd(adData: CreateAdData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}?userId=${userId}`, {
+      const response = await fetch(`${getAdApiUrl()}?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {
@@ -278,7 +280,7 @@ class AdService {
   // Update an existing ad
   async updateAd(adId: number, data: UpdateAdData): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/${adId}`, {
+      const response = await fetch(`${getAdApiUrl()}/${adId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -311,7 +313,7 @@ class AdService {
   // Clone existing ad
   async cloneAd(adId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/clone?userId=${userId}`, {
+      const response = await fetch(`${getAdApiUrl()}/clone?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {
@@ -341,7 +343,7 @@ class AdService {
       console.log(`🔍 Fetching ad labels for campaign ID: ${campaignId}`);
       
       // Using the correct API endpoint
-      const response = await fetch(`${API_BASE_URL}?campaignId=${campaignId}`);
+      const response = await fetch(`${getAdApiUrl()}?campaignId=${campaignId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -413,7 +415,7 @@ class AdService {
         };
       }
 
-      const response = await fetch(`${API_BASE_URL}/archive?userId=${userId}`, {
+      const response = await fetch(`${getAdApiUrl()}/archive?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {

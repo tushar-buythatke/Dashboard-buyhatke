@@ -1,4 +1,6 @@
-const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns';
+import { getApiBaseUrl } from '@/config/api';
+
+const getCampaignApiUrl = () => `${getApiBaseUrl()}/campaigns`;
 
 export interface Campaign {
   id: number;
@@ -36,7 +38,7 @@ class CampaignService {
       if (filters?.status !== undefined) params.append('status', filters.status.toString());
       if (filters?.createdBy) params.append('createdBy', filters.createdBy.toString());
 
-      const url = `${API_BASE_URL}${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `${getCampaignApiUrl()}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'omit',
@@ -65,7 +67,7 @@ class CampaignService {
     try {
       console.log(`🚀 Creating new campaign...`);
       
-      const response = await fetch(`${API_BASE_URL}?userId=${userId}`, {
+      const response = await fetch(`${getCampaignApiUrl()}?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {
@@ -111,7 +113,7 @@ class CampaignService {
         };
       }
 
-      const response = await fetch(`${API_BASE_URL}?userId=${userId}`, {
+      const response = await fetch(`${getCampaignApiUrl()}?userId=${userId}`, {
         method: 'PUT',
         credentials: 'omit',
         headers: {
@@ -160,7 +162,7 @@ class CampaignService {
         };
       }
 
-      const response = await fetch(`${API_BASE_URL}/archive?userId=${userId}`, {
+      const response = await fetch(`${getCampaignApiUrl()}/archive?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {
@@ -206,7 +208,7 @@ class CampaignService {
         };
       }
 
-      const response = await fetch(`${API_BASE_URL}/clone?userId=${userId}`, {
+      const response = await fetch(`${getCampaignApiUrl()}/clone?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {

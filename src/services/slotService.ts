@@ -1,5 +1,5 @@
 // Slot management service
-const API_BASE_URL = 'https://ext1.buyhatke.com/buhatkeAdDashboard-test';
+import { getApiBaseUrl } from '@/config/api';
 
 export interface Slot {
   slotId: number;
@@ -69,7 +69,7 @@ class SlotService {
     if (slotId !== undefined) params.append('slotId', slotId.toString());
     if (isActive !== undefined) params.append('isActive', isActive.toString());
     
-    const url = `${API_BASE_URL}/slots${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `${getApiBaseUrl()}/slots${params.toString() ? `?${params.toString()}` : ''}`;
     
     try {
       const response = await this.makeRequest<any>(url);
@@ -100,7 +100,7 @@ class SlotService {
 
   // Create a new slot
   async createSlot(payload: CreateSlotPayload): Promise<SlotResponse> {
-    const url = `${API_BASE_URL}/slots`;
+    const url = `${getApiBaseUrl()}/slots`;
     
     try {
       const response = await this.makeRequest<any>(url, {
@@ -124,7 +124,7 @@ class SlotService {
 
   // Update an existing slot
   async updateSlot(payload: UpdateSlotPayload): Promise<SlotResponse> {
-    const url = `${API_BASE_URL}/slots/update`;
+    const url = `${getApiBaseUrl()}/slots/update`;
     
     try {
       const response = await this.makeRequest<any>(url, {

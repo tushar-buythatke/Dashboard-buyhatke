@@ -3,6 +3,7 @@ import { FilterProvider } from '@/context/FilterContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { EnvironmentProvider } from '@/context/EnvironmentContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
@@ -74,13 +75,15 @@ function AppRoutes() {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <FilterProvider>
-            <AppRoutes />
-          </FilterProvider>
-        </NotificationProvider>
-      </AuthProvider>
+      <EnvironmentProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <FilterProvider>
+              <AppRoutes />
+            </FilterProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </EnvironmentProvider>
     </ThemeProvider>
   );
 }
