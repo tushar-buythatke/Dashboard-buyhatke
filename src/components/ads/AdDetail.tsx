@@ -9,6 +9,8 @@ import { Ad, Slot, ApiAd, mapApiAdToAd } from '@/types';
 import { motion } from 'framer-motion';
 import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
+import { getApiBaseUrl } from '@/config/api';
+import { getPlatformName } from '@/utils/platform';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -36,9 +38,9 @@ export function AdDetail() {
 
       // Fetch ad details, slot info, and campaign info in parallel
       const [adResponse, slotsResponse, campaignResponse] = await Promise.all([
-        fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads?campaignId=${campaignId}&adId=${adId}&slotId=&status=`),
-        fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/slots'),
-        fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`)
+        fetch(`${getApiBaseUrl()}/ads?campaignId=${campaignId}&adId=${adId}&slotId=&status=`),
+        fetch(`${getApiBaseUrl()}/slots`),
+        fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`)
       ]);
 
       if (!adResponse.ok || !slotsResponse.ok || !campaignResponse.ok) {
@@ -108,7 +110,7 @@ export function AdDetail() {
     if (!ad) return;
     
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/clone?userId=1', {
+      const response = await fetch(`${getApiBaseUrl()}/ads/clone?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adId: ad.adId })
@@ -142,7 +144,7 @@ export function AdDetail() {
       'Status': ad.status === 1 ? 'Live' : ad.status === 0 ? 'Draft' : 'Paused',
       'Slot ID': ad.slotId,
       'Slot Name': slot?.name || 'N/A',
-      'Platform': slot?.platform === 0 ? 'Web' : slot?.platform === 1 ? 'Mobile' : slot?.platform === 2 ? 'Extension' : 'Unknown',
+      'Platform': slot?.platform !== undefined ? getPlatformName(slot.platform) : 'N/A',
       'Impression Target': ad.impressionTarget || 0,
       'Click Target': ad.clickTarget || 0,
       'Creative URL': ad.creativeUrl || 'N/A',
@@ -176,7 +178,7 @@ export function AdDetail() {
     if (!ad) return;
 
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/update?userId=1', {
+      const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adId: ad.adId, status: newStatus })
@@ -471,6 +473,11 @@ export function AdDetail() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {slot.width} x {slot.height} pixels
                       </p>
+                      <div className="mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {getPlatformName(slot.platform)}
+                        </Badge>
+                      </div>
                     </div>
                   )}
                 </div>

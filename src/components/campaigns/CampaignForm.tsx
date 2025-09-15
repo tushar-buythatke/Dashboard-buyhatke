@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { getApiBaseUrl } from '@/config/api';
 
 const campaignFormSchema = z.object({
   brandName: z.string().min(1, 'Brand name is required'),
@@ -46,7 +47,7 @@ export function CampaignForm() {
 
   const fetchCampaign = async () => {
     try {
-              const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`, {
+              const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`, {
           credentials: 'omit'
         });
       if (!response.ok) throw new Error('Failed to fetch campaign');
@@ -92,8 +93,8 @@ export function CampaignForm() {
 
       // Determine the URL based on whether we're creating or updating
       const url = isEditMode 
-        ? 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns/update?userId=1'
-        : 'https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?userId=1';
+        ? `${getApiBaseUrl()}/campaigns/update?userId=1`
+        : `${getApiBaseUrl()}/campaigns?userId=1`;
 
       const response = await fetch(url, {
         method: 'POST',

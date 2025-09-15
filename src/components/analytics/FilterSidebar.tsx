@@ -4,10 +4,11 @@ import { useFilters } from '@/context/FilterContext';
 import { useEffect, useState } from 'react';
 import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
+import { PLATFORM_OPTIONS } from '@/utils/platform';
 
 const genderOptions = ['Male', 'Female'];
 const ageGroups = ["13-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+", "NA"];
-const platforms = ["Web Extension", "Mobile Extension", "Desktop Site", "Mobile Site", "Mobile App Overlay", "Mobile App"];
+const platforms = PLATFORM_OPTIONS.map(p => p.label);
 
 export function FilterSidebar() {
   const { filters, updateFilters, resetFilters } = useFilters();

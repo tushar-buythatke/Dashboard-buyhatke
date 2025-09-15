@@ -17,6 +17,8 @@ import { useNotifications } from '@/context/NotificationContext';
 import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
 import { exportToCsv } from '@/utils/csvExport';
+import { getApiBaseUrl } from '@/config/api';
+import { getPlatformName } from '@/utils/platform';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -146,7 +148,7 @@ export function AdList() {
 
   const fetchSlots = async () => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/slots');
+      const response = await fetch(`${getApiBaseUrl()}/slots`);
       if (!response.ok) throw new Error('Failed to fetch slots');
       
       const result: SlotListResponse = await response.json();
@@ -165,7 +167,7 @@ export function AdList() {
 
   const fetchCampaign = async () => {
     try {
-      const response = await fetch(`https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns?campaignId=${campaignId}`);
+      const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`);
       if (!response.ok) throw new Error('Failed to fetch campaign');
       
       const result = await response.json();
@@ -196,7 +198,7 @@ export function AdList() {
       });
 
       const response = await fetch(
-        `https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads?${params.toString()}`
+        `${getApiBaseUrl()}/ads?${params.toString()}`
       );
       
       if (!response.ok) {
@@ -331,7 +333,7 @@ export function AdList() {
       'Status': ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown',
       'Slot ID': ad.slotId,
       'Slot Name': slots[ad.slotId]?.name || 'N/A',
-      'Platform': slots[ad.slotId]?.platform === 0 ? 'Web' : slots[ad.slotId]?.platform === 1 ? 'Mobile' : slots[ad.slotId]?.platform === 2 ? 'Extension' : 'Unknown',
+      'Platform': slots[ad.slotId]?.platform !== undefined ? getPlatformName(slots[ad.slotId].platform) : 'Unknown Platform',
       'Impression Target': ad.impressionTarget || 0,
       'Click Target': ad.clickTarget || 0,
       'Creative URL': ad.creativeUrl || 'N/A',
@@ -354,7 +356,7 @@ export function AdList() {
 
   const handleStatusChange = async (adId: number, newStatus: 0 | 1) => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/ads/update?userId=1', {
+      const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adId, status: newStatus })

@@ -20,6 +20,7 @@ import { Slot, Ad } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -196,19 +197,6 @@ const adSchema = z.object({
 
 
 type AdFormData = z.infer<typeof adSchema>;
-
-// Helper function to get platform name
-const getPlatformName = (platformId: number): string => {
-  switch (platformId) {
-    case 0: return 'Web Extension';
-    case 1: return 'Mobile Extension';
-    case 2: return 'Desktop Site';
-    case 3: return 'Mobile Site';
-    case 4: return 'Mobile App Overlay';
-    case 5: return 'Mobile App';
-    default: return 'Unknown Platform';
-  }
-};
 
 export function AdForm() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -795,12 +783,11 @@ export function AdForm() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Platforms</SelectItem>
-                        <SelectItem value="0">Web Extension</SelectItem>
-                        <SelectItem value="1">Mobile Extension</SelectItem>
-                        <SelectItem value="2">Desktop Site</SelectItem>
-                        <SelectItem value="3">Mobile Site</SelectItem>
-                        <SelectItem value="4">Mobile App Overlay</SelectItem>
-                        <SelectItem value="5">Mobile App</SelectItem>
+                        {PLATFORM_OPTIONS.map((platform) => (
+                          <SelectItem key={platform.value} value={platform.value.toString()}>
+                            {platform.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 

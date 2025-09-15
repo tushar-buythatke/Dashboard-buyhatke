@@ -4,9 +4,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { useFilters } from '@/context/FilterContext';
 import { useEffect, useState } from 'react';
 import { analyticsService } from '@/services/analyticsService';
+import { PLATFORM_OPTIONS } from '@/utils/platform';
 
 const genderOptions = ['Male', 'Female'];
-const platforms = ["Web Extension", "Mobile Extension", "Desktop Site", "Mobile Site", "Mobile App Overlay", "Mobile App"];
+const platforms = PLATFORM_OPTIONS.map(p => p.label);
 
 export function FilterDropdown() {
   const { filters, updateFilters, resetFilters } = useFilters();

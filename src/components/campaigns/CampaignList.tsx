@@ -14,6 +14,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { campaignService } from '@/services/campaignService';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
+import { getApiBaseUrl } from '@/config/api';
 
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
@@ -61,7 +62,7 @@ export function CampaignList() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns');
+      const response = await fetch(`${getApiBaseUrl()}/campaigns`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch campaigns');
@@ -169,7 +170,7 @@ export function CampaignList() {
 
   const handleStatusChange = async (campaignId: number, newStatus: number) => {
     try {
-      const response = await fetch('https://ext1.buyhatke.com/buhatkeAdDashboard-test/campaigns/update?userId=1', {
+      const response = await fetch(`${getApiBaseUrl()}/campaigns/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ campaignId, status: newStatus })
