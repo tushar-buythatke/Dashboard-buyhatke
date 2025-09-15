@@ -34,6 +34,7 @@ export interface Ad {
   clickTarget: number;
   impressionPixel: string;
   clickPixel: string;
+  targetUrl: string;
   status: number; // 0: inactive, 1: active
   categories: Record<string, number>;
   sites: Record<string, number>;
@@ -69,6 +70,7 @@ export interface ApiAd {
   clickTarget: number;
   impressionPixel: string;
   clickPixel: string;
+  targetUrl: string;
   status: number;
   categories: Record<string, number>;
   sites: Record<string, number>;

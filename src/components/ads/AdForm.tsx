@@ -135,6 +135,7 @@ const adSchema = z.object({
   clickTarget: z.number().min(1, 'Click target is required'),
   impressionPixel: z.string().url('Must be a valid URL'),
   clickPixel: z.string().url('Must be a valid URL'),
+  targetUrl: z.string().url('Must be a valid URL'),
   categories: z.record(z.number().min(0)),
   sites: z.record(z.number().min(0)),
   location: z.record(z.number().min(0)),
@@ -240,6 +241,7 @@ export function AdForm() {
       clickTarget: 100,
       impressionPixel: '',
       clickPixel: '',
+      targetUrl: '',
       categories: {},
       sites: {},
       location: {},
@@ -1586,6 +1588,26 @@ export function AdForm() {
                   </FormControl>
                   <FormDescription>
                     URL to track ad clicks
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="targetUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Landing URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://example.com/landing-page"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    URL where users will be redirected when they click the ad
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -41,6 +41,7 @@ export interface CreateAdData {
   clickTarget: number;
   impressionPixel?: string;
   clickPixel?: string;
+  targetUrl?: string;
   categories: { [key: string]: number };
   sites: { [key: string]: number };
   location: { [key: string]: number };
@@ -69,6 +70,7 @@ export interface UpdateAdData {
   clickTarget?: number;
   impressionPixel?: string;
   clickPixel?: string;
+  targetUrl?: string;
   categories?: { [key: string]: number };
   sites?: { [key: string]: number };
   location?: { [key: string]: number };

@@ -148,6 +148,7 @@ export function AdDetail() {
       'Creative URL': ad.creativeUrl || 'N/A',
       'Impression Pixel': ad.impressionPixel || 'N/A',
       'Click Pixel': ad.clickPixel || 'N/A',
+      'Landing URL': ad.targetUrl || 'N/A',
       'Categories': ad.categories ? Object.keys(ad.categories).join(', ') : 'N/A',
       'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
       'Locations': ad.location ? Object.keys(ad.location).join(', ') : 'N/A',
@@ -706,6 +707,15 @@ export function AdDetail() {
                       {ad.clickPixel || 'Not configured'}
                     </p>
                   </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Landing URL</label>
+                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <p className="text-sm text-gray-900 dark:text-gray-100 break-all">
+                    {ad.targetUrl || 'Not configured'}
+                  </p>
                 </div>
               </div>
             </div>
