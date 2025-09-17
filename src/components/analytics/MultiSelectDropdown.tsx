@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 interface Option {
   value: string | number;
   label: string;
+  image?: string;
 }
 
 interface MultiSelectDropdownProps {
@@ -15,6 +16,7 @@ interface MultiSelectDropdownProps {
   placeholder?: string;
   label?: string;
   maxSelections?: number;
+  disabled?: boolean;
 }
 
 export const MultiSelectDropdown = ({ 
@@ -23,7 +25,8 @@ export const MultiSelectDropdown = ({
   onChange, 
   placeholder = 'Select options...',
   label,
-  maxSelections
+  maxSelections,
+  disabled = false
 }: MultiSelectDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,8 +85,9 @@ export const MultiSelectDropdown = ({
       <div className="relative">
         <Button
           variant="outline"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
           className="w-full justify-between h-auto min-h-[2.5rem] p-3 text-left"
+          disabled={disabled}
         >
           <div className="flex-1 flex flex-wrap gap-1">
             {selectedValues.length === 0 ? (
@@ -172,6 +176,7 @@ export const MultiSelectDropdown = ({
                         `}>
                           {isSelected && <Check className="h-3 w-3 text-white" />}
                         </div>
+                        {option.image && <img src={option.image} alt={option.label} className="h-4 w-4 mr-2 rounded-sm" />}
                         <span className="truncate">{option.label}</span>
                       </div>
                     </div>

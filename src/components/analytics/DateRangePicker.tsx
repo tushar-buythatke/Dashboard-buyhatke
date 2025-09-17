@@ -165,7 +165,7 @@ export function DateRangePicker() {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-start text-left font-normal text-xs sm:text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md transition-all duration-200 shadow-sm"
+          className="flex h-10 w-full items-center justify-start rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-normal"
         >
           <div className="flex items-center gap-1.5 sm:gap-2">
             <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
@@ -219,38 +219,8 @@ export function DateRangePicker() {
               onDayMouseEnter={(d) => setHovered(d)}
               onDayMouseLeave={() => setHovered(undefined)}
               components={{
-                IconLeft: () => (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-800 dark:text-gray-200"
-                  >
-                    <polyline points="15,18 9,12 15,6" />
-                  </svg>
-                ),
-                IconRight: () => (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-800 dark:text-gray-200"
-                  >
-                    <polyline points="9,18 15,12 9,6" />
-                  </svg>
-                )
+                IconLeft: () => <ChevronLeft className="h-4 w-4 text-pink-800 dark:text-pink-200" />,
+                IconRight: () => <ChevronRight className="h-4 w-4 text-pink-800 dark:text-pink-200" />
               }}
               modifiers={modifiers}
               modifiersClassNames={{

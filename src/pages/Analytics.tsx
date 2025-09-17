@@ -17,6 +17,7 @@ import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown'
 import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
 import { DateRangePicker } from '@/components/analytics/DateRangePicker';
 import { useFilters } from '@/context/FilterContext';
+import { PLATFORM_OPTIONS } from '@/utils/platform';
 import { DataTable } from '@/components/analytics/DataTable';
 
 // Analytics Components
@@ -98,6 +99,7 @@ export default function Analytics() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<(string | number)[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<(string | number)[]>([]);
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<(string | number)[]>([]);
 
   
   // Ad name filter states
@@ -109,6 +111,7 @@ export default function Analytics() {
   // Data states
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
   const [comparisonMetricsData, setComparisonMetricsData] = useState<MetricsData | null>(null);
@@ -199,6 +202,16 @@ export default function Analytics() {
     };
     loadAdNames();
   }, [selectedCampaigns, campaigns]); // Added campaigns dependency for auto-loading
+
+  // Filter slots based on selected platforms
+  useEffect(() => {
+    if (selectedPlatforms.length > 0) {
+      const newFilteredSlots = slots.filter(slot => selectedPlatforms.includes(slot.platform));
+      setFilteredSlots(newFilteredSlots);
+    } else {
+      setFilteredSlots(slots);
+    }
+  }, [selectedPlatforms, slots]);
 
   // Removed automatic fetching on dataGrouping change to prevent infinite loops
   // Data fetching is now manual via "Fetch Results" button
@@ -1111,7 +1124,7 @@ export default function Analytics() {
                 <p className="text-gray-600 dark:text-gray-400 mt-2">Fine-tune your analytics with precision targeting</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Campaign Filter */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -1134,7 +1147,7 @@ export default function Analytics() {
                 </div>
                 
                 {/* Slots Filter */}
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     🎯 Slots
                     {selectedSlots.length === 0 && slots.length > 0 && (
@@ -1143,14 +1156,25 @@ export default function Analytics() {
                       </Badge>
                     )}
                   </label>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
-                <MultiSelectDropdown
-                      label=""
-                  options={slots.map(slot => ({ value: slot.slotId, label: slot.name }))}
-                  selectedValues={selectedSlots}
-                  onChange={setSelectedSlots}
-                  placeholder="Select slots..."
-                />
+                  <div className="grid grid-cols-2 gap-2 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
+                    <div className="relative">
+                      <MultiSelectDropdown
+                        options={PLATFORM_OPTIONS}
+                        selectedValues={selectedPlatforms}
+                        onChange={setSelectedPlatforms}
+                        placeholder="Select Platform..."
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="relative">
+                      <MultiSelectDropdown
+                        options={filteredSlots.map(s => ({ value: s.slotId, label: s.name }))}
+                        selectedValues={selectedSlots}
+                        onChange={setSelectedSlots}
+                        placeholder="Select slots..."
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
                 </div>
                 
@@ -1165,13 +1189,15 @@ export default function Analytics() {
                     )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
-                <MultiSelectDropdown
-                      label=""
-                  options={sites.map(site => ({ value: site.posId, label: site.name }))}
-                  selectedValues={selectedPOS}
-                  onChange={setSelectedPOS}
-                  placeholder="Select marketplaces..."
-                />
+                <div className="min-w-[200px]">
+                  <MultiSelectDropdown
+                    options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
+                    selectedValues={selectedPOS}
+                    onChange={setSelectedPOS}
+                    placeholder="Select Marketplace..."
+                    disabled={loading}
+                  />
+                </div>
                   </div>
                 </div>
 
