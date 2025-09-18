@@ -219,8 +219,8 @@ export function DateRangePicker() {
               onDayMouseEnter={(d) => setHovered(d)}
               onDayMouseLeave={() => setHovered(undefined)}
               components={{
-                IconLeft: () => <ChevronLeft className="h-4 w-4 text-pink-800 dark:text-pink-200" />,
-                IconRight: () => <ChevronRight className="h-4 w-4 text-pink-800 dark:text-pink-200" />
+                IconLeft: () => <span className="text-lg">⬅️</span>,
+                IconRight: () => <span className="text-lg">➡️</span>,
               }}
               modifiers={modifiers}
               modifiersClassNames={{
