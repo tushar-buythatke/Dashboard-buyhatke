@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 interface TrendChartProps {
   series: TrendChartSeries[];
   title: string;
+  dataKey?: 'impressions' | 'clicks' | 'ctr';
+  yAxisLabel?: string;
   height?: number;
   showGrid?: boolean;
   animated?: boolean;
@@ -136,17 +138,17 @@ const CustomTooltip = memo(({ active, payload, label, viewPeriod }: any) => {
       </div>
       <div className="space-y-2">
         {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div key={index} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                 {entry.name}
               </span>
             </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">
+            <span className="text-sm font-bold text-gray-900 dark:text-white pl-2">
               {entry.value.toLocaleString()}
             </span>
           </div>
@@ -158,12 +160,14 @@ const CustomTooltip = memo(({ active, payload, label, viewPeriod }: any) => {
 
 CustomTooltip.displayName = 'CustomTooltip';
 
-export const TrendChart = memo<TrendChartProps>(({
-  series,
-  title,
-  showGrid = true,
-  animated = true,
-  period = '7d'
+export const TrendChart = memo<TrendChartProps>(({ 
+  series, 
+  title, 
+  dataKey = 'impressions', 
+  yAxisLabel, 
+  showGrid = true, 
+  animated = true, 
+  period = '7d' 
 }) => {
   // Local state for view period toggle (independent of the main data grouping filter)
   const [viewPeriod, setViewPeriod] = useState<ViewPeriod>(period || '1d');
@@ -208,13 +212,13 @@ export const TrendChart = memo<TrendChartProps>(({
           });
         }
         const entry = dataMap.get(dataPoint.date);
-        entry[s.name] = dataPoint.impressions; // Use each campaign's impressions
+        entry[s.name] = dataPoint[dataKey] || 0; // Use the specified dataKey
       });
     });
 
     const combinedData = Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return { combinedData, seriesNames };
-  }, [series, viewPeriod]);
+  }, [series, viewPeriod, dataKey]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -313,7 +317,7 @@ export const TrendChart = memo<TrendChartProps>(({
               className="text-gray-600 dark:text-gray-400"
             />
 
-            <YAxis
+                        <YAxis
               stroke="currentColor"
               fontSize={12}
               fontWeight={500}
@@ -321,6 +325,7 @@ export const TrendChart = memo<TrendChartProps>(({
               tickLine={false}
               dx={-10}
               className="text-gray-600 dark:text-gray-400"
+              label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'currentColor', fontSize: 12, fontWeight: 500 }, dy: 40 } : undefined}
             />
 
             <Tooltip content={<CustomTooltip viewPeriod={viewPeriod} />} />

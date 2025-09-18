@@ -1470,6 +1470,38 @@ export default function Analytics() {
             )}
           </motion.div>
 
+          {/* Clicks vs Time Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+          >
+            <TrendChart
+              series={trendData}
+              title="🎯 Clicks Over Time"
+              dataKey="clicks"
+              yAxisLabel="Clicks"
+              period={dataGrouping}
+            />
+          </motion.div>
+
+          {/* CTR vs Time Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+          >
+            <TrendChart
+              series={trendData}
+              title="📈 CTR Over Time"
+              dataKey="ctr"
+              yAxisLabel="CTR (%)"
+              period={dataGrouping}
+            />
+          </motion.div>
+
           {/* Data Tables Section */}
           <div className="grid grid-cols-1 gap-8">
             <motion.div
@@ -1558,15 +1590,15 @@ export default function Analytics() {
                   trendData[0].data.map(d => ({ 
                     date: d.date, 
                     impressions: d.impressions || 0, 
-                    conversions: d.conversions || 0 
+                    clicks: d.clicks || 0 
                   })) : 
                   []
                 }
-                title="📊 Impressions vs Conversions"
+                title="📊 Impressions vs Clicks"
                 barKey="impressions"
-                lineKey="conversions"
+                lineKey="clicks"
                 barName="Impressions"
-                lineName="Conversions"
+                lineName="Clicks"
                 barColor="#059669"
                 lineColor="#DC2626"
               />
