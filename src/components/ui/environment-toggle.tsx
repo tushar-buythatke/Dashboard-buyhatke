@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useEnvironment } from '@/context/EnvironmentContext';
-import { Zap, Shield, FlaskConical, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Zap, Shield, FlaskConical, AlertTriangle, Lock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +17,16 @@ import {
 
 export const EnvironmentToggle: React.FC = () => {
   const { environment, setEnvironment, isTest, isProd } = useEnvironment();
+  const { isAuthenticated } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleEnvironmentChange = () => {
+    // 🔒 SECURITY: Only allow environment switching after authentication
+    if (!isAuthenticated) {
+      console.warn('🚨 SECURITY: Environment switching blocked - user not authenticated');
+      return;
+    }
+    
     const newEnv = isTest ? 'prod' : 'test';
     setEnvironment(newEnv);
     setIsDialogOpen(false);
@@ -51,20 +59,22 @@ export const EnvironmentToggle: React.FC = () => {
           <motion.button
             className={`
               relative flex items-center space-x-3 px-6 py-3 rounded-xl font-bold text-sm
-              border-2 transition-all duration-300 select-none cursor-pointer
-              ${isTest 
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border-orange-400 text-white shadow-orange-500/50' 
-                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 border-green-400 text-white shadow-green-500/50'
+              border-2 transition-all duration-300 select-none
+              ${!isAuthenticated 
+                ? 'bg-gradient-to-r from-gray-400 to-gray-500 border-gray-300 text-white cursor-not-allowed opacity-75' 
+                : isTest 
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border-orange-400 text-white shadow-orange-500/50 cursor-pointer' 
+                  : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 border-green-400 text-white shadow-green-500/50 cursor-pointer'
               }
-              shadow-lg hover:shadow-xl active:scale-95
+              ${isAuthenticated ? 'shadow-lg hover:shadow-xl active:scale-95' : 'shadow-sm'}
             `}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            animate={{
+            whileHover={isAuthenticated ? { scale: 1.05 } : {}}
+            whileTap={isAuthenticated ? { scale: 0.95 } : {}}
+            animate={isAuthenticated ? {
               boxShadow: isTest 
                 ? ['0 0 20px rgba(249, 115, 22, 0.6)', '0 0 30px rgba(249, 115, 22, 0.8)', '0 0 20px rgba(249, 115, 22, 0.6)']
                 : ['0 0 20px rgba(34, 197, 94, 0.6)', '0 0 30px rgba(34, 197, 94, 0.8)', '0 0 20px rgba(34, 197, 94, 0.6)']
-            }}
+            } : {}}
             transition={{
               boxShadow: {
                 duration: 2,
@@ -72,34 +82,40 @@ export const EnvironmentToggle: React.FC = () => {
                 ease: "easeInOut"
               }
             }}
+            disabled={!isAuthenticated}
+            title={!isAuthenticated ? "🔒 Environment switching requires authentication" : undefined}
           >
         {/* Pulsing background effect */}
-        <motion.div
-          className={`
-            absolute inset-0 rounded-xl opacity-30
-            ${isTest ? 'bg-orange-400' : 'bg-green-400'}
-          `}
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.6, 0.3]
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
+        {isAuthenticated && (
+          <motion.div
+            className={`
+              absolute inset-0 rounded-xl opacity-30
+              ${isTest ? 'bg-orange-400' : 'bg-green-400'}
+            `}
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        )}
         
         {/* Icon */}
         <motion.div
-          animate={{ rotate: [0, 360] }}
+          animate={isAuthenticated ? { rotate: [0, 360] } : {}}
           transition={{
             duration: 3,
             repeat: Infinity,
             ease: "linear"
           }}
         >
-          {isTest ? (
+          {!isAuthenticated ? (
+            <Lock className="w-5 h-5" />
+          ) : isTest ? (
             <FlaskConical className="w-5 h-5" />
           ) : (
             <Shield className="w-5 h-5" />
@@ -109,18 +125,20 @@ export const EnvironmentToggle: React.FC = () => {
         {/* Text */}
         <div className="relative z-10 flex items-center space-x-2">
           <span className="font-bold tracking-wide">
-            {isTest ? 'TEST' : 'PROD'}
+            {!isAuthenticated ? 'LOCKED' : isTest ? 'TEST' : 'PROD'}
           </span>
-          <motion.div
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <Zap className="w-4 h-4" />
-          </motion.div>
+          {isAuthenticated && (
+            <motion.div
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Zap className="w-4 h-4" />
+            </motion.div>
+          )}
         </div>
 
             {/* Sparkle effect */}

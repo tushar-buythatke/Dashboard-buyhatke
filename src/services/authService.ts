@@ -1,8 +1,10 @@
 import { encryptAES } from '@/utils/encryption';
 
-import { getApiBaseUrl } from '@/config/api';
+import { getApiBaseUrl, getProdApiBaseUrl } from '@/config/api';
 
 const getAuthApiUrl = () => `${getApiBaseUrl()}/users`;
+// STRICT PRODUCTION URL for login operations - always use prod environment for auth
+const getProdAuthApiUrl = () => `${getProdApiBaseUrl()}/users`;
 
 export interface User {
   userName: string;
@@ -130,9 +132,11 @@ class AuthService {
     this.sessionCheckInProgress = true;
     
     try {
-      console.debug('Checking session with backend...');
+      console.debug('🔐 Checking session with backend...');
+      console.debug('🚨 Using STRICT PRODUCTION environment for session validation');
       
-      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
+      // 🔒 CRITICAL: Use production URL for session validation
+      const response = await fetch(`${getProdAuthApiUrl()}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -193,10 +197,12 @@ class AuthService {
 
   /**
    * Validate login credentials
+   * 🔒 SECURITY: Always uses PRODUCTION environment for login - no test environment allowed
    */
   async validateLogin(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      console.debug('Attempting login for:', credentials.userName);
+      console.debug('🔐 Attempting login for:', credentials.userName);
+      console.debug('🚨 Using STRICT PRODUCTION environment for login authentication');
       
       const supportsCredentials = this.endpointSupportsCredentials('validateLogin');
       if (!supportsCredentials) {
@@ -206,7 +212,8 @@ class AuthService {
       
       const encryptedPassword = await encryptAES(credentials.password);
       
-      const response = await fetch(`${getAuthApiUrl()}/validateLogin`, this.getRequestOptions({
+      // 🔒 CRITICAL: Always use production URL for login - never allow test environment for auth
+      const response = await fetch(`${getProdAuthApiUrl()}/validateLogin`, this.getRequestOptions({
         userName: credentials.userName,
         password: encryptedPassword,
       }, 'validateLogin'));
@@ -255,13 +262,15 @@ class AuthService {
 
   /**
    * Logout user and clear session
+   * 🔒 SECURITY: Uses PRODUCTION environment for logout consistency
    */
   async logout(): Promise<{ success: boolean; message?: string }> {
     try {
-      console.debug('Logging out...');
+      console.debug('🔐 Logging out...');
+      console.debug('🚨 Using STRICT PRODUCTION environment for logout');
       
-      // Call backend logout to clear server-side session/cookies
-      const response = await fetch(`${getAuthApiUrl()}/logout`, this.getRequestOptions(null, 'logout'));
+      // 🔒 CRITICAL: Call backend logout using production URL for consistency
+      const response = await fetch(`${getProdAuthApiUrl()}/logout`, this.getRequestOptions(null, 'logout'));
       
       if (response.ok) {
         const result = await response.json();
@@ -289,12 +298,14 @@ class AuthService {
 
   /**
    * Add new user (admin function)
+   * 🔒 SECURITY: Uses PRODUCTION environment for user management consistency
    */
   async addUser(userData: { userName: string; password: string; type: number }): Promise<{ success: boolean; message?: string }> {
     try {
       const encryptedPassword = await encryptAES(userData.password);
       
-      const response = await fetch(`${getAuthApiUrl()}/addUsers`, this.getRequestOptions({
+      // 🔒 CRITICAL: Use production URL for user management consistency
+      const response = await fetch(`${getProdAuthApiUrl()}/addUsers`, this.getRequestOptions({
         userName: userData.userName,
         password: encryptedPassword,
         type: userData.type
@@ -424,9 +435,10 @@ if (typeof window !== 'undefined') {
   };
 
   (window as any).testBackendSession = async () => {
-    console.group('🔍 Testing Backend Session');
+    console.group('🔍 Testing Backend Session (PRODUCTION)');
     try {
-      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
+      // 🔒 CRITICAL: Test against production environment only
+      const response = await fetch(`${getProdAuthApiUrl()}/isLoggedIn`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -461,12 +473,13 @@ if (typeof window !== 'undefined') {
   };
 
   (window as any).testCORS = async () => {
-    console.group('🔍 Testing CORS Configuration');
+    console.group('🔍 Testing CORS Configuration (PRODUCTION)');
     
     try {
       // Test with credentials: 'include'
-      console.log('Testing with credentials: "include"...');
-      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
+      console.log('🔐 Testing PRODUCTION environment with credentials: "include"...');
+      // 🔒 CRITICAL: Test CORS against production environment only
+      const response = await fetch(`${getProdAuthApiUrl()}/isLoggedIn`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -501,9 +514,10 @@ if (typeof window !== 'undefined') {
   };
 
   (window as any).testExactRequest = async () => {
-    console.group('🧪 Testing Exact Request (Your Working Version)');
+    console.group('🧪 Testing Exact Request (PRODUCTION Environment)');
     try {
-      const response = await fetch(`${getAuthApiUrl()}/isLoggedIn`, {
+      // 🔒 CRITICAL: Test exact request against production environment only
+      const response = await fetch(`${getProdAuthApiUrl()}/isLoggedIn`, {
         "headers": {
           "accept": "*/*",
           "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
@@ -538,13 +552,14 @@ if (typeof window !== 'undefined') {
   };
 
   (window as any).testAllEndpoints = async () => {
-    console.group('🔬 Testing All Auth Endpoints');
+    console.group('🔬 Testing All Auth Endpoints (PRODUCTION)');
     
+    // 🔒 CRITICAL: Test all auth endpoints against production environment only
     const endpoints = [
-      { name: 'isLoggedIn', url: `${getAuthApiUrl()}/isLoggedIn`, body: null },
-      { name: 'validateLogin', url: `${getAuthApiUrl()}/validateLogin`, body: { userName: 'test', password: 'test' } },
-      { name: 'logout', url: `${getAuthApiUrl()}/logout`, body: null },
-      { name: 'addUsers', url: `${getAuthApiUrl()}/addUsers`, body: { userName: 'test', password: 'test', type: 0 } }
+      { name: 'isLoggedIn', url: `${getProdAuthApiUrl()}/isLoggedIn`, body: null },
+      { name: 'validateLogin', url: `${getProdAuthApiUrl()}/validateLogin`, body: { userName: 'test', password: 'test' } },
+      { name: 'logout', url: `${getProdAuthApiUrl()}/logout`, body: null },
+      { name: 'addUsers', url: `${getProdAuthApiUrl()}/addUsers`, body: { userName: 'test', password: 'test', type: 0 } }
     ];
 
     const results: Record<string, any> = {};

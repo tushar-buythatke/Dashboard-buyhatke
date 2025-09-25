@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { authService, User, LoginCredentials } from '../services/authService';
+import { forceProductionEnvironment } from '../config/api';
 
 interface AuthContextType {
   user: User | null;
@@ -129,9 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; message?: string }> => {
     setLoading(true);
     try {
+      // 🔒 CRITICAL SECURITY: Force production environment before login attempt
+      console.log('🚨 SECURITY: Enforcing PRODUCTION environment for login');
+      forceProductionEnvironment();
+      
       const result = await authService.validateLogin(credentials);
       if (result.success && result.user) {
         setUser(result.user);
+        console.log('✅ Login successful - Environment switching now allowed');
       }
       return result;
     } catch (error) {

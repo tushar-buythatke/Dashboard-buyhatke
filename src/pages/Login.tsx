@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { forceProductionEnvironment } from '@/config/api';
 import { Eye, EyeOff, LogIn, User, Lock } from 'lucide-react';
 
 export default function Login() {
@@ -18,6 +19,12 @@ export default function Login() {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
+
+  // 🔒 CRITICAL SECURITY: Always ensure login page uses production environment
+  useEffect(() => {
+    console.log('🔐 Login page mounted - Enforcing PRODUCTION environment');
+    forceProductionEnvironment();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
