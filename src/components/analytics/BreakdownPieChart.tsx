@@ -2,15 +2,26 @@ import { useState, useCallback, memo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { BreakdownData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Users, Monitor, MapPin, Calendar } from 'lucide-react';
+import { TrendingUp, Users, Monitor, MapPin, Calendar, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/ui/chart-error-boundary';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface BreakdownPieChartProps {
   data: Array<{ name: string; value: number; percentage?: number }>;
   title: string;
   showInnerRadius?: boolean;
   showAnimation?: boolean;
+  maxDisplayItems?: number; // Maximum number of items to show in chart (default: 5)
 }
+
+
 
 // Material Design inspired palette with high contrast and accessibility
 const COLORS = [
@@ -64,6 +75,8 @@ const getChartIcon = (title: string) => {
 const formatPercentage = (value: number) => {
   return value.toFixed(1);
 };
+
+
 
 const CustomTooltip = memo(({ active, payload, title }: any) => {
   // Enhanced safety checks to prevent errors during scroll/re-render
@@ -129,10 +142,12 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
   data, 
   title, 
   showInnerRadius = true, 
-  showAnimation = true 
+  showAnimation = true,
+  maxDisplayItems = 5 
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [showAllDropdown, setShowAllDropdown] = useState(false);
   
   // Early safety checks
   if (!data || !Array.isArray(data)) {
@@ -144,13 +159,21 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
   }
   
   const IconComponent = getChartIcon(title);
+  
+  // Show all data in pie chart, but only top 5 in legend
+  const allData = [...data].sort((a, b) => b.value - a.value);
+  const hasViewAllOption = allData.length > 5; // Show "View All" if more than 5 items
+  
+  // Get top 5 for legend display
+  const top5Data = allData.slice(0, 5);
+  const remainingCount = allData.length - 5;
 
   const renderLabel = useCallback(() => {
     return ''; // Disable labels to prevent overflow
   }, []);
 
-  // Process data with proper platform mapping and enhanced styling
-  const enrichedData = data.map((item, index) => {
+  // Process all data for pie chart (but we'll only show top 5 in legend)
+  const enrichedData = allData.map((item, index) => {
     let mappedName = item.name;
     
     // Apply platform mapping if this is a platform chart
@@ -169,6 +192,21 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
 
   // Filter out items with zero or very low values for cleaner display
   const filteredData = enrichedData.filter(item => item.value > 0);
+  
+  // Process top 5 for legend display
+  const top5EnrichedData = top5Data.map((item, index) => {
+    let mappedName = item.name;
+    
+    if (title.toLowerCase().includes('platform')) {
+      mappedName = getPlatformName(item.name);
+    }
+    
+    return {
+      ...item,
+      name: mappedName,
+      color: COLORS[index % COLORS.length]
+    };
+  });
 
   const handleMouseEnter = useCallback((_: any, index: number) => {
     try {
@@ -182,7 +220,10 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
 
   const handleMouseLeave = useCallback(() => {
     try {
-      setHoveredIndex(null);
+      // Add a small delay to prevent flickering and ensure proper cleanup
+      setTimeout(() => {
+        setHoveredIndex(null);
+      }, 50);
     } catch (error) {
       console.warn('Mouse leave error:', error);
     }
@@ -229,30 +270,107 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Enhanced Header with sexy styling */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Clean Header */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/40 rounded-xl border border-blue-200 dark:border-blue-700/50">
+          <div className="p-2 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/40 rounded-lg">
             <IconComponent className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{title}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {filteredData.length} {filteredData.length === 1 ? 'category' : 'categories'}
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">{title}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {allData.length} categories
             </p>
           </div>
         </div>
+        
+        {/* Compact Details Button */}
+        {hasViewAllOption && (
+          <DropdownMenu open={showAllDropdown} onOpenChange={setShowAllDropdown}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`
+                  flex items-center gap-1 px-2 py-1 rounded text-xs font-medium
+                  transition-all duration-200 
+                  ${showAllDropdown 
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }
+                `}
+              >
+                <span>Details</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">({allData.length})</span>
+                <motion.div
+                  animate={{ rotate: showAllDropdown ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="w-2.5 h-2.5" />
+                </motion.div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-80 max-h-64 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg"
+              sideOffset={4}
+            >
+              <div className="p-3">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <span>All Categories</span>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                    {allData.length}
+                  </span>
+                </h4>
+                
+                <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                  {enrichedData.map((item, index) => (
+                    <div
+                      key={`${item.name}-${index}`}
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div 
+                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-gray-900 dark:text-white truncate font-medium">
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[30px] text-right">
+                          {item.value}
+                        </span>
+                        <span 
+                          className="text-xs font-semibold px-1.5 py-0.5 rounded text-white min-w-[35px] text-center"
+                          style={{ backgroundColor: item.color }}
+                        >
+                          {formatPercentage(item.percentage || 0)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       
       {/* Chart Container - Properly sized and contained */}
-      <div className="flex-1 relative min-h-0">
+      <div 
+        className="relative h-64"
+        onMouseLeave={() => {
+          // Force clear hover state when leaving the entire chart area
+          setTimeout(() => setHoveredIndex(null), 100);
+        }}
+      >
         <ChartErrorBoundary
           onError={(error, errorInfo) => {
             console.error('BreakdownPieChart error:', error, errorInfo);
           }}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 40 }}>
+            <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
               <defs>
                 {filteredData.map((item, index) => (
                   <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -265,11 +383,11 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
               <Pie
                 data={filteredData}
                 cx="50%"
-                cy="45%"
+                cy="50%"
                 labelLine={false}
                 label={renderLabel}
-                outerRadius={70}
-                innerRadius={showInnerRadius ? 35 : 0}
+                outerRadius={80}
+                innerRadius={showInnerRadius ? 40 : 0}
                 paddingAngle={2}
                 dataKey="value"
                 animationBegin={0}
@@ -299,56 +417,53 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
               <Tooltip 
                 content={(props) => {
                   try {
+                    // Only show tooltip if we have valid hover state
+                    if (hoveredIndex === null) return null;
                     return <CustomTooltip {...props} title={title} />;
                   } catch (error) {
                     console.warn('Tooltip render error:', error);
                     return null;
                   }
                 }}
-                animationDuration={100}
+                animationDuration={150}
                 animationEasing="ease-out"
-                wrapperStyle={{ outline: 'none' }}
+                wrapperStyle={{ outline: 'none', pointerEvents: 'none' }}
                 cursor={false}
-                isAnimationActive={false}
+                isAnimationActive={true}
+                allowEscapeViewBox={{ x: true, y: true }}
+                position={{ x: undefined, y: undefined }}
               />
               
-              {/* Material Design inspired Legend */}
-              <Legend 
-                verticalAlign="bottom" 
-                height={35}
-                iconType="circle"
-                wrapperStyle={{
-                  paddingTop: '10px',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  lineHeight: '1.2'
-                }}
-                formatter={(value, entry, index) => {
-                  try {
-                    const dataEntry = filteredData[index];
-                    const isActive = hoveredIndex === index;
-                    const percentage = dataEntry?.percentage || 0;
-                    
-                    return (
-                      <span 
-                        style={{ 
-                          color: isActive ? (entry?.color || '#374151') : '#374151',
-                          fontWeight: isActive ? '700' : '600',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {value} ({formatPercentage(percentage)}%)
-                      </span>
-                    );
-                  } catch (error) {
-                    console.warn('Legend formatter error:', error);
-                    return <span>{value}</span>;
-                  }
-                }}
-              />
+              {/* Hide default legend since we'll create custom one below */}
+              <Legend content={() => null} />
             </PieChart>
           </ResponsiveContainer>
         </ChartErrorBoundary>
+      </div>
+      
+      {/* Custom Legend - Top 5 only */}
+      <div className="mt-2">
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs">
+          {top5EnrichedData.map((item, index) => (
+            <div key={`legend-${index}`} className="flex items-center gap-1">
+              <div 
+                className="w-2 h-2 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                {item.name} ({formatPercentage(item.percentage || 0)}%)
+              </span>
+            </div>
+          ))}
+          {remainingCount > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
+              <span className="text-gray-500 dark:text-gray-500 font-medium">
+                +{remainingCount} more
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
