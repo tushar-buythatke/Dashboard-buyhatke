@@ -16,6 +16,10 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 
+// Constants for localStorage
+const ZOOM_REMINDER_KEY = 'campaign_zoom_reminder_shown';
+const REMINDER_COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
   { value: '0', label: 'Draft' },
@@ -42,6 +46,8 @@ export function CampaignList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  
+  const [liveAdsCount, setLiveAdsCount] = useState<Record<number, number>>({});
   
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -83,6 +89,31 @@ export function CampaignList() {
           if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks };
         });
         setCampaignMetrics(metricMap);
+        
+        // Fetch live ads count for each campaign
+        const liveAdsPromises = result.data.campaignList.map(async (c) => {
+          try {
+            const adsResponse = await fetch(`${getApiBaseUrl()}/ads?campaignId=${c.campaignId}`);
+            if (adsResponse.ok) {
+              const adsResult = await adsResponse.json();
+              if (adsResult.status === 1 && adsResult.data?.adsList) {
+                const liveAds = adsResult.data.adsList.filter((ad: any) => ad.status === 1);
+                return { campaignId: c.campaignId, count: liveAds.length };
+              }
+            }
+            return { campaignId: c.campaignId, count: 0 };
+          } catch (error) {
+            console.error(`Error fetching ads for campaign ${c.campaignId}:`, error);
+            return { campaignId: c.campaignId, count: 0 };
+          }
+        });
+        
+        const liveAdsResults = await Promise.all(liveAdsPromises);
+        const liveAdsMap: Record<number, number> = {};
+        liveAdsResults.forEach(({ campaignId, count }) => {
+          liveAdsMap[campaignId] = count;
+        });
+        setLiveAdsCount(liveAdsMap);
       } else {
         setCampaigns([]);
       }
@@ -95,8 +126,62 @@ export function CampaignList() {
     }
   };
 
+  // Show zoom reminder on CampaignList page load (once every 24 hours)
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      const reminderData = localStorage.getItem(ZOOM_REMINDER_KEY);
+      if (reminderData) {
+        const { timestamp } = JSON.parse(reminderData);
+        const now = Date.now();
+        if (now - timestamp > REMINDER_COOLDOWN) {
+          // Show reminder after 24 hours
+          setTimeout(() => {
+            toast.info('🔍 Best Viewing Experience at 80% magnification', {
+              duration: 5000,
+              position: 'top-center',
+              style: {
+                background: 'rgba(59, 130, 246, 0.95)',
+                color: 'white',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
+                borderRadius: '12px',
+                padding: '16px 20px'
+              },
+              icon: '💡'
+            });
+            localStorage.setItem(ZOOM_REMINDER_KEY, JSON.stringify({ timestamp: now }));
+          }, 2000);
+        }
+      } else {
+        // First time showing reminder
+        setTimeout(() => {
+          toast.info('🔍 Best Viewing Experience at 80% magnification', {
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: 'rgba(59, 130, 246, 0.95)',
+              color: 'white',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '600',
+              boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
+              borderRadius: '12px',
+              padding: '16px 20px'
+            },
+            icon: '💡'
+          });
+          localStorage.setItem(ZOOM_REMINDER_KEY, JSON.stringify({ timestamp: Date.now() }));
+        }, 2000);
+      }
+    }
+  }, [campaigns.length]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    // Reset zoom reminder when refreshing
+    localStorage.removeItem(ZOOM_REMINDER_KEY);
     await fetchCampaigns();
     setIsRefreshing(false);
   };
@@ -490,6 +575,12 @@ export function CampaignList() {
                           <span>Status</span>
                         </div>
                       </TableHead>
+                      <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 w-[100px]">
+                        <div className="flex items-center space-x-2">
+                          <Zap className="h-4 w-4 text-green-600" />
+                          <span>Live Ads</span>
+                        </div>
+                      </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 w-[130px]">
                         <div className="flex items-center space-x-3">
                           <Calendar className="h-4 w-4 text-purple-600" />
@@ -580,6 +671,14 @@ export function CampaignList() {
                               >
                                 {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
                               </Badge>
+                          </TableCell>
+                          
+                          <TableCell className="p-4 w-[100px]">
+                            <div className="text-center">
+                              <span className={`font-bold text-sm ${liveAdsCount[campaign.campaignId] > 0 ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {liveAdsCount[campaign.campaignId] || 0}
+                              </span>
+                            </div>
                           </TableCell>
                           
                           <TableCell className="p-4 w-[130px]">
