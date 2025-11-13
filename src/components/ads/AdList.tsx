@@ -417,39 +417,51 @@ export function AdList() {
   const liveCTR = totalLiveImpressions > 0 ? (totalLiveClicks / totalLiveImpressions) * 100 : 0;
 
   // Mobile Ad Card Component
-  const AdCard = ({ ad, index }: { ad: Ad; index: number }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95 cursor-pointer"
-    >
-      <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
-        {/* Creative */}
-        <div className="flex-shrink-0 self-center lg:self-auto">
-          <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-            {ad.creativeUrl ? (
-              <img 
-                src={ad.creativeUrl} 
-                alt="Ad creative" 
-                className="h-full w-full object-contain rounded-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (!target.dataset.fallback) {
-                    target.dataset.fallback = 'true';
-                    target.src = PLACEHOLDER_IMAGE;
-                  }
-                }}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                <ImageIcon className="h-4 w-4 mb-1" />
-                <span className="text-xs font-medium">No Image</span>
-              </div>
-            )}
+  const AdCard = ({ ad, index }: { ad: Ad; index: number }) => {
+    const isVideo = ad.creativeUrl && (/\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video'));
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: index * 0.05 }}
+        onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
+        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95 cursor-pointer"
+      >
+        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
+          {/* Creative */}
+          <div className="flex-shrink-0 self-center lg:self-auto">
+            <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              {ad.creativeUrl ? (
+                isVideo ? (
+                  <video 
+                    src={ad.creativeUrl} 
+                    className="h-full w-full object-contain rounded-lg"
+                    muted
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <img 
+                    src={ad.creativeUrl} 
+                    alt="Ad creative" 
+                    className="h-full w-full object-contain rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.dataset.fallback) {
+                        target.dataset.fallback = 'true';
+                        target.src = PLACEHOLDER_IMAGE;
+                      }
+                    }}
+                  />
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                  <ImageIcon className="h-4 w-4 mb-1" />
+                  <span className="text-xs font-medium">No Media</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -605,7 +617,8 @@ export function AdList() {
         </div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -984,46 +997,58 @@ export function AdList() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredAds.map((ad, index) => (
-                      <motion.tr 
-                        key={ad.adId}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.02 }}
-                        whileHover={{ 
-                          scale: 1.005,
-                          backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)'
-                        }}
-                        onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-                        className="group transition-all duration-300 border-slate-100 dark:border-slate-700 cursor-pointer hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm"
-                      >
-                        <TableCell className="p-3">
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                            className="h-14 w-20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-700 dark:to-gray-700 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm group-hover:shadow-md transition-all duration-300"
-                          >
-                            {ad.creativeUrl ? (
-                              <img 
-                                src={ad.creativeUrl} 
-                                alt="Ad creative" 
-                                className="h-full w-full object-contain rounded-lg"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  if (!target.dataset.fallback) {
-                                    target.dataset.fallback = 'true';
-                                    target.src = PLACEHOLDER_IMAGE;
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-                                <ImageIcon className="h-4 w-4 mb-1" />
-                                <span className="text-xs font-semibold">No Image</span>
-                              </div>
-                            )}
-                          </motion.div>
-                        </TableCell>
+                    filteredAds.map((ad, index) => {
+                      const isVideo = ad.creativeUrl && (/\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video'));
+                      
+                      return (
+                        <motion.tr 
+                          key={ad.adId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.02 }}
+                          whileHover={{ 
+                            scale: 1.005,
+                            backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)'
+                          }}
+                          onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
+                          className="group transition-all duration-300 border-slate-100 dark:border-slate-700 cursor-pointer hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm"
+                        >
+                          <TableCell className="p-3">
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ type: "spring", stiffness: 300 }}
+                              className="h-14 w-20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-700 dark:to-gray-700 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm group-hover:shadow-md transition-all duration-300"
+                            >
+                              {ad.creativeUrl ? (
+                                isVideo ? (
+                                  <video 
+                                    src={ad.creativeUrl} 
+                                    className="h-full w-full object-contain rounded-lg"
+                                    muted
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <img 
+                                    src={ad.creativeUrl} 
+                                    alt="Ad creative" 
+                                    className="h-full w-full object-contain rounded-lg"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      if (!target.dataset.fallback) {
+                                        target.dataset.fallback = 'true';
+                                        target.src = PLACEHOLDER_IMAGE;
+                                      }
+                                    }}
+                                  />
+                                )
+                              ) : (
+                                <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                                  <ImageIcon className="h-4 w-4 mb-1" />
+                                  <span className="text-xs font-semibold">No Media</span>
+                                </div>
+                              )}
+                            </motion.div>
+                          </TableCell>
                         <TableCell className="p-3">
                           <motion.div
                             whileHover={{ scale: 1.05 }}
@@ -1173,7 +1198,8 @@ export function AdList() {
                           </DropdownMenu>
                         </TableCell>
                       </motion.tr>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

@@ -265,15 +265,23 @@ export function AdForm() {
         return;
       }
 
-      const img = new Image();
-      img.onload = async () => {
-        const requiredWidth = parseFloat(currentSlot.width);
-        const requiredHeight = parseFloat(currentSlot.height);
-        
-        // Check if image dimensions match the selected slot
-        if (img.width !== requiredWidth || img.height !== requiredHeight) {
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+
+      if (!isVideo && !isImage) {
+        toast.error('Please select a valid image or video file.');
+        event.target.value = '';
+        return;
+      }
+
+      const requiredWidth = parseFloat(currentSlot.width);
+      const requiredHeight = parseFloat(currentSlot.height);
+
+      const validateAndUpload = async (width: number, height: number) => {
+        // Check if dimensions match the selected slot
+        if (width !== requiredWidth || height !== requiredHeight) {
           toast.error(
-            `Image dimensions (${img.width}x${img.height}) don't match the required slot dimensions (${requiredWidth}x${requiredHeight}). Please upload an image with the correct dimensions.`
+            `${isVideo ? 'Video' : 'Image'} dimensions (${width}x${height}) don't match the required slot dimensions (${requiredWidth}x${requiredHeight}). Please upload a file with the correct dimensions.`
           );
           event.target.value = ''; // Clear the file input
           return;
@@ -287,25 +295,48 @@ export function AdForm() {
           if (result.success && result.creativeUrl) {
             setPreviewUrl(result.creativeUrl);
             form.setValue('creativeUrl', result.creativeUrl);
-            toast.success('Image uploaded successfully!');
+            toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully!`);
           } else {
-            toast.error(result.message || 'Failed to upload image');
+            toast.error(result.message || `Failed to upload ${isVideo ? 'video' : 'image'}`);
           }
         } catch (error) {
           console.error('Upload error:', error);
-          toast.error('Failed to upload image. Please try again.');
+          toast.error(`Failed to upload ${isVideo ? 'video' : 'image'}. Please try again.`);
         } finally {
           setLoading(false);
         }
       };
 
-      img.onerror = () => {
-        toast.error('Failed to load image. Please select a valid image file.');
-        event.target.value = ''; // Clear the file input
-      };
+      if (isVideo) {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        
+        video.onloadedmetadata = () => {
+          URL.revokeObjectURL(video.src);
+          validateAndUpload(video.videoWidth, video.videoHeight);
+        };
+        
+        video.onerror = () => {
+          toast.error('Failed to load video. Please select a valid video file.');
+          event.target.value = '';
+        };
+        
+        video.src = URL.createObjectURL(file);
+      } else {
+        const img = new Image();
+        
+        img.onload = () => {
+          validateAndUpload(img.width, img.height);
+        };
 
-      // Create object URL to load the image
-      img.src = URL.createObjectURL(file);
+        img.onerror = () => {
+          toast.error('Failed to load image. Please select a valid image file.');
+          event.target.value = '';
+        };
+
+        // Create object URL to load the image
+        img.src = URL.createObjectURL(file);
+      }
     }
   };
 
@@ -852,16 +883,29 @@ export function AdForm() {
                 <div className="flex items-center space-x-4">
                   {previewUrl ? (
                     <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
-                      <img
-                        src={previewUrl}
-                        alt="Ad preview"
-                        className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.src = 'https://example.com/placeholder-moon.png';
-                        }}
-                      />
+                      {(() => {
+                        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(previewUrl) || previewUrl.includes('video');
+                        return isVideo ? (
+                          <video
+                            src={previewUrl}
+                            controls
+                            className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        ) : (
+                          <img
+                            src={previewUrl}
+                            alt="Ad preview"
+                            className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = 'https://example.com/placeholder-moon.png';
+                            }}
+                          />
+                        );
+                      })()}
                       <Button
                         type="button"
                         variant="ghost"
@@ -880,7 +924,7 @@ export function AdForm() {
                       </p>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*"
                         className="hidden"
                         onChange={handleFileChange}
                       />

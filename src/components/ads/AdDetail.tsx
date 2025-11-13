@@ -443,22 +443,35 @@ export function AdDetail() {
                   <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.name}</p>
                 </div>
 
-                {/* Creative Image */}
+                {/* Creative Image/Video */}
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-full max-w-sm h-64 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                     {ad.creativeUrl ? (
-                      <img 
-                        src={ad.creativeUrl} 
-                        alt="Ad creative" 
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          if (!target.dataset.fallback) {
-                            target.dataset.fallback = 'true';
-                            target.src = PLACEHOLDER_IMAGE;
-                          }
-                        }}
-                      />
+                      (() => {
+                        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
+                        return isVideo ? (
+                          <video 
+                            src={ad.creativeUrl} 
+                            controls
+                            className="max-w-full max-h-full rounded-lg"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        ) : (
+                          <img 
+                            src={ad.creativeUrl} 
+                            alt="Ad creative" 
+                            className="max-w-full max-h-full object-contain rounded-lg"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (!target.dataset.fallback) {
+                                target.dataset.fallback = 'true';
+                                target.src = PLACEHOLDER_IMAGE;
+                              }
+                            }}
+                          />
+                        );
+                      })()
                     ) : (
                       <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
                         <ImageIcon className="h-12 w-12 mb-2" />
