@@ -192,7 +192,7 @@ class AdService {
     }
   }
 
-  // Get category suggestions based on search term
+  // Get category suggestions based on search term (LEGACY)
   async getCategoryDetails(searchTerm: string): Promise<{ success: boolean; data?: CategoryDetails; message?: string }> {
     try {
       const response = await fetch(`${getAdApiUrl()}/categoryDetails?param=${encodeURIComponent(searchTerm)}`, {
@@ -213,6 +213,41 @@ class AdService {
       console.error('Error fetching category details:', error);
       return {
         success: false,
+        message: 'Failed to fetch category details'
+      };
+    }
+  }
+
+  // Get hierarchical category details with drilldown support
+  async getCategoryDetails2(catId?: number): Promise<{ 
+    success: boolean; 
+    data?: Array<{ catId: number; catName: string }>; 
+    message?: string 
+  }> {
+    try {
+      const url = catId 
+        ? `${getAdApiUrl()}/categoryDetails2?catId=${catId}`
+        : `${getAdApiUrl()}/categoryDetails2`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      return {
+        success: result.status === 1,
+        data: result.data?.categoryDetails || [],
+        message: result.message
+      };
+    } catch (error) {
+      console.error('Error fetching hierarchical category details:', error);
+      return {
+        success: false,
+        data: [],
         message: 'Failed to fetch category details'
       };
     }

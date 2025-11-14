@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Ad, Slot, ApiAd, mapApiAdToAd } from '@/types';
+import { Ad, Slot, ApiAd, mapApiAdToAd, CategoryPath } from '@/types';
 import { motion } from 'framer-motion';
 import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
@@ -151,7 +151,16 @@ export function AdDetail() {
       'Impression Pixel': ad.impressionPixel || 'N/A',
       'Click Pixel': ad.clickPixel || 'N/A',
       'Landing URL': ad.targetUrl || 'N/A',
-      'Categories': ad.categories ? Object.keys(ad.categories).join(', ') : 'N/A',
+      'Categories': (() => {
+        if (!ad.categories) return 'N/A';
+        if (typeof ad.categories === 'object' && 'selections' in ad.categories) {
+          const catPath = ad.categories as CategoryPath;
+          return catPath.selections.map(sel => 
+            sel.path.map(c => c.catName).join(' → ')
+          ).join('; ');
+        }
+        return Object.keys(ad.categories as Record<string, number>).join(', ');
+      })(),
       'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
       'Locations': ad.location ? Object.keys(ad.location).join(', ') : 'N/A',
       'Brand Targets': ad.brandTargets ? Object.keys(ad.brandTargets).join(', ') : 'N/A',
@@ -639,22 +648,84 @@ export function AdDetail() {
                 )}
 
                 {/* Categories */}
-                {Object.keys(ad.categories || {}).length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <Tag className="h-4 w-4 mr-2" />
-                      Categories
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(ad.categories).map(([category, priority]) => (
-                        <div key={category} className="flex justify-between items-center">
-                          <span className="text-gray-900 dark:text-gray-100">{category}</span>
-                          <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
+                {(() => {
+                  const categories = ad.categories;
+                  
+                  if (!categories) return null;
+
+                  const isNewFormat = typeof categories === 'object' && 'selections' in categories;
+                  
+                  if (isNewFormat) {
+                    const categoryPath = categories as CategoryPath;
+                    if (!categoryPath.selections || categoryPath.selections.length === 0) return null;
+
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <Tag className="h-4 w-4 mr-2" />
+                          Categories ({categoryPath.selections.length} selected)
+                        </h4>
+
+                        <div className="space-y-3">
+                          {categoryPath.selections.map((selection, index) => (
+                            <div key={`${selection.selected.catId}-${index}`} className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
+                              {/* Selected Category Badge */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium">
+                                  Selected: {String(selection.selected.catName)}
+                                </Badge>
+                              </div>
+                              
+                              {/* Full Path */}
+                              <div className="flex items-center gap-2 flex-wrap text-sm">
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">Path:</span>
+                                {selection.path.map((cat, idx) => (
+                                  <React.Fragment key={`${cat.catId}-${idx}`}>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={idx === selection.path.length - 1 
+                                        ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 font-semibold" 
+                                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                      }
+                                    >
+                                      {String(cat.catName)}
+                                    </Badge>
+                                    {idx < selection.path.length - 1 && (
+                                      <span className="text-gray-400">→</span>
+                                    )}
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      </div>
+                    );
+                  } else {
+                    // Legacy format
+                    const legacyCategories = categories as Record<string, number>;
+                    if (Object.keys(legacyCategories).length === 0) return null;
+
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <Tag className="h-4 w-4 mr-2" />
+                          Categories
+                        </h4>
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-orange-600 dark:text-orange-400 mb-2">Legacy Format</div>
+                          {Object.entries(legacyCategories).map(([category, priority]) => (
+                            <div key={category} className="flex justify-between items-center">
+                              <span className="text-gray-900 dark:text-gray-100">{category}</span>
+                              <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
 
                 {/* Sites */}
                 {Object.keys(ad.sites || {}).length > 0 && (

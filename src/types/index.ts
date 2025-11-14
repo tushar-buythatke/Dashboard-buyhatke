@@ -36,7 +36,7 @@ export interface Ad {
   clickPixel: string;
   targetUrl: string;
   status: number; // 0: inactive, 1: active
-  categories: Record<string, number>;
+  categories: Record<string, number> | CategoryPath;
   sites: Record<string, number>;
   location: Record<string, number>;
   brandTargets: Record<string, number>;
@@ -158,6 +158,25 @@ export interface CategoryDetail {
 
 export interface CategoryDetails {
   [categoryName: string]: CategoryDetail;
+}
+
+export interface HierarchicalCategory {
+  catId: number;
+  catName: string;
+}
+
+export interface CategoryLevel {
+  catId: number;
+  catName: string;
+}
+
+export interface CategorySelection {
+  path: CategoryLevel[];  // Full breadcrumb path
+  selected: CategoryLevel;  // The actually selected category
+}
+
+export interface CategoryPath {
+  selections: CategorySelection[];
 }
 
 export interface LocationDetails {

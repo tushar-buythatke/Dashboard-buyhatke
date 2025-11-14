@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { LocationAutoSuggest, CategoryAutoSuggest, BrandInput } from '@/components/ui/auto-suggest';
+import { LocationAutoSuggest, BrandInput } from '@/components/ui/auto-suggest';
+import { MultiHierarchicalCategorySelector } from '@/components/ui/multi-hierarchical-category-selector';
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
 import { getApiBaseUrl } from '@/config/api';
 import { toast } from 'sonner';
-import { Slot, Ad } from '@/types';
+import { Slot, Ad, CategoryPath } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -137,7 +138,15 @@ const adSchema = z.object({
   impressionPixel: z.string().url('Must be a valid URL'),
   clickPixel: z.string().url('Must be a valid URL'),
   targetUrl: z.string().url('Must be a valid URL'),
-  categories: z.record(z.number().min(0)),
+  categories: z.union([
+    z.record(z.number().min(0)),
+    z.object({
+      selections: z.array(z.object({
+        path: z.array(z.object({ catId: z.number(), catName: z.string() })),
+        selected: z.object({ catId: z.number(), catName: z.string() })
+      }))
+    })
+  ]),
   sites: z.record(z.number().min(0)),
   location: z.record(z.number().min(0)),
   brandTargets: z.record(z.number().min(0)),
@@ -230,7 +239,7 @@ export function AdForm() {
       impressionPixel: '',
       clickPixel: '',
       targetUrl: '',
-      categories: {},
+      categories: { selections: [] },
       sites: {},
       location: {},
       brandTargets: {},
@@ -1238,7 +1247,7 @@ export function AdForm() {
                         form.setValue('sites', {}, { shouldValidate: true });
                         form.setValue('brandTargets', {}, { shouldValidate: true });
                         form.setValue('location', {}, { shouldValidate: true });
-                        form.setValue('categories', {}, { shouldValidate: true });
+                        form.setValue('categories', { selections: [] }, { shouldValidate: true });
                         
                         // Show highlighting for 3 seconds
                         setTimeout(() => setPriceRangeHighlighted(false), 3000);
@@ -1254,7 +1263,7 @@ export function AdForm() {
                         form.setValue('sites', {}, { shouldValidate: true });
                         form.setValue('brandTargets', {}, { shouldValidate: true });
                         form.setValue('location', {}, { shouldValidate: true });
-                        form.setValue('categories', {}, { shouldValidate: true });
+                        form.setValue('categories', { selections: [] }, { shouldValidate: true });
                       }
                     }}
                     label="Master No Specificity"
@@ -1513,13 +1522,13 @@ export function AdForm() {
                   <FormItem>
                     <FormLabel>Categories</FormLabel>
                     <FormDescription>
-                      Search and select product categories to target.
+                      Select multiple categories at any level. Navigate through the hierarchy and click "Select" to add each category you want to target.
                     </FormDescription>
                     <FormControl>
-                      <CategoryAutoSuggest
-                        value={field.value}
+                      <MultiHierarchicalCategorySelector
+                        value={typeof field.value === 'object' && 'selections' in field.value ? field.value as CategoryPath : { selections: [] }}
                         onChange={field.onChange}
-                        placeholder="Search categories..."
+                        placeholder="Select categories..."
                       />
                     </FormControl>
                     <FormMessage />
