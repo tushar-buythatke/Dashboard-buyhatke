@@ -546,8 +546,20 @@ export function AdForm() {
         : `${getApiBaseUrl()}/ads?userId=1`;
 
       const method = 'POST';
+      
+      // Transform categories from selections format to {catId: catName}
+      let transformedCategories: Record<number, string> = {};
+      if (typeof data.categories === 'object' && 'selections' in data.categories) {
+        data.categories.selections.forEach(selection => {
+          transformedCategories[selection.selected.catId] = selection.selected.catName;
+        });
+      } else if (typeof data.categories === 'object') {
+        transformedCategories = data.categories as Record<number, string>;
+      }
+      
       const body = {
         ...data,
+        categories: transformedCategories,
         campaignId: Number(campaignId),
         ...(isEditMode && { adId: Number(adId) })
       };

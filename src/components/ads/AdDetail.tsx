@@ -159,7 +159,9 @@ export function AdDetail() {
             sel.path.map(c => c.catName).join(' → ')
           ).join('; ');
         }
-        return Object.keys(ad.categories as Record<string, number>).join(', ');
+        // {catId: catName} format
+        const categoryMap = ad.categories as Record<number, string>;
+        return Object.values(categoryMap).join(', ') || 'N/A';
       })(),
       'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
       'Locations': ad.location ? Object.keys(ad.location).join(', ') : 'N/A',
@@ -702,9 +704,9 @@ export function AdDetail() {
                       </div>
                     );
                   } else {
-                    // Legacy format
-                    const legacyCategories = categories as Record<string, number>;
-                    if (Object.keys(legacyCategories).length === 0) return null;
+                    // {catId: catName} format
+                    const categoryMap = categories as Record<number, string>;
+                    if (Object.keys(categoryMap).length === 0) return null;
 
                     return (
                       <div className="space-y-4">
@@ -713,12 +715,16 @@ export function AdDetail() {
                           Categories
                         </h4>
 
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-orange-600 dark:text-orange-400 mb-2">Legacy Format</div>
-                          {Object.entries(legacyCategories).map(([category, priority]) => (
-                            <div key={category} className="flex justify-between items-center">
-                              <span className="text-gray-900 dark:text-gray-100">{category}</span>
-                              <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(categoryMap).map(([catId, catName]) => (
+                            <div 
+                              key={catId} 
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+                            >
+                              <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
+                                {catId}
+                              </Badge>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{catName}</span>
                             </div>
                           ))}
                         </div>

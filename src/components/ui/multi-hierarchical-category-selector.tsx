@@ -36,8 +36,13 @@ export function MultiHierarchicalCategorySelector({
     try {
       const result = await adService.getCategoryDetails2();
       if (result.success && result.data) {
-        setTopLevelCategories(result.data);
-        setCurrentCategories(result.data);
+        // Convert {catId: catName} to array of CategoryLevel
+        const categories = Object.entries(result.data).map(([catId, catName]) => ({
+          catId: Number(catId),
+          catName
+        }));
+        setTopLevelCategories(categories);
+        setCurrentCategories(categories);
       }
     } catch (error) {
       console.error('Failed to load top-level categories:', error);
@@ -51,11 +56,17 @@ export function MultiHierarchicalCategorySelector({
     try {
       const result = await adService.getCategoryDetails2(category.catId);
       if (result.success && result.data) {
-        if (result.data.length === 0) {
+        // Convert {catId: catName} to array of CategoryLevel
+        const categories = Object.entries(result.data).map(([catId, catName]) => ({
+          catId: Number(catId),
+          catName
+        }));
+        
+        if (categories.length === 0) {
           // No subcategories - this is a leaf node
           setCurrentCategories([]);
         } else {
-          setCurrentCategories(result.data);
+          setCurrentCategories(categories);
         }
         setBreadcrumb([...breadcrumb, category]);
       }
@@ -81,7 +92,12 @@ export function MultiHierarchicalCategorySelector({
       try {
         const result = await adService.getCategoryDetails2(parent.catId);
         if (result.success && result.data) {
-          setCurrentCategories(result.data);
+          // Convert {catId: catName} to array of CategoryLevel
+          const categories = Object.entries(result.data).map(([catId, catName]) => ({
+            catId: Number(catId),
+            catName
+          }));
+          setCurrentCategories(categories);
         }
       } catch (error) {
         console.error('Failed to load parent categories:', error);

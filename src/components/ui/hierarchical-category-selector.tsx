@@ -46,8 +46,13 @@ export function HierarchicalCategorySelector({
     try {
       const result = await adService.getCategoryDetails2();
       if (result.success && result.data) {
-        setTopLevelCategories(result.data);
-        setCurrentCategories(result.data);
+        // Convert {catId: catName} to array of CategoryNode
+        const categories = Object.entries(result.data).map(([catId, catName]) => ({
+          catId: Number(catId),
+          catName
+        }));
+        setTopLevelCategories(categories);
+        setCurrentCategories(categories);
       }
     } catch (error) {
       console.error('Failed to load top-level categories:', error);
@@ -62,12 +67,18 @@ export function HierarchicalCategorySelector({
     try {
       const result = await adService.getCategoryDetails2(category.catId);
       if (result.success && result.data) {
-        if (result.data.length === 0) {
+        // Convert {catId: catName} to array of CategoryNode
+        const categories = Object.entries(result.data).map(([catId, catName]) => ({
+          catId: Number(catId),
+          catName
+        }));
+        
+        if (categories.length === 0) {
           // No more subcategories, this is the final level
           confirmSelection(category);
         } else {
           // Show subcategories
-          setCurrentCategories(result.data);
+          setCurrentCategories(categories);
           setBreadcrumb([...breadcrumb, category]);
         }
       }
@@ -98,7 +109,12 @@ export function HierarchicalCategorySelector({
       try {
         const result = await adService.getCategoryDetails2(parent.catId);
         if (result.success && result.data) {
-          setCurrentCategories(result.data);
+          // Convert {catId: catName} to array of CategoryNode
+          const categories = Object.entries(result.data).map(([catId, catName]) => ({
+            catId: Number(catId),
+            catName
+          }));
+          setCurrentCategories(categories);
         }
       } catch (error) {
         console.error('Failed to load parent categories:', error);

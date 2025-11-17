@@ -221,7 +221,7 @@ class AdService {
   // Get hierarchical category details with drilldown support
   async getCategoryDetails2(catId?: number): Promise<{ 
     success: boolean; 
-    data?: Array<{ catId: number; catName: string }>; 
+    data?: Record<number, string>; 
     message?: string 
   }> {
     try {
@@ -238,16 +238,24 @@ class AdService {
       });
 
       const result = await response.json();
+      const categoryDetails = result.data?.categoryDetails || [];
+      
+      // Transform array to {catId: catName} format
+      const transformedData = categoryDetails.reduce((acc: Record<number, string>, item: { catId: number; catName: string }) => {
+        acc[item.catId] = item.catName;
+        return acc;
+      }, {});
+      
       return {
         success: result.status === 1,
-        data: result.data?.categoryDetails || [],
+        data: transformedData,
         message: result.message
       };
     } catch (error) {
       console.error('Error fetching hierarchical category details:', error);
       return {
         success: false,
-        data: [],
+        data: {},
         message: 'Failed to fetch category details'
       };
     }
