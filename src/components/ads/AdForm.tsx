@@ -550,11 +550,12 @@ export function AdForm() {
       // Transform categories from selections format to {catId: catName}
       let transformedCategories: Record<number, string> = {};
       if (typeof data.categories === 'object' && 'selections' in data.categories) {
-        data.categories.selections.forEach(selection => {
+        const categoryPath = data.categories as CategoryPath;
+        categoryPath.selections.forEach((selection) => {
           transformedCategories[selection.selected.catId] = selection.selected.catName;
         });
       } else if (typeof data.categories === 'object') {
-        transformedCategories = data.categories as Record<number, string>;
+        transformedCategories = data.categories as unknown as Record<number, string>;
       }
       
       const body = {

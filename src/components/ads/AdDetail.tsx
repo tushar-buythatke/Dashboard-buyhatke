@@ -160,7 +160,7 @@ export function AdDetail() {
           ).join('; ');
         }
         // {catId: catName} format
-        const categoryMap = ad.categories as Record<number, string>;
+        const categoryMap = ad.categories as unknown as Record<number, string>;
         return Object.values(categoryMap).join(', ') || 'N/A';
       })(),
       'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
@@ -705,7 +705,7 @@ export function AdDetail() {
                     );
                   } else {
                     // {catId: catName} format
-                    const categoryMap = categories as Record<number, string>;
+                    const categoryMap = categories as unknown as Record<number, string>;
                     if (Object.keys(categoryMap).length === 0) return null;
 
                     return (
