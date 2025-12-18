@@ -300,13 +300,20 @@ class AdService {
   // Create new ad
   async createAd(adData: CreateAdData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
+      // Ensure time is in HH:mm:ss format if provided as HH:mm
+      const formattedData = {
+        ...adData,
+        startTime: adData.startTime ? (adData.startTime.split(':').length === 2 ? `${adData.startTime}:00` : adData.startTime) : '00:00:00',
+        endTime: adData.endTime ? (adData.endTime.split(':').length === 2 ? `${adData.endTime}:59` : adData.endTime) : '23:59:59'
+      };
+
       const response = await fetch(`${getAdApiUrl()}?userId=${userId}`, {
         method: 'POST',
         credentials: 'omit',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(adData),
+        body: JSON.stringify(formattedData),
       });
 
       const result = await response.json();
@@ -327,12 +334,19 @@ class AdService {
   // Update an existing ad
   async updateAd(adId: number, data: UpdateAdData): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
+      // Ensure time is in HH:mm:ss format if provided as HH:mm
+      const formattedData = {
+        ...data,
+        startTime: data.startTime ? (data.startTime.split(':').length === 2 ? `${data.startTime}:00` : data.startTime) : data.startTime,
+        endTime: data.endTime ? (data.endTime.split(':').length === 2 ? `${data.endTime}:59` : data.endTime) : data.endTime
+      };
+
       const response = await fetch(`${getAdApiUrl()}/${adId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(formattedData)
       });
 
       const result = await response.json();

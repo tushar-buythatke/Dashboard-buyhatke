@@ -65,7 +65,7 @@ class AnalyticsService {
       });
 
       const result: MetricsResponse = await response.json();
-      
+
       if (result.status === 1 && result.data) {
         // Process the raw data and calculate metrics
         const processedData = this.processMetricsData(result.data);
@@ -94,7 +94,7 @@ class AnalyticsService {
     try {
       const body = this.preparePayloadForTrend(payload);
       console.log('📈 Making trend API call with payload:', body);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/metrics/trend?userId=1`, {
         method: 'POST',
         headers: {
@@ -105,7 +105,7 @@ class AnalyticsService {
 
       const result: MetricsResponse = await response.json();
       console.log('📈 Trend API raw response:', result);
-      
+
       if (result.status === 1 && result.data) {
         const processedData = this.processTrendData(result.data, payload.interval);
         console.log('📊 Processed trend data:', processedData);
@@ -135,7 +135,7 @@ class AnalyticsService {
     try {
       const body = this.preparePayloadForBreakdown(payload);
       console.log(`Making breakdown API call for ${payload.by}:`, body);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/metrics/breakdown?userId=1`, {
         method: 'POST',
         headers: {
@@ -146,7 +146,7 @@ class AnalyticsService {
 
       const result: MetricsResponse = await response.json();
       console.log(`Breakdown API response for ${payload.by}:`, result);
-      
+
       if (result.status === 1 && result.data) {
         const processedData = this.processBreakdownData(result.data, payload.by);
         return {
@@ -175,7 +175,7 @@ class AnalyticsService {
     try {
       const response = await fetch(`${getApiBaseUrl()}/campaigns`);
       const result = await response.json();
-      
+
       if (result.status === 1 && result.data?.campaignList) {
         return {
           success: true,
@@ -202,7 +202,7 @@ class AnalyticsService {
     try {
       const response = await fetch(`${getApiBaseUrl()}/slots`);
       const result = await response.json();
-      
+
       if (result.status === 1 && result.data?.slotList) {
         return {
           success: true,
@@ -229,7 +229,7 @@ class AnalyticsService {
     try {
       const response = await fetch(`${getApiBaseUrl()}/ads/siteDetails`);
       const result = await response.json();
-      
+
       if (result.status === 1 && result.data?.siteDetails) {
         // Convert siteDetails object to array format for dropdown
         const sitesArray = Object.entries(result.data.siteDetails).map(([id, site]: [string, any]) => ({
@@ -238,7 +238,7 @@ class AnalyticsService {
           domain: site.domain,
           image: site.image
         }));
-        
+
         return {
           success: true,
           data: sitesArray,
@@ -279,7 +279,7 @@ class AnalyticsService {
           impressions: value.impressions || 0,
           clicks: value.clicks || 0,
         }));
-        
+
         return {
           success: true,
           data: tableArray,
@@ -305,13 +305,13 @@ class AnalyticsService {
     try {
       const response = await fetch(`${getApiBaseUrl()}/metrics/all?userId=1`);
       const result = await response.json();
-      
+
       if (result.status === 1 && result.data) {
         // Process the data to extract metrics
         let impressions = 0;
         let clicks = 0;
         const conversions = result.data.conversionStats?.conversionCount || 0;
-        
+
         // Extract impressions and clicks from adStats
         if (Array.isArray(result.data.adStats)) {
           result.data.adStats.forEach((stat: any) => {
@@ -322,14 +322,14 @@ class AnalyticsService {
             }
           });
         }
-        
+
         // Calculate derived metrics
         const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
         const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
         const revenue = conversions * 100; // Example: ₹100 per conversion
         const adSpend = impressions * 0.1; // Example: ₹0.1 CPM
         const roi = adSpend > 0 ? ((revenue - adSpend) / adSpend) * 100 : 0;
-        
+
         const processedData = {
           impressions,
           clicks,
@@ -338,7 +338,7 @@ class AnalyticsService {
           revenue,
           roi
         };
-        
+
         return {
           success: true,
           data: processedData,
@@ -450,7 +450,7 @@ class AnalyticsService {
 
     // Apply client-side grouping if needed based on interval
     const groupedTrend = this.forceDataGrouping(trend, interval);
-    
+
     console.log('📊 Final processed trend data:', groupedTrend);
     return groupedTrend;
   }
@@ -476,20 +476,20 @@ class AnalyticsService {
         case '1d': // Daily - keep individual days
           groupKey = point.date;
           break;
-        
+
         case '7d': // Weekly - group by week starting Sunday
           const weekStart = new Date(date);
           weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
           groupKey = weekStart.toISOString().split('T')[0];
           break;
-        
+
         case '30d': // Monthly - group by first day of month
           const year = date.getFullYear();
           const month = date.getMonth();
           const monthStart = new Date(year, month, 1);
           groupKey = monthStart.toISOString().split('T')[0];
           break;
-        
+
         default:
           groupKey = point.date;
       }
@@ -530,7 +530,7 @@ class AnalyticsService {
       sampleGroupedDates: result.slice(0, 5).map(d => d.date),
       groupingKeys: Array.from(grouped.keys()).slice(0, 5)
     });
-    
+
     return result;
   }
 
@@ -633,7 +633,7 @@ class AnalyticsService {
       rawData.forEach((row: any) => {
         // Determine the grouping key based on the breakdown type
         let key = 'Unknown';
-        
+
         if (groupBy === 'gender' && row.gender !== undefined) {
           key = row.gender;
         } else if (groupBy === 'platform' && row.platform !== undefined) {
@@ -646,14 +646,14 @@ class AnalyticsService {
             row.ageBucket0, row.ageBucket1, row.ageBucket2, row.ageBucket3,
             row.ageBucket4, row.ageBucket5, row.ageBucket6, row.ageBucket7
           ];
-          
+
           ageBuckets.forEach((count, index) => {
             if (count && count > 0) {
               const ageGroup = this.getAgeGroupLabel(index);
               if (!map[ageGroup]) {
                 map[ageGroup] = { impressions: 0, clicks: 0, conversions: 0 };
               }
-              
+
               const type = Number(row.eventType);
               if (type === 0) {
                 map[ageGroup].impressions += Number(count) || 0;
@@ -729,23 +729,23 @@ class AnalyticsService {
   // Prepare payload for /metrics/all endpoint
   private preparePayloadForAll(payload: MetricsPayload): Record<string, any> {
     const body: any = {
-      from: payload.from,
-      to: payload.to
+      from: this.formatDateTime(payload.from, 'start'),
+      to: this.formatDateTime(payload.to, 'end')
     };
 
     // Add filters if they exist - backend expects arrays
     if (payload.campaignId !== undefined) {
       body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
-    
+
     if (payload.slotId !== undefined) {
       body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
     }
-    
+
     if (payload.siteId !== undefined) {
       body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
     }
-    
+
     if (payload.adId !== undefined) {
       body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
     }
@@ -756,8 +756,8 @@ class AnalyticsService {
   // Prepare payload for /metrics/trend endpoint
   private preparePayloadForTrend(payload: MetricsPayload): Record<string, any> {
     const body: any = {
-      from: payload.from,
-      to: payload.to,
+      from: this.formatDateTime(payload.from, 'start'),
+      to: this.formatDateTime(payload.to, 'end'),
       interval: payload.interval || '1d'
     };
 
@@ -765,15 +765,15 @@ class AnalyticsService {
     if (payload.campaignId !== undefined) {
       body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
-    
+
     if (payload.slotId !== undefined) {
       body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
     }
-    
+
     if (payload.siteId !== undefined) {
       body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
     }
-    
+
     if (payload.adId !== undefined) {
       body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
     }
@@ -784,8 +784,8 @@ class AnalyticsService {
   // Prepare payload for /metrics/breakdown endpoint
   private preparePayloadForBreakdown(payload: MetricsPayload): Record<string, any> {
     const body: any = {
-      from: payload.from,
-      to: payload.to,
+      from: this.formatDateTime(payload.from, 'start'),
+      to: this.formatDateTime(payload.to, 'end'),
       by: payload.by || 'platform'
     };
 
@@ -793,20 +793,37 @@ class AnalyticsService {
     if (payload.campaignId !== undefined) {
       body.campaignId = Array.isArray(payload.campaignId) ? payload.campaignId : [payload.campaignId];
     }
-    
+
     if (payload.slotId !== undefined) {
       body.slotId = Array.isArray(payload.slotId) ? payload.slotId : [payload.slotId];
     }
-    
+
     if (payload.siteId !== undefined) {
       body.siteId = Array.isArray(payload.siteId) ? payload.siteId : [payload.siteId];
     }
-    
+
     if (payload.adId !== undefined) {
       body.adId = Array.isArray(payload.adId) ? payload.adId : [payload.adId];
     }
 
     return body;
+  }
+
+  /**
+   * Appends time in HH:mm:ss format to a date string if not already present.
+   * @param dateStr Date string (YYYY-MM-DD or ISO)
+   * @param type 'start' (00:00:00) or 'end' (23:59:59)
+   */
+  private formatDateTime(dateStr: string, type: 'start' | 'end'): string {
+    if (!dateStr) return dateStr;
+
+    // If it already contains a time component (space or T separator), return as is
+    if (dateStr.includes(' ') || dateStr.includes('T')) {
+      return dateStr;
+    }
+
+    // Default to space separator for HH:MM:SS requirement
+    return type === 'start' ? `${dateStr} 00:00:00` : `${dateStr} 23:59:59`;
   }
 }
 
