@@ -60,6 +60,7 @@ export interface CreateAdData {
   status: number;
   isTestPhase: number;
   serveStrategy: number;
+  isModelType?: number;
 }
 
 export interface UpdateAdData {
@@ -89,6 +90,7 @@ export interface UpdateAdData {
   status?: number;
   isTestPhase?: number;
   serveStrategy?: number;
+  isModelType?: number;
 }
 
 class AdService {
@@ -168,7 +170,7 @@ class AdService {
       });
 
       const result = await response.json();
-      
+
       // Convert string values to numbers to match the interface
       let locationDetails: LocationDetails = {};
       if (result.status === 1 && result.data?.locationDetails) {
@@ -219,16 +221,16 @@ class AdService {
   }
 
   // Get hierarchical category details with drilldown support
-  async getCategoryDetails2(catId?: number): Promise<{ 
-    success: boolean; 
-    data?: Record<number, string>; 
-    message?: string 
+  async getCategoryDetails2(catId?: number): Promise<{
+    success: boolean;
+    data?: Record<number, string>;
+    message?: string
   }> {
     try {
-      const url = catId 
+      const url = catId
         ? `${getAdApiUrl()}/categoryDetails2?catId=${catId}`
         : `${getAdApiUrl()}/categoryDetails2`;
-      
+
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'omit',
@@ -239,13 +241,13 @@ class AdService {
 
       const result = await response.json();
       const categoryDetails = result.data?.categoryDetails || [];
-      
+
       // Transform array to {catId: catName} format
       const transformedData = categoryDetails.reduce((acc: Record<number, string>, item: { catId: number; catName: string }) => {
         acc[item.catId] = item.catName;
         return acc;
       }, {});
-      
+
       return {
         success: result.status === 1,
         data: transformedData,
@@ -274,7 +276,7 @@ class AdService {
       });
 
       const result: CreativeUploadResponse = await response.json();
-      
+
       if (result.status === 1 && result.data?.creativeUrl) {
         return {
           success: true,
@@ -332,9 +334,9 @@ class AdService {
         },
         body: JSON.stringify(data)
       });
-      
+
       const result = await response.json();
-      
+
       if (result.status === 1) {
         return {
           success: true,
@@ -386,30 +388,30 @@ class AdService {
   async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string; adId: number }>; message?: string }> {
     try {
       console.log(`🔍 Fetching ad labels for campaign ID: ${campaignId}`);
-      
+
       // Using the correct API endpoint
       const response = await fetch(`${getAdApiUrl()}?campaignId=${campaignId}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log(`📊 Raw API response for campaign ${campaignId}:`, result);
 
       if (result.status === 1 && result.data?.adsList) {
         console.log(`📝 Found ${result.data.adsList.length} ads in campaign ${campaignId}`);
-        
+
         // Extract both name, label and adId for each ad with better error handling
         const adInfo = result.data.adsList
           .map((ad: any, index: number) => {
             console.log(`🔍 Processing ad ${index + 1}:`, ad);
-            
+
             // Use label as name if name is missing (common pattern)
             const name = ad.name || ad.label || `Ad ${ad.adId || index + 1}`;
             const label = ad.label || ad.name || `Label ${ad.adId || index + 1}`;
             const adId = Number(ad.adId);
-            
+
             return {
               name: String(name).trim(),
               label: String(label).trim(),
@@ -423,9 +425,9 @@ class AdService {
             }
             return isValid;
           });
-        
+
         console.log(`✅ Processed ${adInfo.length} valid ad labels for campaign ${campaignId}:`, adInfo);
-        
+
         return {
           success: true,
           data: adInfo,
@@ -434,7 +436,7 @@ class AdService {
       } else {
         const message = result.message || 'No ads found in this campaign';
         console.log(`ℹ️ No ads found for campaign ${campaignId}:`, message);
-        
+
         return {
           success: true, // Changed to true since this is not an error, just no data
           data: [],
@@ -454,7 +456,7 @@ class AdService {
   async archiveAd(adId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       console.log(`📦 Archiving ad ${adId}...`);
-      
+
       if (!adId || isNaN(adId) || adId < 0) {
         return {
           success: false,
@@ -472,7 +474,7 @@ class AdService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 1) {
         console.log(`✅ Ad ${adId} archived successfully`);
         return {

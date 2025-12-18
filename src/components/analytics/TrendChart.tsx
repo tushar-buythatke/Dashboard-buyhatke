@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendDataPoint, TrendChartSeries } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -183,6 +183,11 @@ export const TrendChart = memo<TrendChartProps>(({
   const [viewPeriod, setViewPeriod] = useState<ViewPeriod>(period || '1d');
   const [showCombined, setShowCombined] = useState(false);
 
+  // Sync viewPeriod with period prop when it changes
+  useEffect(() => {
+    setViewPeriod(period || '1d');
+  }, [period]);
+
   // Determine available view options based on the fetched data period
   const getAvailableViewOptions = (dataPeriod: string): ViewPeriod[] => {
     switch (dataPeriod) {
@@ -319,8 +324,8 @@ export const TrendChart = memo<TrendChartProps>(({
                   variant={viewPeriod === view ? "default" : "ghost"}
                   size="sm"
                   className={`px-3 py-1 text-xs rounded-none ${viewPeriod === view
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   onClick={() => setViewPeriod(view)}
                 >

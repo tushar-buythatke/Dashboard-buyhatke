@@ -311,28 +311,31 @@ export default function Analytics() {
       // Deduplicate
       const validAdIds = adIdsToFilter.length > 0 ? Array.from(new Set(adIdsToFilter)) : undefined;
 
+      // Centralized filter validation logic
+      const validCampaignIdsAcrossViews = selectedCampaigns.length > 0
+        ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+        : undefined;
+
+      const validSlotIdsAcrossViews = selectedSlots.length > 0
+        ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
+        : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
+
+      const validPOSIdsAcrossViews = selectedPOS.length > 0
+        ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+        : undefined;
+
       // Build payload based on active view
       let trendSeries: TrendChartSeries[] = [];
       let aggregatedMetrics: MetricsData = getDefaultMetrics();
 
       if (activeView === 'campaign') {
-        // Auto-select all campaigns if none are selected - using ONLY valid campaign IDs
-        const campaignsToProcess = selectedCampaigns.length > 0
-          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id)) // Validate selected IDs
-          : campaigns.map(c => c.campaignId); // Use all available campaign IDs
-
-        // Also filter slots and POS to ensure only valid IDs are used
-        const validSlotIds = selectedSlots.length > 0
-          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-          : undefined;
-        const validPOSIds = selectedPOS.length > 0
-          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
-          : undefined;
+        // Use centralized valid Campaign IDs or default to all if none selected
+        const campaignsToProcess = validCampaignIdsAcrossViews || campaigns.map(c => c.campaignId);
 
         console.log(`📊 Processing ${campaignsToProcess.length} campaigns:`,
           selectedCampaigns.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
-        console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
-        console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
+        console.log(`📊 Valid slot IDs:`, validSlotIdsAcrossViews || 'ALL SLOTS');
+        console.log(`📊 Valid POS IDs:`, validPOSIdsAcrossViews || 'ALL POS');
 
         // Campaign-wise comparison
         const campaignResults = await Promise.all(
@@ -340,8 +343,8 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               campaignId: [Number(campaignId)],
-              slotId: validSlotIds?.map(Number),
-              siteId: validPOSIds?.map(Number),
+              slotId: validSlotIdsAcrossViews?.map(Number),
+              siteId: validPOSIdsAcrossViews?.map(Number),
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -395,23 +398,13 @@ export default function Analytics() {
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'slot') {
-        // Auto-select all slots if none are selected - using ONLY valid slot IDs
-        const slotsToProcess = selectedSlots.length > 0
-          ? selectedSlots.filter(id => slots.some(s => s.slotId === id)) // Validate selected IDs
-          : slots.map(s => s.slotId); // Use all available slot IDs
-
-        // Also filter campaigns and POS to ensure only valid IDs are used
-        const validCampaignIds = selectedCampaigns.length > 0
-          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
-          : undefined;
-        const validPOSIds = selectedPOS.length > 0
-          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
-          : undefined;
+        // Use centralized valid slot IDs (which already respects platform filter)
+        const slotsToProcess = validSlotIdsAcrossViews || slots.map(s => s.slotId);
 
         console.log(`📊 Processing ${slotsToProcess.length} slots:`,
-          selectedSlots.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
-        console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
-        console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
+          selectedSlots.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL (FILTERED)');
+        console.log(`📊 Valid campaign IDs:`, validCampaignIdsAcrossViews || 'ALL CAMPAIGNS');
+        console.log(`📊 Valid POS IDs:`, validPOSIdsAcrossViews || 'ALL POS');
 
         // Slot-wise comparison
         const slotResults = await Promise.all(
@@ -419,8 +412,8 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               slotId: [Number(slotId)],
-              campaignId: validCampaignIds?.map(Number),
-              siteId: validPOSIds?.map(Number),
+              campaignId: validCampaignIdsAcrossViews?.map(Number),
+              siteId: validPOSIdsAcrossViews?.map(Number),
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -472,23 +465,13 @@ export default function Analytics() {
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'pos') {
-        // Auto-select all POS if none are selected - using ONLY valid POS IDs
-        const posToProcess = selectedPOS.length > 0
-          ? selectedPOS.filter(id => sites.some(s => s.posId === id)) // Validate selected IDs
-          : sites.map(s => s.posId); // Use all available POS IDs
-
-        // Also filter campaigns and slots to ensure only valid IDs are used
-        const validCampaignIds = selectedCampaigns.length > 0
-          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
-          : undefined;
-        const validSlotIds = selectedSlots.length > 0
-          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-          : undefined;
+        // Use centralized valid POS IDs or default to all
+        const posToProcess = validPOSIdsAcrossViews || sites.map(s => s.posId);
 
         console.log(`📊 Processing ${posToProcess.length} POS:`,
           selectedPOS.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
-        console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
-        console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
+        console.log(`📊 Valid campaign IDs:`, validCampaignIdsAcrossViews || 'ALL CAMPAIGNS');
+        console.log(`📊 Valid slot IDs:`, validSlotIdsAcrossViews || 'ALL SLOTS');
 
         // POS-wise comparison
         const posResults = await Promise.all(
@@ -496,8 +479,8 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               siteId: [Number(posId)],
-              campaignId: validCampaignIds?.map(Number),
-              slotId: validSlotIds?.map(Number),
+              campaignId: validCampaignIdsAcrossViews?.map(Number),
+              slotId: validSlotIdsAcrossViews?.map(Number),
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -564,9 +547,9 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               adId: [ad.adId],
-              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+              campaignId: validCampaignIdsAcrossViews?.map(Number),
+              slotId: validSlotIdsAcrossViews?.map(Number),
+              siteId: validPOSIdsAcrossViews?.map(Number),
               interval: dataGrouping
             };
 
@@ -615,7 +598,7 @@ export default function Analytics() {
           : undefined;
         const validSlotIds = selectedSlots.length > 0
           ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-          : undefined;
+          : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
         const validPOSIds = selectedPOS.length > 0
           ? selectedPOS.filter(id => sites.some(s => s.posId === id))
           : undefined;
@@ -679,7 +662,7 @@ export default function Analytics() {
         : undefined;
       const validSlotIds = selectedSlots.length > 0
         ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-        : undefined;
+        : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
       const validPOSIds = selectedPOS.length > 0
         ? selectedPOS.filter(id => sites.some(s => s.posId === id))
         : undefined;
@@ -1123,7 +1106,7 @@ export default function Analytics() {
                       'ads'
               } are selected, we automatically fetch data for <span className="font-bold text-blue-900 dark:text-blue-100">ALL available {
                 activeView === 'campaign' ? `${campaigns.length} campaigns` :
-                  activeView === 'slot' ? `${slots.length} slots` :
+                  activeView === 'slot' ? `${filteredSlots.length} slots` :
                     activeView === 'pos' ? `${sites.length} marketplaces` :
                       'ads'
               }</span> to give you the complete picture! 🚀
@@ -1179,7 +1162,7 @@ export default function Analytics() {
                     🎯 Slots
                     {selectedSlots.length === 0 && slots.length > 0 && (
                       <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 text-xs">
-                        Auto: All {slots.length}
+                        Auto: All {filteredSlots.length}
                       </Badge>
                     )}
                   </label>

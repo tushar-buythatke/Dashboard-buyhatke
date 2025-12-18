@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -108,7 +108,7 @@ export function AdDetail() {
 
   const handleCloneAd = async () => {
     if (!ad) return;
-    
+
     try {
       const response = await fetch(`${getApiBaseUrl()}/ads/clone?userId=1`, {
         method: 'POST',
@@ -117,7 +117,7 @@ export function AdDetail() {
       });
 
       if (!response.ok) throw new Error('Failed to clone ad');
-      
+
       const result = await response.json();
       if (result.status === 1) {
         toast.success('Ad cloned successfully');
@@ -155,7 +155,7 @@ export function AdDetail() {
         if (!ad.categories) return 'N/A';
         if (typeof ad.categories === 'object' && 'selections' in ad.categories) {
           const catPath = ad.categories as CategoryPath;
-          return catPath.selections.map(sel => 
+          return catPath.selections.map(sel =>
             sel.path.map(c => c.catName).join(' → ')
           ).join('; ');
         }
@@ -175,6 +175,7 @@ export function AdDetail() {
       'Age Range': `${ad.ageRangeMin || 'N/A'} - ${ad.ageRangeMax || 'N/A'}`,
       'Price Range': `${ad.priceRangeMin || 'N/A'} - ${ad.priceRangeMax || 'N/A'}`,
       'Is Test Phase': ad.isTestPhase ? 'Yes' : 'No',
+      'Is Model Type': ad.isModelType === 1 ? 'Yes' : 'No',
       'Serve Strategy': ad.serveStrategy || 'N/A',
       'Created Date': ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : 'N/A',
       'Last Updated': ad.updatedAt ? new Date(ad.updatedAt).toLocaleDateString() : 'N/A'
@@ -196,7 +197,7 @@ export function AdDetail() {
       });
 
       if (!response.ok) throw new Error('Failed to update ad status');
-      
+
       const result = await response.json();
       if (result.status === 1) {
         toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`);
@@ -247,7 +248,7 @@ export function AdDetail() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -255,7 +256,7 @@ export function AdDetail() {
         >
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <Button 
+              <Button
                 variant="ghost"
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
                 className="h-10 w-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -271,21 +272,20 @@ export function AdDetail() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-              <Badge 
-                variant={ad.status === 1 ? 'success' : 'outline'} 
-                className={`font-medium text-center ${
-                  ad.status === 1 
-                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
-                    : ad.status === 0 
-                      ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700' 
+              <Badge
+                variant={ad.status === 1 ? 'success' : 'outline'}
+                className={`font-medium text-center ${ad.status === 1
+                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
+                    : ad.status === 0
+                      ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
                       : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
-                }`}
+                  }`}
               >
                 {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
               </Badge>
-              
+
               <div className="flex space-x-2">
                 <Button
                   variant="outline"
@@ -296,7 +296,7 @@ export function AdDetail() {
                   <Edit className="h-4 w-4" />
                   <span>Edit</span>
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -306,7 +306,7 @@ export function AdDetail() {
                   <Copy className="h-4 w-4" />
                   <span>Clone</span>
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -316,7 +316,7 @@ export function AdDetail() {
                   <Download className="h-4 w-4" />
                   <span>Export</span>
                 </Button>
-                
+
                 {ad.status === 1 ? (
                   <Button
                     variant="outline"
@@ -344,7 +344,7 @@ export function AdDetail() {
         </motion.div>
 
         {/* Key Metrics */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
@@ -375,8 +375,8 @@ export function AdDetail() {
               <div>
                 <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm font-medium">Target CTR</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
-                  {ad.impressionTarget > 0 
-                    ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%' 
+                  {ad.impressionTarget > 0
+                    ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%'
                     : '0.00%'}
                 </p>
               </div>
@@ -461,17 +461,17 @@ export function AdDetail() {
                       (() => {
                         const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
                         return isVideo ? (
-                          <video 
-                            src={ad.creativeUrl} 
+                          <video
+                            src={ad.creativeUrl}
                             controls
                             className="max-w-full max-h-full rounded-lg"
                           >
                             Your browser does not support the video tag.
                           </video>
                         ) : (
-                          <img 
-                            src={ad.creativeUrl} 
-                            alt="Ad creative" 
+                          <img
+                            src={ad.creativeUrl}
+                            alt="Ad creative"
                             className="max-w-full max-h-full object-contain rounded-lg"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -490,7 +490,7 @@ export function AdDetail() {
                       </div>
                     )}
                   </div>
-                  
+
                   {slot && (
                     <div className="text-center">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{slot.name}</p>
@@ -512,14 +512,29 @@ export function AdDetail() {
                     <Settings className="h-4 w-4 mr-2" />
                     Serve Strategy
                   </h4>
-                  <Badge 
-                    className={`${
-                      ad.serveStrategy === 1 
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700' 
+                  <Badge
+                    className={`${ad.serveStrategy === 1
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700'
                         : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700'
-                    }`}
+                      }`}
                   >
                     {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
+                  </Badge>
+                </div>
+
+                {/* Model Type */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+                    <Zap className="h-4 w-4 mr-2 text-purple-500" />
+                    Model Type
+                  </h4>
+                  <Badge
+                    className={`${ad.isModelType === 1
+                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      }`}
+                  >
+                    {ad.isModelType === 1 ? 'Model Type Ad' : 'Standard Ad'}
                   </Badge>
                 </div>
 
@@ -563,7 +578,7 @@ export function AdDetail() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
@@ -652,11 +667,11 @@ export function AdDetail() {
                 {/* Categories */}
                 {(() => {
                   const categories = ad.categories;
-                  
+
                   if (!categories) return null;
 
                   const isNewFormat = typeof categories === 'object' && 'selections' in categories;
-                  
+
                   if (isNewFormat) {
                     const categoryPath = categories as CategoryPath;
                     if (!categoryPath.selections || categoryPath.selections.length === 0) return null;
@@ -677,16 +692,16 @@ export function AdDetail() {
                                   Selected: {String(selection.selected.catName)}
                                 </Badge>
                               </div>
-                              
+
                               {/* Full Path */}
                               <div className="flex items-center gap-2 flex-wrap text-sm">
                                 <span className="text-gray-600 dark:text-gray-400 font-medium">Path:</span>
                                 {selection.path.map((cat, idx) => (
                                   <React.Fragment key={`${cat.catId}-${idx}`}>
-                                    <Badge 
-                                      variant="outline" 
-                                      className={idx === selection.path.length - 1 
-                                        ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 font-semibold" 
+                                    <Badge
+                                      variant="outline"
+                                      className={idx === selection.path.length - 1
+                                        ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 font-semibold"
                                         : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                                       }
                                     >
@@ -717,8 +732,8 @@ export function AdDetail() {
 
                         <div className="flex flex-wrap gap-2">
                           {Object.entries(categoryMap).map(([catId, catName]) => (
-                            <div 
-                              key={catId} 
+                            <div
+                              key={catId}
                               className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
                             >
                               <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
@@ -796,7 +811,7 @@ export function AdDetail() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Click Pixel URL</label>
                   <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">

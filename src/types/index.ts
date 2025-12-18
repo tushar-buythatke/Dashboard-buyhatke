@@ -53,6 +53,7 @@ export interface Ad {
   gender: string;
   isTestPhase: number;
   serveStrategy: number;
+  isModelType: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +90,7 @@ export interface ApiAd {
   gender: string;
   isTestPhase: number;
   serveStrategy: number;
+  isModelType: number;
   createdAt: string;
   updatedAt: string;
 }
