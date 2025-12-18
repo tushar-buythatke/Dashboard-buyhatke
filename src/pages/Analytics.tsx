@@ -24,9 +24,9 @@ import { DataTable } from '@/components/analytics/DataTable';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 
 // Analytics Service
-import { 
-  analyticsService, 
-  MetricsPayload 
+import {
+  analyticsService,
+  MetricsPayload
 } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
 
@@ -34,11 +34,11 @@ import { adService } from '@/services/adService';
 import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
 
 // Types
-import { 
-  Campaign, 
-  Slot, 
-  MetricsData, 
-  TrendDataPoint, 
+import {
+  Campaign,
+  Slot,
+  MetricsData,
+  TrendDataPoint,
   BreakdownData,
   TrendChartSeries
 } from '@/types';
@@ -54,6 +54,7 @@ interface Site {
 interface AdOption {
   name: string;
   label: string;
+  adId: number;
 }
 
 
@@ -94,14 +95,14 @@ export default function Analytics() {
   const [dataGrouping, setDataGrouping] = useState<'1d' | '7d' | '30d'>('7d'); // For data aggregation
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [activeView, setActiveView] = useState<'campaign' | 'slot' | 'ad' | 'pos'>('campaign');
-  
+
   // Filter states
   const [selectedCampaigns, setSelectedCampaigns] = useState<(string | number)[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<(string | number)[]>([]);
   const [selectedPOS, setSelectedPOS] = useState<(string | number)[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<(string | number)[]>([]);
 
-  
+
   // Ad name filter states
   const [selectedExactAdNames, setSelectedExactAdNames] = useState<string[]>([]);
   const [selectedStartsWithAdNames, setSelectedStartsWithAdNames] = useState<string[]>([]);
@@ -136,8 +137,6 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
-  // Add state for toggles - ensure proper initialization
-  const [showCombinedTotal, setShowCombinedTotal] = useState(true);
 
   // Fetch dropdown data on component mount
   useEffect(() => {
@@ -151,33 +150,34 @@ export default function Analytics() {
   useEffect(() => {
     // Don't fetch ad names if data is still loading or no campaigns available
     if (loading || campaigns.length === 0) return;
-    
+
     const loadAdNames = async () => {
       try {
         setAdNamesLoading(true);
-        
+
         // If no campaigns selected, load ad names for ALL campaigns
-        const campaignsToProcess = selectedCampaigns.length > 0 
-          ? selectedCampaigns 
+        const campaignsToProcess = selectedCampaigns.length > 0
+          ? selectedCampaigns
           : campaigns.map(c => c.campaignId);
-          
-        console.log('Loading ad names for campaigns:', 
+
+        console.log('Loading ad names for campaigns:',
           selectedCampaigns.length > 0 ? selectedCampaigns : 'ALL CAMPAIGNS');
-        
+
         const adOptions: AdOption[] = [];
         await Promise.all(
           campaignsToProcess.map(async (campId) => {
             console.log('Fetching ads for campaign ID:', campId);
             const res = await adService.getAdLabels(Number(campId));
             console.log('Ad labels response for campaign', campId, ':', res);
-            
+
             if (res.success && res.data) {
               // Add each ad option with name and label fields
               res.data.forEach((adInfo) => {
                 console.log('Processing ad info:', adInfo);
                 adOptions.push({
                   name: adInfo.name,
-                  label: adInfo.label
+                  label: adInfo.label,
+                  adId: adInfo.adId
                 });
               });
             } else {
@@ -185,12 +185,12 @@ export default function Analytics() {
             }
           })
         );
-        
+
         // Remove duplicates based on name field
         const uniqueOptions = adOptions.filter((option, index, self) =>
           index === self.findIndex((t) => t.name === option.name)
         );
-        
+
         console.log('Final ad options:', uniqueOptions);
         setAdNameOptions(uniqueOptions);
       } catch (err) {
@@ -263,45 +263,53 @@ export default function Analytics() {
       console.log('⏳ Skipping fetch - already loading data');
       return;
     }
-    
+
     try {
       setDataLoading(true);
-      
+
       // Use date range from context (DateRangePicker) with safety check
       const dateRange = filters.dateRange || {
         from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         to: new Date().toISOString().split('T')[0]
       };
-      
+
       // Calculate comparison date range based on period
       const calculateComparisonDateRange = (currentRange: any, period: '1d' | '7d' | '30d') => {
         const fromDate = new Date(currentRange.from);
         const toDate = new Date(currentRange.to);
         const rangeDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
-        
+
         // Calculate previous period
         const comparisonToDate = new Date(fromDate);
         comparisonToDate.setDate(comparisonToDate.getDate() - 1); // End one day before current period starts
-        
+
         const comparisonFromDate = new Date(comparisonToDate);
         comparisonFromDate.setDate(comparisonFromDate.getDate() - rangeDays + 1); // Go back the same number of days
-        
+
         return {
           from: comparisonFromDate.toISOString().split('T')[0],
           to: comparisonToDate.toISOString().split('T')[0]
         };
       };
-      
+
       const comparisonDateRange = calculateComparisonDateRange(dateRange, dataGrouping);
-      
-      console.log('Fetching analytics data with:', { 
-        dateRange, 
+
+      console.log('Fetching analytics data with:', {
+        dateRange,
         comparisonDateRange,
-        activeView, 
-        selectedCampaigns, 
-        selectedSlots, 
-        selectedPOS 
+        activeView,
+        selectedCampaigns,
+        selectedSlots,
+        selectedPOS
       });
+
+      // Map ad names to IDs for filtering
+      const adIdsToFilter = [
+        ...adNameOptions.filter(opt => selectedExactAdNames.includes(opt.name)).map(opt => opt.adId),
+        ...adNameOptions.filter(opt => selectedStartsWithAdNames.includes(opt.label)).map(opt => opt.adId)
+      ];
+      // Deduplicate
+      const validAdIds = adIdsToFilter.length > 0 ? Array.from(new Set(adIdsToFilter)) : undefined;
 
       // Build payload based on active view
       let trendSeries: TrendChartSeries[] = [];
@@ -309,19 +317,19 @@ export default function Analytics() {
 
       if (activeView === 'campaign') {
         // Auto-select all campaigns if none are selected - using ONLY valid campaign IDs
-        const campaignsToProcess = selectedCampaigns.length > 0 
+        const campaignsToProcess = selectedCampaigns.length > 0
           ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id)) // Validate selected IDs
           : campaigns.map(c => c.campaignId); // Use all available campaign IDs
-        
+
         // Also filter slots and POS to ensure only valid IDs are used
-        const validSlotIds = selectedSlots.length > 0 
+        const validSlotIds = selectedSlots.length > 0
           ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
           : undefined;
-        const validPOSIds = selectedPOS.length > 0 
+        const validPOSIds = selectedPOS.length > 0
           ? selectedPOS.filter(id => sites.some(s => s.posId === id))
           : undefined;
-        
-        console.log(`📊 Processing ${campaignsToProcess.length} campaigns:`, 
+
+        console.log(`📊 Processing ${campaignsToProcess.length} campaigns:`,
           selectedCampaigns.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
         console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
         console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
@@ -330,10 +338,11 @@ export default function Analytics() {
         const campaignResults = await Promise.all(
           campaignsToProcess.map(async (campaignId) => {
             const payload: MetricsPayload = {
-        ...dateRange,
+              ...dateRange,
               campaignId: [Number(campaignId)],
-        slotId: validSlotIds?.map(Number),
-        siteId: validPOSIds?.map(Number),
+              slotId: validSlotIds?.map(Number),
+              siteId: validPOSIds?.map(Number),
+              adId: validAdIds,
               interval: dataGrouping
             };
 
@@ -382,24 +391,24 @@ export default function Analytics() {
         });
 
         // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'slot') {
         // Auto-select all slots if none are selected - using ONLY valid slot IDs
-        const slotsToProcess = selectedSlots.length > 0 
+        const slotsToProcess = selectedSlots.length > 0
           ? selectedSlots.filter(id => slots.some(s => s.slotId === id)) // Validate selected IDs
           : slots.map(s => s.slotId); // Use all available slot IDs
-          
+
         // Also filter campaigns and POS to ensure only valid IDs are used
-        const validCampaignIds = selectedCampaigns.length > 0 
+        const validCampaignIds = selectedCampaigns.length > 0
           ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
           : undefined;
-        const validPOSIds = selectedPOS.length > 0 
+        const validPOSIds = selectedPOS.length > 0
           ? selectedPOS.filter(id => sites.some(s => s.posId === id))
           : undefined;
-          
-        console.log(`📊 Processing ${slotsToProcess.length} slots:`, 
+
+        console.log(`📊 Processing ${slotsToProcess.length} slots:`,
           selectedSlots.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
         console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
         console.log(`📊 Valid POS IDs:`, validPOSIds || 'ALL POS');
@@ -412,6 +421,7 @@ export default function Analytics() {
               slotId: [Number(slotId)],
               campaignId: validCampaignIds?.map(Number),
               siteId: validPOSIds?.map(Number),
+              adId: validAdIds,
               interval: dataGrouping
             };
 
@@ -458,24 +468,24 @@ export default function Analytics() {
         });
 
         // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'pos') {
         // Auto-select all POS if none are selected - using ONLY valid POS IDs
-        const posToProcess = selectedPOS.length > 0 
+        const posToProcess = selectedPOS.length > 0
           ? selectedPOS.filter(id => sites.some(s => s.posId === id)) // Validate selected IDs
           : sites.map(s => s.posId); // Use all available POS IDs
-          
+
         // Also filter campaigns and slots to ensure only valid IDs are used
-        const validCampaignIds = selectedCampaigns.length > 0 
+        const validCampaignIds = selectedCampaigns.length > 0
           ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
           : undefined;
-        const validSlotIds = selectedSlots.length > 0 
+        const validSlotIds = selectedSlots.length > 0
           ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
           : undefined;
-          
-        console.log(`📊 Processing ${posToProcess.length} POS:`, 
+
+        console.log(`📊 Processing ${posToProcess.length} POS:`,
           selectedPOS.length > 0 ? 'USER SELECTED' : 'AUTO-SELECTED ALL');
         console.log(`📊 Valid campaign IDs:`, validCampaignIds || 'ALL CAMPAIGNS');
         console.log(`📊 Valid slot IDs:`, validSlotIds || 'ALL SLOTS');
@@ -488,6 +498,7 @@ export default function Analytics() {
               siteId: [Number(posId)],
               campaignId: validCampaignIds?.map(Number),
               slotId: validSlotIds?.map(Number),
+              adId: validAdIds,
               interval: dataGrouping
             };
 
@@ -534,65 +545,81 @@ export default function Analytics() {
         });
 
         // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'ad') {
-        // Ad-wise comparison - if no specific ad names selected, show overall ad performance
-        console.log(`📊 Processing ads:`, 
-          (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0) 
-            ? 'USER SELECTED AD FILTERS' : 'ALL ADS (NO FILTERS)');
-        
-        // Validate all filter IDs to ensure they exist in the fetched data
-        const validCampaignIds = selectedCampaigns.length > 0 
-          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
-          : undefined;
-        const validSlotIds = selectedSlots.length > 0 
-          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-          : undefined;
-        const validPOSIds = selectedPOS.length > 0 
-          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
-          : undefined;
-            
-        const basePayload: MetricsPayload = {
-          ...dateRange,
-          campaignId: validCampaignIds?.map(Number),
-          slotId: validSlotIds?.map(Number),
-          siteId: validPOSIds?.map(Number),
-          interval: dataGrouping
-        };
+        // If ad filters are set, use those. Otherwise, use all available ad options for selected campaigns.
+        const adsToProcess = (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0)
+          ? adNameOptions.filter(opt => selectedExactAdNames.includes(opt.name) || selectedStartsWithAdNames.includes(opt.label))
+          : adNameOptions;
 
-        const [metricsResult, trendResult] = await Promise.all([
-        analyticsService.getMetrics(basePayload),
-          analyticsService.getTrendData(basePayload)
-      ]);
+        console.log(`📊 Processing ${adsToProcess.length} ads individually`);
 
-      if (metricsResult.success && metricsResult.data) {
-          aggregatedMetrics = metricsResult.data;
-      }
+        // Take top 20 ads to avoid excessive requests, but ensure they are sorted or meaningful
+        const limitedAds = adsToProcess.slice(0, 20);
 
-      if (trendResult.success && trendResult.data) {
-          trendSeries = [{
-            name: 'Ad Performance',
-            data: trendResult.data
-          }];
-        }
+        const adResults = await Promise.all(
+          limitedAds.map(async (ad) => {
+            const payload: MetricsPayload = {
+              ...dateRange,
+              adId: [ad.adId],
+              campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+              slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+              siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+              interval: dataGrouping
+            };
+
+            const [metrics, trend] = await Promise.all([
+              analyticsService.getMetrics(payload),
+              analyticsService.getTrendData(payload)
+            ]);
+
+            return {
+              adName: ad.label || ad.name,
+              metrics: metrics.success ? metrics.data : null,
+              trendData: trend.success ? trend.data : []
+            };
+          })
+        );
+
+        adResults.forEach(result => {
+          try {
+            if (result.trendData && Array.isArray(result.trendData) && result.trendData.length > 0) {
+              trendSeries.push({
+                name: result.adName,
+                data: result.trendData
+              });
+            }
+            if (result.metrics) {
+              aggregatedMetrics.impressions += result.metrics.impressions || 0;
+              aggregatedMetrics.clicks += result.metrics.clicks || 0;
+              aggregatedMetrics.conversions += result.metrics.conversions || 0;
+            }
+          } catch (error) {
+            console.error('Error processing ad results:', error, result);
+          }
+        });
+
+        // Recalculate derived metrics
+        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
+          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else {
         // Default: overall analytics for all available data
         console.log(`📊 Processing overall analytics - showing ALL available data`);
-        
+
         // Validate all filter IDs to ensure they exist in the fetched data
-        const validCampaignIds = selectedCampaigns.length > 0 
+        const validCampaignIds = selectedCampaigns.length > 0
           ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
           : undefined;
-        const validSlotIds = selectedSlots.length > 0 
+        const validSlotIds = selectedSlots.length > 0
           ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
           : undefined;
-        const validPOSIds = selectedPOS.length > 0 
+        const validPOSIds = selectedPOS.length > 0
           ? selectedPOS.filter(id => sites.some(s => s.posId === id))
           : undefined;
-        
+
         const basePayload: MetricsPayload = {
           ...dateRange,
           campaignId: validCampaignIds?.map(Number),
@@ -612,7 +639,7 @@ export default function Analytics() {
 
         if (trendResult.success && trendResult.data) {
           trendSeries = [{
-          name: 'Overall Performance',
+            name: 'Overall Performance',
             data: trendResult.data
           }];
         }
@@ -633,7 +660,7 @@ export default function Analytics() {
         };
 
         const comparisonResult = await analyticsService.getMetrics(comparisonPayload);
-        
+
         if (comparisonResult.success && comparisonResult.data) {
           setComparisonMetricsData(comparisonResult.data);
           console.log('Comparison metrics fetched successfully:', comparisonResult.data);
@@ -647,13 +674,13 @@ export default function Analytics() {
       }
 
       // Fetch breakdown data and tables (non-view-specific) with validated filters
-      const validCampaignIds = selectedCampaigns.length > 0 
+      const validCampaignIds = selectedCampaigns.length > 0
         ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
         : undefined;
-      const validSlotIds = selectedSlots.length > 0 
+      const validSlotIds = selectedSlots.length > 0
         ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
         : undefined;
-      const validPOSIds = selectedPOS.length > 0 
+      const validPOSIds = selectedPOS.length > 0
         ? selectedPOS.filter(id => sites.some(s => s.posId === id))
         : undefined;
 
@@ -698,14 +725,14 @@ export default function Analytics() {
             name: getPlatformName(item.name || 'Unknown')
           }));
         }
-        
-      setBreakdownData({
+
+        setBreakdownData({
           gender: (genderResult.success && Array.isArray(genderResult.data)) ? genderResult.data : [],
           age: (ageResult.success && Array.isArray(ageResult.data)) ? transformAgeBucketData(ageResult.data) : [],
           platform: mappedPlatformData,
           location: (locationResult.success && Array.isArray(locationResult.data)) ? locationResult.data : []
         });
-        
+
         // Log transformed age data for debugging
         if (ageResult.success && ageResult.data) {
           console.log('Raw age data from backend:', ageResult.data);
@@ -719,7 +746,7 @@ export default function Analytics() {
       // Safely process table data
       try {
         if (locationTableResult && locationTableResult.success && Array.isArray(locationTableResult.data)) {
-        setTopLocations(locationTableResult.data);
+          setTopLocations(locationTableResult.data);
         } else {
           setTopLocations([]);
         }
@@ -730,7 +757,7 @@ export default function Analytics() {
 
       try {
         if (slotTableResult && slotTableResult.success && Array.isArray(slotTableResult.data)) {
-        setTopSlotsData(slotTableResult.data);
+          setTopSlotsData(slotTableResult.data);
         } else {
           setTopSlotsData([]);
         }
@@ -739,18 +766,18 @@ export default function Analytics() {
         setTopSlotsData([]);
       }
 
-      console.log('Analytics data fetch completed successfully:', { 
-        metricsData: aggregatedMetrics, 
+      console.log('Analytics data fetch completed successfully:', {
+        metricsData: aggregatedMetrics,
         trendSeries: trendSeries.length,
         breakdownDataItems: Object.keys(breakdownData).length
       });
-      
+
       toast.success('Analytics data fetched successfully!');
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       toast.error(`Failed to load analytics data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
+
       // Reset data to safe defaults on error
       setMetricsData(getDefaultMetrics());
       setComparisonMetricsData(null);
@@ -758,7 +785,7 @@ export default function Analytics() {
       setBreakdownData({ gender: [], age: [], platform: [], location: [] });
       setTopLocations([]);
       setTopSlotsData([]);
-      
+
     } finally {
       setDataLoading(false);
       console.log('Data loading completed');
@@ -774,7 +801,7 @@ export default function Analytics() {
   const handleExport = () => {
     try {
       console.log('Exporting analytics data...');
-      
+
       // Format the current analytics data for CSV export
       const csvData = formatMetricsForCSV(
         metricsData,
@@ -792,7 +819,7 @@ export default function Analytics() {
       // Create filename with current filters
       const filterSummary = getFilterSummary();
       const baseFilename = filterSummary ? `analytics_${filterSummary.replace(/[^a-zA-Z0-9]/g, '_')}` : 'analytics_data';
-      
+
       // Export to CSV with clean headers
       exportToCSV({
         filename: baseFilename,
@@ -830,10 +857,10 @@ export default function Analytics() {
     if (selectedCampaigns.length > 0) parts.push(`${selectedCampaigns.length} campaign${selectedCampaigns.length > 1 ? 's' : ''}`);
     if (selectedSlots.length > 0) parts.push(`${selectedSlots.length} slot${selectedSlots.length > 1 ? 's' : ''}`);
     if (selectedPOS.length > 0) parts.push(`${selectedPOS.length} marketplace${selectedPOS.length > 1 ? 's' : ''}`);
-    
+
     const adNameCount = selectedExactAdNames.length + selectedStartsWithAdNames.length;
     if (adNameCount > 0) parts.push(`${adNameCount} ad name${adNameCount > 1 ? 's' : ''}`);
-    
+
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
 
@@ -846,7 +873,7 @@ export default function Analytics() {
 
     try {
       console.log('Transforming age bucket data:', rawData);
-      
+
       // Age bucket definitions (adjust these ranges based on your backend logic)
       const ageBucketLabels = [
         '13-17', // ageBucket0
@@ -868,12 +895,12 @@ export default function Analytics() {
       // Process each data row
       rawData.forEach((row, index) => {
         console.log(`Processing row ${index}:`, row);
-        
+
         // Sum up each age bucket
         ageBucketLabels.forEach((label, bucketIndex) => {
           const bucketKey = `ageBucket${bucketIndex}`;
           const bucketValue = row[bucketKey];
-          
+
           if (typeof bucketValue === 'number' && bucketValue > 0) {
             ageDistribution[label] += bucketValue;
             console.log(`Added ${bucketValue} to ${label} from ${bucketKey}`);
@@ -932,7 +959,7 @@ export default function Analytics() {
       <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 px-4 sm:px-6 py-6 sm:py-8 shadow-lg shadow-blue-500/5">
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-pulse"></div>
-        
+
         <div className="relative max-w-7xl mx-auto">
           {/* Title Section */}
           <div className="mb-8">
@@ -942,7 +969,7 @@ export default function Analytics() {
                 <div className="relative">
                   <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/30"></div>
                   <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-ping opacity-20"></div>
-              </div>
+                </div>
                 <div className="relative">
                   <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-pulse delay-150 shadow-lg shadow-blue-500/30"></div>
                   <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-ping opacity-20 delay-150"></div>
@@ -952,7 +979,7 @@ export default function Analytics() {
                   <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-ping opacity-20 delay-300"></div>
                 </div>
               </div>
-              
+
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
                   Advanced Analytics
@@ -961,9 +988,9 @@ export default function Analytics() {
                   🚀 Your central hub for performance insights
                 </p>
               </div>
-              </div>
             </div>
-            
+          </div>
+
           {/* Control Panel - More Spacious */}
           <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/40 dark:border-gray-700/40 shadow-xl p-6 mb-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
@@ -972,17 +999,17 @@ export default function Analytics() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   📊 View Type
                 </label>
-              <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
+                <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
                   <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
                     <SelectValue placeholder="Select View" />
-                </SelectTrigger>
+                  </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
                     <SelectItem value="campaign" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📈 Campaign wise</SelectItem>
                     <SelectItem value="slot" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🎯 Slots wise</SelectItem>
                     <SelectItem value="ad" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📝 Ads wise</SelectItem>
                     <SelectItem value="pos" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🏪 POS wise</SelectItem>
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Date Range Picker */}
@@ -991,7 +1018,7 @@ export default function Analytics() {
                   📅 Date Range
                 </label>
                 <div className="h-11 flex items-center px-3 text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl relative z-50">
-              <DateRangePicker />
+                  <DateRangePicker />
                 </div>
               </div>
 
@@ -1038,39 +1065,39 @@ export default function Analytics() {
                     )}
                   </Button>
                 </div>
-                
+
                 {/* Secondary Actions */}
                 <div className="flex items-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
                     className="h-11 w-11 border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-              >
+                  >
                     <RefreshCw className={`h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                    className="h-11 w-11 border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-              >
-                    <Download className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-y-0.5 transition-all duration-300" />
-              </Button>
+                  </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    className="h-11 w-11 border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
+                  >
+                    <Download className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-y-0.5 transition-all duration-300" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterExpanded(!isFilterExpanded)}
                     className="h-11 px-4 border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-950 hover:border-purple-400 dark:hover:border-purple-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-              >
+                  >
                     <Filter className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 mr-2 group-hover:rotate-12 transition-all duration-300" />
                     <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 border-0 shadow-sm">
-                  {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
-                </Badge>
-              </Button>
+                      {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
+                    </Badge>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1091,14 +1118,14 @@ export default function Analytics() {
             <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
               <span className="font-bold">🎯 Smart Auto-Selection:</span> When no specific {
                 activeView === 'campaign' ? 'campaigns' :
-                activeView === 'slot' ? 'slots' :
-                activeView === 'pos' ? 'marketplaces' :
-                'ads'
+                  activeView === 'slot' ? 'slots' :
+                    activeView === 'pos' ? 'marketplaces' :
+                      'ads'
               } are selected, we automatically fetch data for <span className="font-bold text-blue-900 dark:text-blue-100">ALL available {
                 activeView === 'campaign' ? `${campaigns.length} campaigns` :
-                activeView === 'slot' ? `${slots.length} slots` :
-                activeView === 'pos' ? `${sites.length} marketplaces` :
-                'ads'
+                  activeView === 'slot' ? `${slots.length} slots` :
+                    activeView === 'pos' ? `${sites.length} marketplaces` :
+                      'ads'
               }</span> to give you the complete picture! 🚀
             </p>
           </div>
@@ -1123,7 +1150,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">Fine-tune your analytics with precision targeting</p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Campaign Filter */}
                 <div className="space-y-2">
@@ -1136,16 +1163,16 @@ export default function Analytics() {
                     )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-blue-300 dark:hover:border-blue-600">
-                <MultiSelectDropdown
+                    <MultiSelectDropdown
                       label=""
-                  options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
-                  selectedValues={selectedCampaigns}
-                  onChange={setSelectedCampaigns}
-                  placeholder="Select campaigns..."
-                />
+                      options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
+                      selectedValues={selectedCampaigns}
+                      onChange={setSelectedCampaigns}
+                      placeholder="Select campaigns..."
+                    />
                   </div>
                 </div>
-                
+
                 {/* Slots Filter */}
                 <div className="space-y-2 md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -1177,7 +1204,7 @@ export default function Analytics() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Marketplaces Filter */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -1189,15 +1216,15 @@ export default function Analytics() {
                     )}
                   </label>
                   <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
-                <div className="min-w-[200px]">
-                  <MultiSelectDropdown
-                    options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
-                    selectedValues={selectedPOS}
-                    onChange={setSelectedPOS}
-                    placeholder="Select Marketplace..."
-                    disabled={loading}
-                  />
-                </div>
+                    <div className="min-w-[200px]">
+                      <MultiSelectDropdown
+                        options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
+                        selectedValues={selectedPOS}
+                        onChange={setSelectedPOS}
+                        placeholder="Select Marketplace..."
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1214,13 +1241,13 @@ export default function Analytics() {
                           <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading ad names...</span>
                         </div>
                       ) : adNameOptions.length > 0 ? (
-                    <AdNameFilterDropdown
-                      options={adNameOptions}
-                      selectedExactValues={selectedExactAdNames}
-                      selectedStartsWithValues={selectedStartsWithAdNames}
-                      onExactChange={setSelectedExactAdNames}
-                      onStartsWithChange={setSelectedStartsWithAdNames}
-                      placeholder="Filter ad names..."
+                        <AdNameFilterDropdown
+                          options={adNameOptions}
+                          selectedExactValues={selectedExactAdNames}
+                          selectedStartsWithValues={selectedStartsWithAdNames}
+                          onExactChange={setSelectedExactAdNames}
+                          onStartsWithChange={setSelectedStartsWithAdNames}
+                          placeholder="Filter ad names..."
                           label=""
                         />
                       ) : (
@@ -1229,8 +1256,8 @@ export default function Analytics() {
                             <div className="mb-2">📭 No ads found</div>
                             <div>Create some ads in the selected campaigns to enable ad-level filtering</div>
                           </div>
-                  </div>
-                )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1263,7 +1290,7 @@ export default function Analytics() {
                 <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-                
+
                 <div>
                   <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                     ✨ {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
@@ -1275,20 +1302,20 @@ export default function Analytics() {
                     <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                     <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
                       🔄 Real-time data
-                  </p>
+                    </p>
+                  </div>
                 </div>
               </div>
-              </div>
-              
+
               <div className="flex items-center space-x-3">
                 {/* Live Badge */}
                 <Badge className="bg-emerald-500 text-white border-0 shadow-md font-medium px-3 py-1 rounded-lg">
-              <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                     <span>Live Data</span>
                   </div>
                 </Badge>
-                
+
                 {/* View Badge */}
                 <Badge variant="outline" className="border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 font-medium px-3 py-1 rounded-lg capitalize">
                   🎯 {activeView} View
@@ -1311,18 +1338,18 @@ export default function Analytics() {
                   Key Metrics
                 </h2>
               </div>
-              
+
               <div className="hidden sm:flex items-center space-x-2">
                 <Badge variant="outline" className="text-xs font-medium">
                   Real-time
                 </Badge>
               </div>
             </div>
-            
+
             {/* Show metrics only after data has been fetched */}
             {metricsData ? (
-              <MetricsDashboard 
-                data={metricsData} 
+              <MetricsDashboard
+                data={metricsData}
                 comparisonData={comparisonMetricsData || undefined}
                 period={dataGrouping}
               />
@@ -1347,14 +1374,14 @@ export default function Analytics() {
                     <span>Click the "Fetch Results" button</span>
                   </div>
                   <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span>View your analytics insights</span>
-            </div>
+                  </div>
                 </div>
               </div>
             )}
           </motion.div>
-          
+
           {/* Analytics Chart */}
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -1363,27 +1390,17 @@ export default function Analytics() {
             className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="showCombinedTotal"
-                  checked={showCombinedTotal}
-                  onChange={e => setShowCombinedTotal(e.target.checked)}
-                  className="accent-blue-600 w-4 h-4"
-                />
-                <label htmlFor="showCombinedTotal" className="text-sm text-gray-700 dark:text-gray-200 font-medium">Show Combined Total</label>
-              </div>
             </div>
-            
+
             {/* Data Grouping Info */}
             <div className="mb-4 flex items-center gap-2">
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                 <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                   📊 Data grouped by: {
-                    dataGrouping === '1d' ? 'Daily intervals' : 
-                    dataGrouping === '7d' ? 'Weekly intervals' : 
-                    dataGrouping === '30d' ? 'Monthly intervals' : 
-                    'Custom intervals'
+                    dataGrouping === '1d' ? 'Daily intervals' :
+                      dataGrouping === '7d' ? 'Weekly intervals' :
+                        dataGrouping === '30d' ? 'Monthly intervals' :
+                          'Custom intervals'
                   }
                 </span>
               </div>
@@ -1393,11 +1410,11 @@ export default function Analytics() {
                 </div>
               )}
             </div>
-            
+
             {dataLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="flex items-center space-x-3 mb-4">
-                <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
                   <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
@@ -1409,50 +1426,11 @@ export default function Analytics() {
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
                   <TrendChart
-                    series={(() => {
-                      // Filter trendData for the selected period
-                      // (Assume trendData is updated on period change, or you may need to refetch)
-                      let chartSeries = [...trendData];
-                      if (showCombinedTotal && trendData.length > 1) {
-                        // Calculate combined total series
-                        const dateMap = new Map();
-                        trendData.forEach(s => {
-                          s.data.forEach(d => {
-                            if (d.date && !isNaN(new Date(d.date).getTime())) {
-                              if (!dateMap.has(d.date)) {
-                                dateMap.set(d.date, { 
-                                  ...d, 
-                                  impressions: 0, 
-                                  clicks: 0, 
-                                  conversions: 0,
-                                  ctr: 0,
-                                  conversionRate: 0
-                                });
-                              }
-                              const existing = dateMap.get(d.date);
-                              existing.impressions += d.impressions || 0;
-                              existing.clicks += d.clicks || 0;
-                              existing.conversions += d.conversions || 0;
-                              existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
-                              existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
-                            }
-                          });
-                        });
-                        const combinedSeries = {
-                          name: 'Combined Total',
-                          data: Array.from(dateMap.values())
-                            .filter(item => item.date && !isNaN(new Date(item.date).getTime()))
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                        };
-                        chartSeries = [...trendData, combinedSeries];
-                      }
-                      return chartSeries;
-                    })()}
-                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time ${
-                      dataGrouping === '1d' ? '(Daily)' : 
-                      dataGrouping === '7d' ? '(Weekly)' : 
-                      dataGrouping === '30d' ? '(Monthly)' : ''
-                    }`}
+                    series={trendData}
+                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time ${dataGrouping === '1d' ? '(Daily)' :
+                      dataGrouping === '7d' ? '(Weekly)' :
+                        dataGrouping === '30d' ? '(Monthly)' : ''
+                      }`}
                     period={dataGrouping}
                   />
                 ) : (
@@ -1516,7 +1494,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Cities and states ranked by impression volume</p>
               </div>
-              
+
               <DataTable
                 title=""
                 data={
@@ -1550,7 +1528,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Slots sorted by performance metrics</p>
               </div>
-              
+
               <DataTable
                 title=""
                 data={
@@ -1586,12 +1564,12 @@ export default function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
               <ComboChart
-                data={trendData.length > 0 && trendData[0]?.data ? 
-                  trendData[0].data.map(d => ({ 
-                    date: d.date, 
-                    impressions: d.impressions || 0, 
-                    clicks: d.clicks || 0 
-                  })) : 
+                data={trendData.length > 0 && trendData[0]?.data ?
+                  trendData[0].data.map(d => ({
+                    date: d.date,
+                    impressions: d.impressions || 0,
+                    clicks: d.clicks || 0
+                  })) :
                   []
                 }
                 title="📊 Impressions vs Clicks"
@@ -1611,12 +1589,12 @@ export default function Analytics() {
               className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
             >
               <ComboChart
-                data={trendData.length > 0 && trendData[0]?.data ? 
-                  trendData[0].data.map(d => ({ 
-                    date: d.date, 
-                    impressions: d.impressions || 0, 
-                    ctr: d.ctr || 0 
-                  })) : 
+                data={trendData.length > 0 && trendData[0]?.data ?
+                  trendData[0].data.map(d => ({
+                    date: d.date,
+                    impressions: d.impressions || 0,
+                    ctr: d.ctr || 0
+                  })) :
                   []
                 }
                 title="🎯 Impressions vs CTR"
@@ -1640,7 +1618,7 @@ export default function Analytics() {
             >
               <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" />
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1658,7 +1636,7 @@ export default function Analytics() {
             >
               <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" />
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1676,9 +1654,9 @@ export default function Analytics() {
             transition={{ duration: 0.5, delay: 1.2 }}
             className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[500px]"
           >
-            <BreakdownPieChart 
-              data={breakdownData.age || []} 
-              title="Age-wise Performance Distribution" 
+            <BreakdownPieChart
+              data={breakdownData.age || []}
+              title="Age-wise Performance Distribution"
             />
           </motion.div>
         </div>

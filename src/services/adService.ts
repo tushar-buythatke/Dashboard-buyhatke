@@ -383,7 +383,7 @@ class AdService {
   }
 
   // Get ad labels for suggestion
-  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string }>; message?: string }> {
+  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string; adId: number }>; message?: string }> {
     try {
       console.log(`🔍 Fetching ad labels for campaign ID: ${campaignId}`);
       
@@ -400,7 +400,7 @@ class AdService {
       if (result.status === 1 && result.data?.adsList) {
         console.log(`📝 Found ${result.data.adsList.length} ads in campaign ${campaignId}`);
         
-        // Extract both name and label for each ad with better error handling
+        // Extract both name, label and adId for each ad with better error handling
         const adInfo = result.data.adsList
           .map((ad: any, index: number) => {
             console.log(`🔍 Processing ad ${index + 1}:`, ad);
@@ -408,14 +408,16 @@ class AdService {
             // Use label as name if name is missing (common pattern)
             const name = ad.name || ad.label || `Ad ${ad.adId || index + 1}`;
             const label = ad.label || ad.name || `Label ${ad.adId || index + 1}`;
+            const adId = Number(ad.adId);
             
             return {
               name: String(name).trim(),
-              label: String(label).trim()
+              label: String(label).trim(),
+              adId: adId
             };
           })
-          .filter((info: { name: string; label: string }) => {
-            const isValid = info.name && info.name !== '' && info.label && info.label !== '';
+          .filter((info: { name: string; label: string; adId: number }) => {
+            const isValid = info.name && info.name !== '' && info.label && info.label !== '' && !isNaN(info.adId);
             if (!isValid) {
               console.warn(`⚠️ Filtered out invalid ad info:`, info);
             }
