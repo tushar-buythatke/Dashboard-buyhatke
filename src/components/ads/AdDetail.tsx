@@ -160,6 +160,9 @@ export function AdDetail() {
           ).join('; ');
         }
         // {catId: catName} format
+        if (Array.isArray(ad.categories)) {
+          return ad.categories.map((c: any) => c.catName).join(', ');
+        }
         const categoryMap = ad.categories as unknown as Record<number, string>;
         return Object.values(categoryMap).join(', ') || 'N/A';
       })(),
@@ -277,10 +280,10 @@ export function AdDetail() {
               <Badge
                 variant={ad.status === 1 ? 'success' : 'outline'}
                 className={`font-medium text-center ${ad.status === 1
-                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
-                    : ad.status === 0
-                      ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
+                  : ad.status === 0
+                    ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
                   }`}
               >
                 {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
@@ -514,8 +517,8 @@ export function AdDetail() {
                   </h4>
                   <Badge
                     className={`${ad.serveStrategy === 1
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700'
-                        : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700'
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700'
+                      : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700'
                       }`}
                   >
                     {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
@@ -530,8 +533,8 @@ export function AdDetail() {
                   </h4>
                   <Badge
                     className={`${ad.isModelType === 1
-                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
                       }`}
                   >
                     {ad.isModelType === 1 ? 'Model Type Ad' : 'Standard Ad'}
@@ -647,22 +650,50 @@ export function AdDetail() {
                 </div>
 
                 {/* Locations */}
-                {Object.keys(ad.location || {}).length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Locations
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(ad.location).map(([location, priority]) => (
-                        <div key={location} className="flex justify-between items-center">
-                          <span className="text-gray-900 dark:text-gray-100">{location}</span>
-                          <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
+                {(() => {
+                  const locations = ad.location;
+                  if (!locations || (typeof locations === 'object' && Object.keys(locations).length === 0)) return null;
+
+                  if (Array.isArray(locations)) {
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Locations
+                        </h4>
+                        <div className="space-y-2">
+                          {locations.map((loc: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {typeof loc === 'object' ? (loc.name || loc.catName || JSON.stringify(loc)) : loc}
+                              </span>
+                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Locations
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(locations).map(([location, priority]) => (
+                          <div key={location} className="flex justify-between items-center">
+                            <span className="text-gray-900 dark:text-gray-100">{location}</span>
+                            <Badge variant="outline" className="text-xs">
+                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Categories */}
                 {(() => {
@@ -718,10 +749,9 @@ export function AdDetail() {
                         </div>
                       </div>
                     );
-                  } else {
-                    // {catId: catName} format
-                    const categoryMap = categories as unknown as Record<number, string>;
-                    if (Object.keys(categoryMap).length === 0) return null;
+                  } else if (Array.isArray(categories)) {
+                    // Array of objects format
+                    if (categories.length === 0) return null;
 
                     return (
                       <div className="space-y-4">
@@ -731,58 +761,170 @@ export function AdDetail() {
                         </h4>
 
                         <div className="flex flex-wrap gap-2">
-                          {Object.entries(categoryMap).map(([catId, catName]) => (
+                          {categories.map((cat: any) => (
                             <div
-                              key={catId}
+                              key={cat.catId}
                               className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
                             >
                               <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
-                                {catId}
+                                {cat.catId}
                               </Badge>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{catName}</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{cat.catName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  } else if (typeof categories === 'object' && 'ln' in categories && Array.isArray((categories as any).ln)) {
+                     // { l0: [], ln: [...] } format
+                     const lnCategories = (categories as any).ln;
+                     if (lnCategories.length === 0) return null;
+
+                     return (
+                        <div className="space-y-4">
+                           <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                              <Tag className="h-4 w-4 mr-2" />
+                              Categories
+                           </h4>
+
+                           <div className="flex flex-wrap gap-2">
+                              {lnCategories.map((cat: any) => (
+                                 <div
+                                    key={cat.catId}
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+                                 >
+                                    <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
+                                       {cat.catId}
+                                    </Badge>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{cat.catName}</span>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     );
+                  } else {
+                     // {catId: catName} format
+                     const categoryMap = categories as unknown as Record<number, string>;
+                     if (Object.keys(categoryMap).length === 0) return null;
+
+                     return (
+                        <div className="space-y-4">
+                           <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                              <Tag className="h-4 w-4 mr-2" />
+                              Categories
+                           </h4>
+
+                           <div className="flex flex-wrap gap-2">
+                              {Object.entries(categoryMap).map(([catId, catName]) => (
+                                 <div
+                                    key={catId}
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+                                 >
+                                    <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
+                                       {catId}
+                                    </Badge>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {typeof catName === 'object' ? JSON.stringify(catName) : catName}
+                                    </span>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     );
+                  }
+                })()}
+
+                {/* Sites */}
+                {(() => {
+                  const sites = ad.sites;
+                  if (!sites || (typeof sites === 'object' && Object.keys(sites).length === 0)) return null;
+
+                  if (Array.isArray(sites)) {
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <Globe className="h-4 w-4 mr-2" />
+                          Sites
+                        </h4>
+                        <div className="space-y-2">
+                          {sites.map((site: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {typeof site === 'object' ? (site.name || site.catName || JSON.stringify(site)) : site}
+                              </span>
+                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
                             </div>
                           ))}
                         </div>
                       </div>
                     );
                   }
+
+                  return (
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                        <Globe className="h-4 w-4 mr-2" />
+                        Sites
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(sites).map(([site, priority]) => (
+                          <div key={site} className="flex justify-between items-center">
+                            <span className="text-gray-900 dark:text-gray-100">{site}</span>
+                            <Badge variant="outline" className="text-xs">
+                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
                 })()}
 
-                {/* Sites */}
-                {Object.keys(ad.sites || {}).length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <Globe className="h-4 w-4 mr-2" />
-                      Sites
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(ad.sites).map(([site, priority]) => (
-                        <div key={site} className="flex justify-between items-center">
-                          <span className="text-gray-900 dark:text-gray-100">{site}</span>
-                          <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Brand Targets */}
-                {Object.keys(ad.brandTargets || {}).length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <Target className="h-4 w-4 mr-2" />
-                      Brand Targets
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(ad.brandTargets).map(([brand, priority]) => (
-                        <div key={brand} className="flex justify-between items-center">
-                          <span className="text-gray-900 dark:text-gray-100">{brand}</span>
-                          <Badge variant="outline" className="text-xs">Priority: {priority}</Badge>
+                {(() => {
+                  const brandTargets = ad.brandTargets;
+                  if (!brandTargets || (typeof brandTargets === 'object' && Object.keys(brandTargets).length === 0)) return null;
+
+                  if (Array.isArray(brandTargets)) {
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <Target className="h-4 w-4 mr-2" />
+                          Brand Targets
+                        </h4>
+                        <div className="space-y-2">
+                          {brandTargets.map((brand: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {typeof brand === 'object' ? (brand.name || brand.brandName || brand.catName || JSON.stringify(brand)) : brand}
+                              </span>
+                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                        <Target className="h-4 w-4 mr-2" />
+                        Brand Targets
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(brandTargets).map(([brand, priority]) => (
+                          <div key={brand} className="flex justify-between items-center">
+                            <span className="text-gray-900 dark:text-gray-100">{brand}</span>
+                            <Badge variant="outline" className="text-xs">
+                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </Card>
