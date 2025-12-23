@@ -98,15 +98,15 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
       </div>
       <div className="flex-1">
         <div className={`font-semibold transition-colors duration-200 ${checked
-            ? 'text-blue-900 dark:text-blue-100'
-            : 'text-gray-700 dark:text-gray-300'
+          ? 'text-blue-900 dark:text-blue-100'
+          : 'text-gray-700 dark:text-gray-300'
           }`}>
           {label}
         </div>
         {description && (
           <div className={`text-sm mt-1 transition-colors duration-200 ${checked
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-gray-500 dark:text-gray-400'
+            ? 'text-blue-600 dark:text-blue-400'
+            : 'text-gray-500 dark:text-gray-400'
             }`}>
             {description}
           </div>
@@ -161,10 +161,10 @@ const adSchema = z.object({
   gender: z.string().optional(),
   noGenderSpecificity: z.boolean().optional(),
   noSpecificity: z.boolean().optional(),
-  status: z.number().min(0).max(1),
-  isTestPhase: z.number().min(0).max(1),
-  serveStrategy: z.number().min(0).max(1),
-  isModelType: z.number().min(0).max(1)
+  status: z.number().min(0).max(1).optional().default(1),
+  isTestPhase: z.number().min(0).max(1).optional().default(0),
+  serveStrategy: z.number().min(0).max(1).optional().default(0),
+  isModelType: z.number().min(0).max(1).optional().default(0)
 }).refine((data) => {
   // Validate impression target >= click target
   if (data.impressionTarget && data.clickTarget) {
@@ -539,6 +539,7 @@ export function AdForm() {
   }, [form.watch('label'), existingAdLabels]);
 
   const onSubmit = async (data: AdFormData) => {
+    console.log('🚀 onSubmit called with data:', data);
     try {
       setLoading(true);
       const url = isEditMode
@@ -748,7 +749,15 @@ export function AdForm() {
         </motion.div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.error('Form validation errors:', errors);
+            const firstError = Object.values(errors)[0];
+            if (firstError?.message) {
+              toast.error(`Validation error: ${firstError.message}`);
+            } else {
+              toast.error('Please fill in all required fields correctly');
+            }
+          })} className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1204,8 +1213,8 @@ export function AdForm() {
                             </div>
                             <div className="ml-4">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${isUserBased
-                                  ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700'
-                                  : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700'
+                                : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
                                 }`}>
                                 {isUserBased ? 'User-based' : 'Product-based'}
                               </span>
@@ -1227,23 +1236,23 @@ export function AdForm() {
                             onClick={() => field.onChange(isModel ? 0 : 1)}
                             className={`
                               flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                              ${isModel 
-                                ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20' 
+                              ${isModel
+                                ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20'
                                 : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
                               }
                             `}
                           >
                             <div className={`
                               relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
-                              ${isModel 
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-purple-200 dark:shadow-purple-800' 
+                              ${isModel
+                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-purple-200 dark:shadow-purple-800'
                                 : 'bg-gray-300 dark:bg-gray-600'
                               }
                             `}>
                               <div className={`
                                 absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
-                                ${isModel 
-                                  ? 'translate-x-6' 
+                                ${isModel
+                                  ? 'translate-x-6'
                                   : 'translate-x-0.5'
                                 }
                               `}>
@@ -1447,8 +1456,8 @@ export function AdForm() {
 
                     <motion.div
                       className={`space-y-4 p-4 rounded-xl border-2 transition-all duration-500 ${priceRangeHighlighted
-                          ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 shadow-lg'
-                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+                        ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 shadow-lg'
+                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
                         }`}
                       animate={priceRangeHighlighted ? {
                         scale: [1, 1.02, 1],
