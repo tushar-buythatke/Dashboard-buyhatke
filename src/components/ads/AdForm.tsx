@@ -432,13 +432,33 @@ export function AdForm() {
             if (result.status === 1 && result.data?.adsList?.[0]) {
               const adData = result.data.adsList[0];
 
+              // Transform categories from API format to form format
+              let categoriesForForm: { selections: Array<{ path: Array<{ catId: number; catName: string }>; selected: { catId: number; catName: string } }> } = { selections: [] };
+              
+              if (adData.categories && typeof adData.categories === 'object') {
+                // Handle the API format: { l0: [], ln: [{ catId, catName }] }
+                if ('ln' in adData.categories && Array.isArray(adData.categories.ln)) {
+                  categoriesForForm.selections = adData.categories.ln.map((cat: { catId: number; catName: string }) => ({
+                    path: [{ catId: cat.catId, catName: cat.catName }],
+                    selected: { catId: cat.catId, catName: cat.catName }
+                  }));
+                } else if (!('ln' in adData.categories) && !('l0' in adData.categories)) {
+                  // Fallback: Handle simple object format {catId: catName}
+                  categoriesForForm.selections = Object.entries(adData.categories).map(([catId, catName]) => ({
+                    path: [{ catId: Number(catId), catName: String(catName) }],
+                    selected: { catId: Number(catId), catName: String(catName) }
+                  }));
+                }
+              }
+
               // Format the data for the form
               form.reset({
                 ...adData,
+                categories: categoriesForForm,
                 startDate: adData.startDate ? adData.startDate.split('T')[0] : undefined,
                 endDate: adData.endDate ? adData.endDate.split('T')[0] : undefined,
                 startTime: '', // Blank by default on edit/update
-                endTime: '', // Blank by default on edit/update
+                endTime: '', // Blank by default on edit/update,
               });
 
               // Set the selected slot for editing mode

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -24,6 +24,7 @@ export function AdDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [liveMetrics, setLiveMetrics] = useState<{ impressions: number; clicks: number } | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   useEffect(() => {
     if (campaignId && adId) {
@@ -780,26 +781,63 @@ export function AdDetail() {
                      const lnCategories = (categories as any).ln;
                      if (lnCategories.length === 0) return null;
 
+                     // Constants for show more/less
+                     const INITIAL_DISPLAY_COUNT = 12;
+                     const hasMoreCategories = lnCategories.length > INITIAL_DISPLAY_COUNT;
+                     const displayedCategories = showAllCategories ? lnCategories : lnCategories.slice(0, INITIAL_DISPLAY_COUNT);
+
                      return (
                         <div className="space-y-4">
-                           <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                              <Tag className="h-4 w-4 mr-2" />
-                              Categories
-                           </h4>
+                           <div className="flex items-center justify-between">
+                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                                <Tag className="h-4 w-4 mr-2" />
+                                Categories
+                             </h4>
+                             <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                               {lnCategories.length} selected
+                             </Badge>
+                           </div>
 
                            <div className="flex flex-wrap gap-2">
-                              {lnCategories.map((cat: any) => (
-                                 <div
-                                    key={cat.catId}
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+                              {displayedCategories.map((cat: any, idx: number) => (
+                                 <motion.div
+                                   key={cat.catId}
+                                   initial={{ opacity: 0, scale: 0.9 }}
+                                   animate={{ opacity: 1, scale: 1 }}
+                                   transition={{ delay: idx * 0.02 }}
                                  >
-                                    <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
-                                       {cat.catId}
-                                    </Badge>
-                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{cat.catName}</span>
-                                 </div>
+                                   <Badge
+                                     className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 text-sm font-medium shadow-sm hover:shadow-md transition-all cursor-default"
+                                   >
+                                     {cat.catName}
+                                   </Badge>
+                                 </motion.div>
                               ))}
                            </div>
+
+                           {hasMoreCategories && (
+                             <div className="flex justify-center pt-2">
+                               <Button
+                                 type="button"
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => setShowAllCategories(!showAllCategories)}
+                                 className="text-sm"
+                               >
+                                 {showAllCategories ? (
+                                   <>
+                                     Show Less
+                                     <ChevronRight className="h-4 w-4 ml-1 -rotate-90" />
+                                   </>
+                                 ) : (
+                                   <>
+                                     Show {lnCategories.length - INITIAL_DISPLAY_COUNT} More
+                                     <ChevronRight className="h-4 w-4 ml-1 rotate-90" />
+                                   </>
+                                 )}
+                               </Button>
+                             </div>
+                           )}
                         </div>
                      );
                   } else {

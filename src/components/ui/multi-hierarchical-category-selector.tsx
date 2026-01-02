@@ -166,6 +166,21 @@ export function MultiHierarchicalCategorySelector({
           animate={{ opacity: 1, y: 0 }}
           className="mb-3"
         >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Selected Categories ({value.selections.length})
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onChange({ selections: [] })}
+              className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear All
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             <AnimatePresence>
               {value.selections.map((selection, index) => (
