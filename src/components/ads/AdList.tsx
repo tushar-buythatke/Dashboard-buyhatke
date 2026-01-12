@@ -19,6 +19,7 @@ import { adService } from '@/services/adService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
+import { extractCategoriesForUpdate } from '@/utils/adUtils';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -150,7 +151,7 @@ export function AdList() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/slots`);
       if (!response.ok) throw new Error('Failed to fetch slots');
-      
+
       const result: SlotListResponse = await response.json();
       if (result.status === 1 && result.data?.slotList) {
         const slotsMap = result.data.slotList.reduce((acc, slot) => ({
@@ -169,7 +170,7 @@ export function AdList() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`);
       if (!response.ok) throw new Error('Failed to fetch campaign');
-      
+
       const result = await response.json();
       if (result.status === 1 && result.data?.campaignList?.[0]) {
         const campaignData = result.data.campaignList[0];
@@ -188,7 +189,7 @@ export function AdList() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Build query parameters
       const params = new URLSearchParams({
         campaignId: campaignId || '',
@@ -200,13 +201,13 @@ export function AdList() {
       const response = await fetch(
         `${getApiBaseUrl()}/ads?${params.toString()}`
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch ads');
       }
-      
+
       const result = await response.json();
-      
+
       if (result.status === 1 && result.data?.adsList) {
         // Enrich ads with slot information and map to the frontend Ad type
         const enrichedAds = result.data.adsList.map((apiAd: ApiAd) => {
@@ -226,16 +227,16 @@ export function AdList() {
         const today = new Date().toISOString().split('T')[0];
         const metricsPromises = enrichedAds.map((ad: Ad) => {
           const fromDate = ad.createdAt.split('T')[0];
-          return analyticsService.getMetrics({ 
-            from: fromDate, 
+          return analyticsService.getMetrics({
+            from: fromDate,
             to: today,
             campaignId: campaignId ? Number(campaignId) : undefined,
-            adId: ad.adId 
+            adId: ad.adId
           });
         });
-        
+
         const metricsResults = await Promise.all(metricsPromises);
-        
+
         const newAdMetrics: Record<number, { impressions: number; clicks: number }> = {};
         metricsResults.forEach((resp, index) => {
           const adId = enrichedAds[index].adId;
@@ -276,7 +277,7 @@ export function AdList() {
   const handleCloneAd = async (adId: number) => {
     try {
       const response = await adService.cloneAd(adId, 1);
-      
+
       if (response.success) {
         toast.success('Ad cloned successfully');
         fetchAds();
@@ -303,7 +304,7 @@ export function AdList() {
       if (!confirmationModal.adId) return;
 
       const response = await adService.archiveAd(confirmationModal.adId, 1);
-      
+
       if (response.success) {
         toast.success(`Ad "${confirmationModal.adName}" archived successfully`);
         fetchAds(); // Refresh the list
@@ -356,14 +357,26 @@ export function AdList() {
 
   const handleStatusChange = async (adId: number, newStatus: 0 | 1) => {
     try {
+      // Find the ad to get categories
+      const adToUpdate = ads.find(a => a.adId === adId);
+
+      // Extract categories for payload
+      const categoriesPayload = adToUpdate
+        ? extractCategoriesForUpdate(adToUpdate.categories)
+        : {};
+
       const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId, status: newStatus })
+        body: JSON.stringify({
+          adId,
+          status: newStatus,
+          categories: categoriesPayload
+        })
       });
 
       if (!response.ok) throw new Error('Failed to update ad status');
-      
+
       const result = await response.json();
       if (result.status === 1) {
         toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`);
@@ -392,7 +405,7 @@ export function AdList() {
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(ad => 
+      filtered = filtered.filter(ad =>
         ad.name.toLowerCase().includes(query)
       );
     }
@@ -419,7 +432,7 @@ export function AdList() {
   // Mobile Ad Card Component
   const AdCard = ({ ad, index }: { ad: Ad; index: number }) => {
     const isVideo = ad.creativeUrl && (/\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video'));
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -434,16 +447,16 @@ export function AdList() {
             <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               {ad.creativeUrl ? (
                 isVideo ? (
-                  <video 
-                    src={ad.creativeUrl} 
+                  <video
+                    src={ad.creativeUrl}
                     className="h-full w-full object-contain rounded-lg"
                     muted
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <img 
-                    src={ad.creativeUrl} 
-                    alt="Ad creative" 
+                  <img
+                    src={ad.creativeUrl}
+                    alt="Ad creative"
                     className="h-full w-full object-contain rounded-lg"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -463,160 +476,159 @@ export function AdList() {
             </div>
           </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <Badge 
-                  variant={ad.status === 1 ? 'success' : ad.status === -1 ? 'destructive' : 'outline'} 
-                  className={`text-xs ${
-                    ad.status === 1 
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700' 
-                      : ad.status === 0 
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
-                        : ad.status === -1
-                          ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
-                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
-                </Badge>
-                {ad.slotName && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-                    {ad.slotName}
-                  </span>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <Badge
+                    variant={ad.status === 1 ? 'success' : ad.status === -1 ? 'destructive' : 'outline'}
+                    className={`text-xs ${ad.status === 1
+                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
+                        : ad.status === 0
+                          ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
+                          : ad.status === -1
+                            ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      }`}
+                  >
+                    {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
+                  </Badge>
+                  {ad.slotName && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                      {ad.slotName}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  {ad.name}
+                </div>
+                {ad.slotWidth && ad.slotHeight && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {ad.slotWidth} x {ad.slotHeight}px
+                  </p>
                 )}
               </div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                {ad.name}
-              </div>
-              {ad.slotWidth && ad.slotHeight && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {ad.slotWidth} x {ad.slotHeight}px
-                </p>
-              )}
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
-                  }}
-                >
-                  <Eye className="mr-2 h-4 w-4 text-indigo-600" />
-                  <span>View Details</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
-                  }}
-                >
-                  <Edit className="mr-2 h-4 w-4 text-blue-600" />
-                  <span>Edit</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloneAd(ad.adId);
-                  }}
-                >
-                  <Copy className="mr-2 h-4 w-4 text-purple-600" />
-                  <span>Clone</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleArchiveAd(ad.adId);
-                  }}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Archive className="mr-2 h-4 w-4" />
-                  <span>Archive</span>
-                </DropdownMenuItem>
-                {ad.status === 1 ? (
-                  <DropdownMenuItem 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStatusChange(ad.adId, 0);
+                      navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
                     }}
                   >
-                    <Pause className="mr-2 h-4 w-4 text-orange-600" />
-                    <span>Pause</span>
+                    <Eye className="mr-2 h-4 w-4 text-indigo-600" />
+                    <span>View Details</span>
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStatusChange(ad.adId, 1);
+                      navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
                     }}
                   >
-                    <Play className="mr-2 h-4 w-4 text-green-600" />
-                    <span>Activate</span>
+                    <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                    <span>Edit</span>
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloneAd(ad.adId);
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                    <span>Clone</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleArchiveAd(ad.adId);
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    <span>Archive</span>
+                  </DropdownMenuItem>
+                  {ad.status === 1 ? (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(ad.adId, 0);
+                      }}
+                    >
+                      <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                      <span>Pause</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(ad.adId, 1);
+                      }}
+                    >
+                      <Play className="mr-2 h-4 w-4 text-green-600" />
+                      <span>Activate</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            {/* Target Metrics */}
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {ad.impressionTarget.toLocaleString()}
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {/* Target Metrics */}
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {ad.impressionTarget.toLocaleString()}
+                </div>
               </div>
-            </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {ad.clickTarget.toLocaleString()}
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {ad.clickTarget.toLocaleString()}
+                </div>
               </div>
-            </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
-              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) : '0'}%
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
+                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) : '0'}%
+                </div>
               </div>
-            </div>
 
-            {/* Live Metrics */}
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
+              {/* Live Metrics */}
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
+                </div>
               </div>
-            </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
+                </div>
               </div>
-            </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live CTR</div>
-              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                  ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
-                  : '0.0%'}
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live CTR</div>
+                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
+                    ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
+                    : '0.0%'}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
     );
   };
 
@@ -650,7 +662,7 @@ export function AdList() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2 space-y-6 relative z-10">
         {/* Enhanced Header Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -665,7 +677,7 @@ export function AdList() {
                   <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse delay-75" />
                   <div className="w-3 h-3 bg-pink-500 rounded-full animate-pulse delay-150" />
                 </div>
-                <Button 
+                <Button
                   variant="ghost"
                   onClick={() => navigate('/campaigns')}
                   className="h-12 w-12 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-all duration-300 hover:scale-110"
@@ -681,7 +693,7 @@ export function AdList() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Enhanced Action Buttons */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                 <Button
@@ -700,8 +712,8 @@ export function AdList() {
                   <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                   <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Export</span>
                 </Button>
-                <Button 
-                  onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)} 
+                <Button
+                  onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-10 px-6 transition-all duration-200"
                 >
                   <Plus className="w-4 h-4" />
@@ -713,7 +725,7 @@ export function AdList() {
         </motion.div>
 
         {/* Enhanced Summary Stats */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
@@ -814,7 +826,7 @@ export function AdList() {
               </div>
             </Card>
           </motion.div>
-          
+
           {/* CTR Card */}
           <motion.div
             whileHover={{ scale: 1.02, y: -5 }}
@@ -844,7 +856,7 @@ export function AdList() {
         </motion.div>
 
         {/* Enhanced Search and Filters */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -867,7 +879,7 @@ export function AdList() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-4 w-full">
               <div className="relative flex-1 sm:max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -881,7 +893,7 @@ export function AdList() {
                 />
                 {searchQuery && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button 
+                    <button
                       onClick={() => setSearchQuery('')}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-1 transition-all duration-200"
                     >
@@ -891,7 +903,7 @@ export function AdList() {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <Select
@@ -919,7 +931,7 @@ export function AdList() {
                 </Select>
               </div>
             </div>
-            
+
             {(searchQuery || statusFilter !== 'all') && filteredAds.length === 0 && (
               <div className="mt-4 text-center py-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
                 <div className="text-amber-700 dark:text-amber-300 font-medium">
@@ -935,7 +947,7 @@ export function AdList() {
         </motion.div>
 
         {/* Ads Content */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
@@ -989,7 +1001,7 @@ export function AdList() {
                       <TableCell colSpan={7} className="h-32 text-center">
                         <div className="text-gray-500 dark:text-gray-400 p-6">
                           <span className="font-medium text-lg">
-                            {searchQuery 
+                            {searchQuery
                               ? `No ads found matching "${searchQuery}"`
                               : "No ads found. Create your first ad to get started."}
                           </span>
@@ -999,14 +1011,14 @@ export function AdList() {
                   ) : (
                     filteredAds.map((ad, index) => {
                       const isVideo = ad.creativeUrl && (/\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video'));
-                      
+
                       return (
-                        <motion.tr 
+                        <motion.tr
                           key={ad.adId}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.02 }}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.005,
                             backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)'
                           }}
@@ -1021,16 +1033,16 @@ export function AdList() {
                             >
                               {ad.creativeUrl ? (
                                 isVideo ? (
-                                  <video 
-                                    src={ad.creativeUrl} 
+                                  <video
+                                    src={ad.creativeUrl}
                                     className="h-full w-full object-contain rounded-lg"
                                     muted
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 ) : (
-                                  <img 
-                                    src={ad.creativeUrl} 
-                                    alt="Ad creative" 
+                                  <img
+                                    src={ad.creativeUrl}
+                                    alt="Ad creative"
                                     className="h-full w-full object-contain rounded-lg"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
@@ -1049,155 +1061,154 @@ export function AdList() {
                               )}
                             </motion.div>
                           </TableCell>
-                        <TableCell className="p-3">
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                          >
-                            <Badge 
-                              className={`font-semibold text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 ${
-                                ad.status === 1 
-                                  ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' 
-                                  : ad.status === 0 
-                                    ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700' 
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
-                              }`}
+                          <TableCell className="p-3">
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ type: "spring", stiffness: 300 }}
                             >
-                              {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
-                            </Badge>
-                          </motion.div>
-                        </TableCell>
-                        <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
-                          <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.name}</span>
-                        </TableCell>
-                        <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
-                          {ad.slotName && (
-                            <div className="flex flex-col space-y-1">
-                              <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.slotName}</span>
-                              {ad.slotWidth && ad.slotHeight && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-center font-medium">
-                                  {ad.slotWidth} x {ad.slotHeight}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
-                          {ad.impressionTarget.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
-                          {ad.clickTarget.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-center p-3">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            transition={{ type: "spring", stiffness: 400 }}
-                          >
-                            <span className="bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-orange-200 dark:border-orange-700">
-                              {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1)}%` : '0.0%'}
-                            </span>
-                          </motion.div>
-                        </TableCell>
-                        <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
-                          {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
-                        </TableCell>
-                        <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
-                          {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
-                        </TableCell>
-                        <TableCell className="text-center p-3">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            transition={{ type: "spring", stiffness: 400 }}
-                          >
-                            <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-blue-200 dark:border-blue-700">
-                              {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                                ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1)}%`
-                                : '0.0%'}
-                            </span>
-                          </motion.div>
-                        </TableCell>
-                        <TableCell className="text-center p-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <div>
-                                <Button 
-                                  variant="ghost" 
-                                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                </Button>
+                              <Badge
+                                className={`font-semibold text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 ${ad.status === 1
+                                    ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
+                                    : ad.status === 0
+                                      ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700'
+                                      : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                                  }`}
+                              >
+                                {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
+                              </Badge>
+                            </motion.div>
+                          </TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
+                            <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.name}</span>
+                          </TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
+                            {ad.slotName && (
+                              <div className="flex flex-col space-y-1">
+                                <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.slotName}</span>
+                                {ad.slotWidth && ad.slotHeight && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-center font-medium">
+                                    {ad.slotWidth} x {ad.slotHeight}
+                                  </span>
+                                )}
                               </div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
-                                }}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                <Eye className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">View Details</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
-                                }}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                <Edit className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCloneAd(ad.adId);
-                                }}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleArchiveAd(ad.adId);
-                                }}
-                                className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
-                              >
-                                <Archive className="mr-2 h-4 w-4" />
-                                <span className="font-medium">Archive</span>
-                              </DropdownMenuItem>
-                              {ad.status === 1 ? (
+                            )}
+                          </TableCell>
+                          <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
+                            {ad.impressionTarget.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
+                            {ad.clickTarget.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-center p-3">
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-orange-200 dark:border-orange-700">
+                                {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1)}%` : '0.0%'}
+                              </span>
+                            </motion.div>
+                          </TableCell>
+                          <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                            {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
+                          </TableCell>
+                          <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                            {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
+                          </TableCell>
+                          <TableCell className="text-center p-3">
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-blue-200 dark:border-blue-700">
+                                {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
+                                  ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1)}%`
+                                  : '0.0%'}
+                              </span>
+                            </motion.div>
+                          </TableCell>
+                          <TableCell className="text-center p-3">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <div>
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                  </Button>
+                                </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleStatusChange(ad.adId, 0);
+                                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
                                   }}
                                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                  <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                  <Eye className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">View Details</span>
                                 </DropdownMenuItem>
-                              ) : (
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleStatusChange(ad.adId, 1);
+                                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
                                   }}
                                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                  <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                  <Edit className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </motion.tr>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCloneAd(ad.adId);
+                                  }}
+                                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleArchiveAd(ad.adId);
+                                  }}
+                                  className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  <span className="font-medium">Archive</span>
+                                </DropdownMenuItem>
+                                {ad.status === 1 ? (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(ad.adId, 0);
+                                    }}
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                  >
+                                    <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(ad.adId, 1);
+                                    }}
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                  >
+                                    <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </motion.tr>
                       );
                     })
                   )}
@@ -1212,7 +1223,7 @@ export function AdList() {
               <div className="text-center py-12">
                 <div className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
                   <span className="font-medium">
-                    {searchQuery 
+                    {searchQuery
                       ? `No ads found matching "${searchQuery}"`
                       : "No ads found. Create your first ad to get started."}
                   </span>

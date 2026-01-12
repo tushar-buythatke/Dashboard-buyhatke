@@ -11,6 +11,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
+import { extractCategoriesForUpdate } from '@/utils/adUtils';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -194,10 +195,17 @@ export function AdDetail() {
     if (!ad) return;
 
     try {
+      // Extract categories for payload
+      const categoriesPayload = extractCategoriesForUpdate(ad.categories);
+
       const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: ad.adId, status: newStatus })
+        body: JSON.stringify({ 
+          adId: ad.adId, 
+          status: newStatus,
+          categories: categoriesPayload
+        })
       });
 
       if (!response.ok) throw new Error('Failed to update ad status');
