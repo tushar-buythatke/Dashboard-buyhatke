@@ -19,81 +19,69 @@ const LOCAL_SESSION_KEY = 'dashboard_local_auth_session';
 const SESSION_EXPIRY = 3 * 24 * 60 * 60 * 1000; // 3 days persistence per user request
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Check authentication status
-  const checkAuthStatus = useCallback(async () => {
+  // 🚀 3-DAY PERSISTENCE: Initialize state synchronously from localStorage
+  const [user, setUserState] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null;
     try {
-      // 🚀 3-DAY PERSISTENCE: Always check localStorage first
       const localSession = localStorage.getItem(LOCAL_SESSION_KEY);
       if (localSession) {
         const { user: savedUser, expiry } = JSON.parse(localSession);
         if (Date.now() < expiry) {
-          console.debug('✅ Valid local session found, using cached user');
-          setUser(savedUser);
-          // Extend session on check
-          localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
-            user: savedUser,
-            expiry: Date.now() + SESSION_EXPIRY
-          }));
-          return true;
-        } else {
-          console.debug('⌛ Local session expired');
-          localStorage.removeItem(LOCAL_SESSION_KEY);
+          console.debug('✅ Sync initialization: Valid local session found');
+          return savedUser;
         }
+        localStorage.removeItem(LOCAL_SESSION_KEY);
       }
+    } catch (e) {
+      console.error('Error initializing auth from localStorage:', e);
+    }
+    return null;
+  });
 
-      // Fallback to backend only if no local session exists
-      console.debug('🔍 No local session, checking backend as fallback');
-      const { isLoggedIn, user: authUser } = await authService.isLoggedIn();
-      if (isLoggedIn && authUser) {
-        setUser(authUser);
-        // Save to local storage for persistence
-        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
-          user: authUser,
-          expiry: Date.now() + SESSION_EXPIRY
-        }));
-        return true;
-      } else {
-        setUser(null);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      setUser(null);
-      return false;
+  const [loading, setLoading] = useState(false); // Can be false if we already have a user
+
+  // Wrapper for setUser that handles persistence automatically
+  const setUser = useCallback((newUser: User | null) => {
+    setUserState(newUser);
+    if (newUser) {
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+        user: newUser,
+        expiry: Date.now() + SESSION_EXPIRY
+      }));
+    } else {
+      localStorage.removeItem(LOCAL_SESSION_KEY);
+      authService.clearSession();
     }
   }, []);
 
-  // Update local session whenever user changes in local mode
-  useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('use-local-auth') === 'true') {
-      if (user) {
-        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
-          user,
-          expiry: Date.now() + SESSION_EXPIRY
-        }));
-      } else {
-        localStorage.removeItem(LOCAL_SESSION_KEY);
+  // Check authentication status with backend as a background verification
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      const { isLoggedIn, user: authUser } = await authService.isLoggedIn();
+      if (isLoggedIn && authUser) {
+        setUser(authUser);
+        return true;
+      } else if (!isLoggedIn && user) {
+        // Backend says we're out, but we had a local session - trust backend if it's authoritative
+        console.debug(' Backend session stale, clearing local state');
+        setUser(null);
+        return false;
       }
+      return isLoggedIn;
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      return false;
     }
-  }, [user]);
+  }, [user, setUser]);
 
   // Refresh session - can be called manually or automatically
   const refreshSession = useCallback(async () => {
     await checkAuthStatus();
   }, [checkAuthStatus]);
 
-  // Check authentication status on mount
+  // Perform background check on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      setLoading(true);
-      await checkAuthStatus();
-      setLoading(false);
-    };
-
-    initializeAuth();
+    checkAuthStatus();
   }, [checkAuthStatus]);
 
   // Simplified periodic session validation (every 30 minutes)
