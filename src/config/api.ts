@@ -1,15 +1,21 @@
-// API Configuration for Test/Prod environments
-// 🔒 SECURITY NOTE: Login and authentication operations ALWAYS use production environment
+// 🔒 SECURITY NOTE: Login and authentication operations can use local server for testing
 // Environment switching is only allowed after successful authentication
 
-export type Environment = 'test' | 'prod';
+export type Environment = 'test' | 'prod' | 'local';
 
 export interface ApiConfig {
   baseUrl: string;
   environment: Environment;
 }
 
+// Local 2FA server for testing
+export const LOCAL_2FA_SERVER = 'http://localhost:8096';
+
 export const API_CONFIGS: Record<Environment, ApiConfig> = {
+  local: {
+    baseUrl: `${LOCAL_2FA_SERVER}/buyhatkeAdDashboard`,
+    environment: 'local'
+  },
   test: {
     baseUrl: 'https://search-new.bitbns.com/buyhatkeAdDashboard-test',
     environment: 'test'
@@ -28,7 +34,7 @@ export const getCurrentEnvironment = (): Environment => {
   if (typeof window === 'undefined') return DEFAULT_ENVIRONMENT;
   
   const stored = localStorage.getItem('app-environment') as Environment;
-  return stored && (stored === 'test' || stored === 'prod') ? stored : DEFAULT_ENVIRONMENT;
+  return stored && (stored === 'test' || stored === 'prod' || stored === 'local') ? stored : DEFAULT_ENVIRONMENT;
 };
 
 // Set current environment
@@ -49,14 +55,48 @@ export const getApiBaseUrl = (): string => {
 };
 
 // Get PRODUCTION-ONLY API base URL (for login and auth operations)
-// This ensures login always happens against production environment
+// This ensures login always happens against production environment unless local auth is enabled
 export const getProdApiBaseUrl = (): string => {
   return API_CONFIGS.prod.baseUrl;
 };
 
+// Get AUTH API URL - uses local server when in local mode
+export const getAuthApiUrl = (): string => {
+  // Always return production URL as requested, now using the /auth endpoint
+  return `${getProdApiBaseUrl()}/auth`;
+};
+
+// Check if using local auth server
+export const isUsingLocalAuth = (): boolean => {
+  return localStorage.getItem('use-local-auth') === 'true';
+};
+
+// Enable local auth server
+export const enableLocalAuth = (): void => {
+  localStorage.setItem('use-local-auth', 'true');
+  console.log('🔧 Local auth server ENABLED');
+};
+
+// Disable local auth server (use production)
+export const disableLocalAuth = (): void => {
+  localStorage.removeItem('use-local-auth');
+  console.log('🔧 Local auth server DISABLED - using production');
+};
+
+// Expose to window for console access
+if (typeof window !== 'undefined') {
+  (window as any).enableLocalAuth = enableLocalAuth;
+  (window as any).disableLocalAuth = disableLocalAuth;
+}
+
 // Force environment to production (used during login to ensure security)
 export const forceProductionEnvironment = (): void => {
   if (typeof window !== 'undefined') {
+    // Don't force prod if using local auth
+    if (isUsingLocalAuth()) {
+      console.log('🔧 Using LOCAL auth server for authentication');
+      return;
+    }
     console.log('🔒 SECURITY: Forcing production environment for authentication');
     localStorage.setItem('app-environment', 'prod');
   }

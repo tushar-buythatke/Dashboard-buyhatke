@@ -14,7 +14,7 @@ import { AdList } from '@/components/ads/AdList';
 import { AdForm } from '@/components/ads/AdForm';
 import { AdDetail } from '@/components/ads/AdDetail';
 import { Toaster } from '@/components/ui/sonner';
-import Login from '@/pages/Login';
+import AuthLogin from '@/pages/AuthLogin';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, loading } = useAuth();
@@ -44,7 +44,7 @@ function AppRoutes() {
     >
       <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', width: '100vw' }}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<AuthLogin />} />
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="campaigns">

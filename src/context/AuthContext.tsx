@@ -4,6 +4,7 @@ import { forceProductionEnvironment } from '../config/api';
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   loading: boolean;
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<{ success: boolean; message?: string }>;
@@ -13,6 +14,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Session constants for local mode
+const LOCAL_SESSION_KEY = 'dashboard_local_auth_session';
+const SESSION_EXPIRY = 3 * 24 * 60 * 60 * 1000; // 3 days persistence per user request
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,9 +25,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check authentication status
   const checkAuthStatus = useCallback(async () => {
     try {
+      // 🚀 3-DAY PERSISTENCE: Always check localStorage first
+      const localSession = localStorage.getItem(LOCAL_SESSION_KEY);
+      if (localSession) {
+        const { user: savedUser, expiry } = JSON.parse(localSession);
+        if (Date.now() < expiry) {
+          console.debug('✅ Valid local session found, using cached user');
+          setUser(savedUser);
+          // Extend session on check
+          localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+            user: savedUser,
+            expiry: Date.now() + SESSION_EXPIRY
+          }));
+          return true;
+        } else {
+          console.debug('⌛ Local session expired');
+          localStorage.removeItem(LOCAL_SESSION_KEY);
+        }
+      }
+
+      // Fallback to backend only if no local session exists
+      console.debug('🔍 No local session, checking backend as fallback');
       const { isLoggedIn, user: authUser } = await authService.isLoggedIn();
       if (isLoggedIn && authUser) {
         setUser(authUser);
+        // Save to local storage for persistence
+        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+          user: authUser,
+          expiry: Date.now() + SESSION_EXPIRY
+        }));
         return true;
       } else {
         setUser(null);
@@ -34,6 +65,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, []);
+
+  // Update local session whenever user changes in local mode
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('use-local-auth') === 'true') {
+      if (user) {
+        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+          user,
+          expiry: Date.now() + SESSION_EXPIRY
+        }));
+      } else {
+        localStorage.removeItem(LOCAL_SESSION_KEY);
+      }
+    }
+  }, [user]);
 
   // Refresh session - can be called manually or automatically
   const refreshSession = useCallback(async () => {
@@ -51,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, [checkAuthStatus]);
 
-  // Simplified periodic session validation (every 15 minutes)
+  // Simplified periodic session validation (every 30 minutes)
   useEffect(() => {
     let sessionCheckInterval: NodeJS.Timeout;
 
@@ -60,16 +105,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionCheckInterval = setInterval(async () => {
         try {
           console.debug('Periodic session validation triggered');
-          const { isLoggedIn } = await authService.isLoggedIn();
-          if (!isLoggedIn) {
-            console.log('Periodic validation: Session expired, logging out user');
-            setUser(null);
-            authService.clearSession();
+
+          const localSession = localStorage.getItem(LOCAL_SESSION_KEY);
+          if (localSession) {
+            const { expiry } = JSON.parse(localSession);
+            if (Date.now() > expiry) {
+              console.log('Session expired (local check)');
+              setUser(null);
+              localStorage.removeItem(LOCAL_SESSION_KEY);
+              authService.clearSession();
+            }
+          } else {
+            // If user state exists but no local storage, verify with backend once
+            const { isLoggedIn } = await authService.isLoggedIn();
+            if (!isLoggedIn) {
+              console.log('Session invalid on backend, clearing state');
+              setUser(null);
+              authService.clearSession();
+            }
           }
         } catch (error) {
           console.error('Session validation error:', error);
         }
-      }, 30 * 60 * 1000); // Check every 30 minutes (optimized frequency)
+      }, 30 * 60 * 1000);
     }
 
     return () => {
@@ -79,65 +137,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  // Handle visibility change - check session when tab becomes visible (throttled)
+  // visibility/focus triggered checks are disabled to prevent aggressive logouts
+  /*
   useEffect(() => {
-    let lastVisibilityCheck = 0;
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
-        const now = Date.now();
-        // Throttle visibility checks to at most once every 5 minutes
-        if (now - lastVisibilityCheck > 5 * 60 * 1000) {
-          console.debug('Tab visibility change triggered session validation');
-          lastVisibilityCheck = now;
-          refreshSession();
-        } else {
-          console.debug('Tab visibility change ignored (throttled)');
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    ...
   }, [user, refreshSession]);
-
-  // Handle page focus - refresh session when user returns to window (throttled)
-  useEffect(() => {
-    let lastFocusCheck = 0;
-    
-    const handleFocus = () => {
-      if (user) {
-        const now = Date.now();
-        // Throttle focus checks to at most once every 5 minutes
-        if (now - lastFocusCheck > 5 * 60 * 1000) {
-          console.debug('Window focus triggered session validation');
-          lastFocusCheck = now;
-          refreshSession();
-        } else {
-          console.debug('Window focus ignored (throttled)');
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user, refreshSession]);
+  */
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; message?: string }> => {
     setLoading(true);
     try {
       // 🔒 CRITICAL SECURITY: Force production environment before login attempt
-      console.log('🚨 SECURITY: Enforcing PRODUCTION environment for login');
       forceProductionEnvironment();
-      
+
       const result = await authService.validateLogin(credentials);
       if (result.success && result.user) {
         setUser(result.user);
-        console.log('✅ Login successful - Environment switching now allowed');
+        // Save to local storage for 3-day persistence
+        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({
+          user: result.user,
+          expiry: Date.now() + SESSION_EXPIRY
+        }));
       }
       return result;
     } catch (error) {
@@ -153,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authService.logout();
       setUser(null);
+      localStorage.removeItem(LOCAL_SESSION_KEY);
       return result;
     } catch (error) {
       console.error('Logout error:', error);
@@ -166,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
+    setUser,
     loading,
     login,
     logout,

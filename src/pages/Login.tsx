@@ -28,7 +28,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password');
       return;
@@ -39,7 +39,7 @@ export default function Login() {
 
     try {
       const result = await login({ userName: username, password });
-      
+
       if (result.success) {
         navigate('/');
       } else {
@@ -67,7 +67,7 @@ export default function Login() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back!</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              You are logged in as <span className="font-semibold">{user.userName}</span>
+              You are logged in as <span className="font-semibold">{user.username}</span>
             </p>
             <motion.button
               onClick={() => navigate('/')}
@@ -172,9 +172,8 @@ export default function Login() {
           <motion.button
             type="submit"
             disabled={loading}
-            className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${
-              loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg transform hover:scale-[1.02]'
-            }`}
+            className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg transform hover:scale-[1.02]'
+              }`}
             whileHover={!loading ? { scale: 1.02 } : {}}
             whileTap={!loading ? { scale: 0.98 } : {}}
           >

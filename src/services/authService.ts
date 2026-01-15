@@ -2,14 +2,14 @@ import { encryptAES } from '@/utils/encryption';
 
 import { getApiBaseUrl, getProdApiBaseUrl } from '@/config/api';
 
-const getAuthApiUrl = () => `${getApiBaseUrl()}/users`;
+const getAuthApiUrl = () => `${getApiBaseUrl()}/auth`;
 // STRICT PRODUCTION URL for login operations - always use prod environment for auth
-const getProdAuthApiUrl = () => `${getProdApiBaseUrl()}/users`;
+const getProdAuthApiUrl = () => `${getProdApiBaseUrl()}/auth`;
 
 export interface User {
-  userName: string;
-  type: number;
-  userId?: number;
+  id: number;
+  username: string;
+  role: number;
 }
 
 export interface LoginCredentials {
@@ -29,7 +29,7 @@ class AuthService {
   private sessionCheckInProgress = false;
   private readonly SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
   private useCookies = true; // ✅ CORS is now fixed - enable cookies!
-  
+
   constructor() {
     // Initialize session info
     this.sessionInfo = {
@@ -46,7 +46,7 @@ class AuthService {
   private getRequestOptions(body?: any, endpoint?: string): RequestInit {
     // Check if this endpoint supports credentials
     const supportsCredentials = this.useCookies && this.endpointSupportsCredentials(endpoint);
-    
+
     const options: RequestInit = {
       method: 'POST',
       mode: 'cors',
@@ -82,7 +82,7 @@ class AuthService {
       'logout',
       'validateLogin'  // ✅ Now enabled - cookies work!
     ];
-    
+
     return endpoint ? supportedEndpoints.some(ep => endpoint.includes(ep)) : false;
   }
 
@@ -91,16 +91,16 @@ class AuthService {
    */
   async isLoggedIn(): Promise<{ isLoggedIn: boolean; user?: User }> {
     const now = Date.now();
-    
+
     // Use cached result if recent and valid
-    if (this.sessionInfo && 
-        this.sessionInfo.isValid && 
-        (now - this.sessionInfo.lastChecked) < this.SESSION_CACHE_DURATION) {
-      
+    if (this.sessionInfo &&
+      this.sessionInfo.isValid &&
+      (now - this.sessionInfo.lastChecked) < this.SESSION_CACHE_DURATION) {
+
       console.debug(`Session cached: valid for ${Math.round((this.SESSION_CACHE_DURATION - (now - this.sessionInfo.lastChecked)) / 1000)}s more`);
-      return { 
-        isLoggedIn: !!this.sessionInfo.user, 
-        user: this.sessionInfo.user || undefined 
+      return {
+        isLoggedIn: !!this.sessionInfo.user,
+        user: this.sessionInfo.user || undefined
       };
     }
 
@@ -130,13 +130,13 @@ class AuthService {
    */
   private async performSessionCheck(): Promise<{ isLoggedIn: boolean; user?: User }> {
     this.sessionCheckInProgress = true;
-    
+
     try {
-      console.debug('🔐 Checking session with backend...');
-      console.debug('🚨 Using STRICT PRODUCTION environment for session validation');
+      // Use getAuthApiUrl() to respect local auth setting if enabled
+      const authUrl = getAuthApiUrl();
+      console.debug(`� Checking session with backend at: ${authUrl}`);
       
-      // 🔒 CRITICAL: Use production URL for session validation
-      const response = await fetch(`${getProdAuthApiUrl()}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
+      const response = await fetch(`${authUrl}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -144,18 +144,18 @@ class AuthService {
 
       const result = await response.json();
       const now = Date.now();
-      
+
       console.debug('Backend session check result:', result);
-      
+
       // Handle actual backend response format: {"status":1,"message":"Success!","data":{"userId":4}}
       if (result.status === 1 && result.data && result.data.userId) {
         // Create user object from backend response
         const user = {
-          userName: result.data.userName || `User${result.data.userId}`,
-          type: result.data.type || 0,
-          userId: result.data.userId
+          username: result.data.userName || result.data.username || `User${result.data.userId}`,
+          role: result.data.type || result.data.role || 0,
+          id: result.data.userId
         };
-        
+
         // Update session cache
         this.sessionInfo = {
           user: user,
@@ -163,7 +163,7 @@ class AuthService {
           isValid: true
         };
         this.currentUser = user;
-        
+
         console.debug('✅ Session valid - User ID:', result.data.userId);
         return { isLoggedIn: true, user: user };
       } else {
@@ -174,13 +174,13 @@ class AuthService {
           isValid: false
         };
         this.currentUser = null;
-        
+
         console.debug('❌ Session invalid or expired - Status:', result.status);
         return { isLoggedIn: false };
       }
     } catch (error) {
       console.error('Session check failed:', error);
-      
+
       // On network error, mark session as invalid
       this.sessionInfo = {
         user: null,
@@ -188,7 +188,7 @@ class AuthService {
         isValid: false
       };
       this.currentUser = null;
-      
+
       return { isLoggedIn: false };
     } finally {
       this.sessionCheckInProgress = false;
@@ -203,17 +203,20 @@ class AuthService {
     try {
       console.debug('🔐 Attempting login for:', credentials.userName);
       console.debug('🚨 Using STRICT PRODUCTION environment for login authentication');
-      
+
       const supportsCredentials = this.endpointSupportsCredentials('validateLogin');
       if (!supportsCredentials) {
         console.debug('⚠️ validateLogin endpoint not in credentials whitelist - using fallback mode');
         console.debug('📝 Ask backend team to fix CORS for /validateLogin endpoint');
       }
-      
+
       const encryptedPassword = await encryptAES(credentials.password);
+
+      // Use getAuthApiUrl() to respect local auth setting if enabled
+      const authUrl = getAuthApiUrl();
+      console.debug(`🔐 Attempting login at: ${authUrl}`);
       
-      // 🔒 CRITICAL: Always use production URL for login - never allow test environment for auth
-      const response = await fetch(`${getProdAuthApiUrl()}/validateLogin`, this.getRequestOptions({
+      const response = await fetch(`${authUrl}/validateLogin`, this.getRequestOptions({
         userName: credentials.userName,
         password: encryptedPassword,
       }, 'validateLogin'));
@@ -224,10 +227,10 @@ class AuthService {
 
       const result = await response.json();
       console.debug('Login response:', result);
-      
+
       if (result.status === 1) {
         const user = result.user || { userName: credentials.userName, type: 0 };
-        
+
         // Update session cache immediately
         this.sessionInfo = {
           user,
@@ -235,26 +238,26 @@ class AuthService {
           isValid: true
         };
         this.currentUser = user;
-        
+
         console.debug('✅ Login successful');
-        return { 
-          success: true, 
+        return {
+          success: true,
           user,
-          message: result.message 
+          message: result.message
         };
       }
-      
+
       console.debug('❌ Login failed:', result.message);
-      return { 
-        success: false, 
-        message: result.message || 'Invalid credentials' 
+      return {
+        success: false,
+        message: result.message || 'Invalid credentials'
       };
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error && error.message.includes('HTTP') 
-          ? 'Server connection failed. Please try again.' 
+      return {
+        success: false,
+        message: error instanceof Error && error.message.includes('HTTP')
+          ? 'Server connection failed. Please try again.'
           : 'Login failed. Please try again.'
       };
     }
@@ -268,30 +271,33 @@ class AuthService {
     try {
       console.debug('🔐 Logging out...');
       console.debug('🚨 Using STRICT PRODUCTION environment for logout');
+
+      // Use getAuthApiUrl() to respect local auth setting if enabled
+      const authUrl = getAuthApiUrl();
+      console.debug(`🔐 Logging out from: ${authUrl}`);
       
-      // 🔒 CRITICAL: Call backend logout using production URL for consistency
-      const response = await fetch(`${getProdAuthApiUrl()}/logout`, this.getRequestOptions(null, 'logout'));
-      
+      const response = await fetch(`${authUrl}/logout`, this.getRequestOptions(null, 'logout'));
+
       if (response.ok) {
         const result = await response.json();
         console.debug('Backend logout result:', result);
       }
-      
+
       // Always clear local session regardless of backend response
       this.clearSession();
-      
+
       console.debug('✅ Logout completed');
-      return { 
-        success: true, 
-        message: 'Logged out successfully' 
+      return {
+        success: true,
+        message: 'Logged out successfully'
       };
     } catch (error) {
       console.error('Logout error:', error);
       // Clear local session anyway
       this.clearSession();
-      return { 
-        success: true, 
-        message: 'Logged out successfully' 
+      return {
+        success: true,
+        message: 'Logged out successfully'
       };
     }
   }
@@ -303,29 +309,32 @@ class AuthService {
   async addUser(userData: { userName: string; password: string; type: number }): Promise<{ success: boolean; message?: string }> {
     try {
       const encryptedPassword = await encryptAES(userData.password);
-      
+
       // 🔒 CRITICAL: Use production URL for user management consistency
-      const response = await fetch(`${getProdAuthApiUrl()}/addUsers`, this.getRequestOptions({
-        userName: userData.userName,
+      // Use getAuthApiUrl() to respect local auth setting if enabled
+      const authUrl = getAuthApiUrl();
+      const response = await fetch(`${authUrl}/register`, this.getRequestOptions({
+        username: userData.userName,
         password: encryptedPassword,
-        type: userData.type
-      }, 'addUsers'));
+        type: userData.type,
+        dashboard_id: 0
+      }, 'register'));
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-      
-      return { 
-        success: result.status === 1, 
-        message: result.message 
+
+      return {
+        success: result.status === 1,
+        message: result.message
       };
     } catch (error) {
       console.error('Add user error:', error);
-      return { 
-        success: false, 
-        message: 'Failed to add user. Please try again.' 
+      return {
+        success: false,
+        message: 'Failed to add user. Please try again.'
       };
     }
   }
@@ -355,12 +364,12 @@ class AuthService {
    */
   async refreshSession(): Promise<boolean> {
     console.debug('Force refreshing session...');
-    
+
     // Clear cache to force fresh check
     if (this.sessionInfo) {
       this.sessionInfo.lastChecked = 0;
     }
-    
+
     const { isLoggedIn } = await this.isLoggedIn();
     return isLoggedIn;
   }
@@ -387,7 +396,7 @@ class AuthService {
    */
   getDebugInfo(): any {
     const now = Date.now();
-    
+
     return {
       currentUser: this.currentUser,
       sessionInfo: this.sessionInfo,
@@ -451,13 +460,13 @@ if (typeof window !== 'undefined') {
       console.log('Backend Response Status:', response.status);
       console.log('Backend Response:', result);
       console.log('Cookies Sent:', document.cookie);
-      
+
       if (result.status === 1 && result.data && result.data.userId) {
         console.log('✅ Backend session is VALID - User ID:', result.data.userId);
       } else {
         console.log('❌ Backend session is INVALID - Status:', result.status);
       }
-      
+
       console.groupEnd();
       return result;
     } catch (error) {
@@ -474,7 +483,7 @@ if (typeof window !== 'undefined') {
 
   (window as any).testCORS = async () => {
     console.group('🔍 Testing CORS Configuration (PRODUCTION)');
-    
+
     try {
       // Test with credentials: 'include'
       console.log('🔐 Testing PRODUCTION environment with credentials: "include"...');
@@ -491,14 +500,14 @@ if (typeof window !== 'undefined') {
       console.log('✅ CORS with credentials works!');
       console.log('Response:', result);
       console.log('🎉 Cookie authentication is already enabled and working!');
-      
+
       return { success: true, result };
     } catch (error) {
       console.log('❌ CORS with credentials failed');
       console.log('Error:', error);
       console.log('📋 Backend team needs to fix CORS configuration');
       console.log('📄 Share CORS_FIX_URGENT.md with backend team');
-      
+
       return { success: false, error };
     } finally {
       console.groupEnd();
@@ -541,7 +550,7 @@ if (typeof window !== 'undefined') {
       console.log('Status:', response.status);
       console.log('Response:', result);
       console.log('Cookies included:', document.cookie ? 'Yes' : 'None found');
-      
+
       console.groupEnd();
       return { success: true, result, status: response.status };
     } catch (error) {
@@ -553,7 +562,7 @@ if (typeof window !== 'undefined') {
 
   (window as any).testAllEndpoints = async () => {
     console.group('🔬 Testing All Auth Endpoints (PRODUCTION)');
-    
+
     // 🔒 CRITICAL: Test all auth endpoints against production environment only
     const endpoints = [
       { name: 'isLoggedIn', url: `${getProdAuthApiUrl()}/isLoggedIn`, body: null },
@@ -566,7 +575,7 @@ if (typeof window !== 'undefined') {
 
     for (const endpoint of endpoints) {
       console.log(`\n🧪 Testing ${endpoint.name}...`);
-      
+
       try {
         // Test with credentials: 'include'
         const responseWithCredentials = await fetch(endpoint.url, {
@@ -595,7 +604,7 @@ if (typeof window !== 'undefined') {
           }
         };
         console.log(`  ❌ ${endpoint.name} with credentials: CORS ERROR`);
-        
+
         // Try without credentials as fallback
         try {
           const responseWithoutCredentials = await fetch(endpoint.url, {
@@ -627,13 +636,13 @@ if (typeof window !== 'undefined') {
     console.log('\n📊 Test Results Summary:');
     console.table(results);
     console.groupEnd();
-    
+
     return results;
   };
 
   console.log('🛠️ Enhanced Auth debugging enabled (🔧 Smart Fallback Mode):');
   console.log('• debugAuth() - Check session status');
-  console.log('• testBackendSession() - Test backend directly');  
+  console.log('• testBackendSession() - Test backend directly');
   console.log('• clearAuthCache() - Clear session cache');
   console.log('• testCORS() - Test CORS configuration');
   console.log('• testExactRequest() - Test your exact working request');

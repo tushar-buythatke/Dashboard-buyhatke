@@ -751,7 +751,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                     
                     <div className="hidden sm:flex items-center space-x-1">
                       <span className="text-xs sm:text-sm font-medium text-white truncate max-w-16 sm:max-w-24">
-                        {user.userName}
+                        {user.username}
                       </span>
                         <motion.div
                           animate={{ rotate: [0, 180] }}
@@ -802,11 +802,11 @@ export function Header({ onMenuClick }: HeaderProps) {
                         Welcome back!
                       </h3>
                       <p className="font-medium text-slate-600 dark:text-slate-400 text-xs sm:text-sm truncate">
-                        {user.userName}
+                        {user.username}
                       </p>
                       <div className="flex items-center justify-center space-x-1 sm:space-x-2">
                         <Badge className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 border-0 text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1">
-                          {user.type === 0 ? 'Admin' : 'User'}
+                          {user.role === 0 ? 'Admin' : 'User'}
                         </Badge>
                         <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
                           <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full"></div>
