@@ -55,34 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Check authentication status with backend as a background verification
+  // DISABLED: Trust local session for 3 days to prevent aggressive logouts
   const checkAuthStatus = useCallback(async () => {
-    try {
-      const { isLoggedIn, user: authUser } = await authService.isLoggedIn();
-      if (isLoggedIn && authUser) {
-        setUser(authUser);
-        return true;
-      } else if (!isLoggedIn && user) {
-        // Backend says we're out, but we had a local session - trust backend if it's authoritative
-        console.debug(' Backend session stale, clearing local state');
-        setUser(null);
-        return false;
-      }
-      return isLoggedIn;
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      return false;
-    }
-  }, [user, setUser]);
+    return true; // Always return true to keep UI session alive if local storage is valid
+  }, []);
 
   // Refresh session - can be called manually or automatically
   const refreshSession = useCallback(async () => {
-    await checkAuthStatus();
-  }, [checkAuthStatus]);
-
-  // Perform background check on mount
-  useEffect(() => {
-    checkAuthStatus();
-  }, [checkAuthStatus]);
+    // No-op - relying on local 3-day session
+  }, []);
 
   // Simplified periodic session validation (every 30 minutes)
   useEffect(() => {
@@ -92,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.debug('Setting up periodic session validation (every 30 minutes)');
       sessionCheckInterval = setInterval(async () => {
         try {
-          console.debug('Periodic session validation triggered');
+          console.debug('Periodic local session validation triggered');
 
           const localSession = localStorage.getItem(LOCAL_SESSION_KEY);
           if (localSession) {
@@ -101,14 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log('Session expired (local check)');
               setUser(null);
               localStorage.removeItem(LOCAL_SESSION_KEY);
-              authService.clearSession();
-            }
-          } else {
-            // If user state exists but no local storage, verify with backend once
-            const { isLoggedIn } = await authService.isLoggedIn();
-            if (!isLoggedIn) {
-              console.log('Session invalid on backend, clearing state');
-              setUser(null);
               authService.clearSession();
             }
           }
@@ -125,11 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  // visibility/focus triggered checks are disabled to prevent aggressive logouts
+  // mount checks are disabled to prevent aggressive logouts
   /*
   useEffect(() => {
-    ...
-  }, [user, refreshSession]);
+    checkAuthStatus();
+  }, [checkAuthStatus]);
   */
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; message?: string }> => {
