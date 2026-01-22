@@ -297,6 +297,47 @@ class AdService {
     }
   }
 
+  // Upload logo file (with _logo suffix in filename)
+  async uploadLogo(file: File, slotId: number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
+    const formData = new FormData();
+    
+    // Create a new File object with _logo suffix
+    const fileExtension = file.name.split('.').pop();
+    const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const logoFileName = `${fileName}_logo.${fileExtension}`;
+    const logoFile = new File([file], logoFileName, { type: file.type });
+    
+    formData.append('image', logoFile);
+    formData.append('slotId', slotId.toString());
+
+    try {
+      const response = await fetch(`${getAdApiUrl()}/uploadCreative?userId=1`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result: CreativeUploadResponse = await response.json();
+
+      if (result.status === 1 && result.data?.creativeUrl) {
+        return {
+          success: true,
+          creativeUrl: result.data.creativeUrl,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Logo upload failed'
+        };
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      return {
+        success: false,
+        message: 'An unexpected error occurred'
+      };
+    }
+  }
+
   // Create new ad
   async createAd(adData: CreateAdData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {

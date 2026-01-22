@@ -153,6 +153,8 @@ export function AdDetail() {
       'Impression Pixel': ad.impressionPixel || 'N/A',
       'Click Pixel': ad.clickPixel || 'N/A',
       'Landing URL': ad.targetUrl || 'N/A',
+      'Logo URL': ad.logo || 'N/A',
+      'Other Details': ad.otherDetails ? JSON.stringify(ad.otherDetails) : 'N/A',
       'Categories': (() => {
         if (!ad.categories) return 'N/A';
         if (typeof ad.categories === 'object' && 'selections' in ad.categories) {
@@ -465,6 +467,27 @@ export function AdDetail() {
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Ad Name</h4>
                   <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.name}</p>
                 </div>
+
+                {/* Logo */}
+                {ad.logo && (
+                  <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Logo</h4>
+                    <div className="flex justify-center">
+                      <img
+                        src={ad.logo}
+                        alt="Ad logo"
+                        className="max-h-24 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (!target.dataset.fallback) {
+                            target.dataset.fallback = 'true';
+                            target.src = PLACEHOLDER_IMAGE;
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Creative Image/Video */}
                 <div className="flex flex-col items-center space-y-4">
@@ -1021,6 +1044,43 @@ export function AdDetail() {
             </div>
           </Card>
         </motion.div>
+
+        {/* Other Details */}
+        {ad.otherDetails && Object.keys(ad.otherDetails).length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-4 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <Settings className="h-5 w-5 mr-3" />
+                  Other Details
+                </h3>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <pre className="text-sm text-gray-900 dark:text-gray-100 overflow-x-auto whitespace-pre-wrap font-mono">
+                    {JSON.stringify(ad.otherDetails, null, 2)}
+                  </pre>
+                </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(ad.otherDetails).map(([key, value]) => (
+                    <div key={key} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        {key}
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 break-words">
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );

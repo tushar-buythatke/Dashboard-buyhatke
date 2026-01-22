@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -158,6 +158,8 @@ const adSchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   creativeUrl: z.string().url('Creative URL must be valid'),
+  logo: z.string().optional(),
+  otherDetails: z.record(z.any()).optional(),
   gender: z.string().optional(),
   noGenderSpecificity: z.boolean().optional(),
   noSpecificity: z.boolean().optional(),
@@ -218,12 +220,14 @@ export function AdForm() {
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 65]);
   const [priceRangeHighlighted, setPriceRangeHighlighted] = useState(false);
   const [existingAdLabels, setExistingAdLabels] = useState<string[]>([]);
   const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
   const [openLabelSuggestions, setOpenLabelSuggestions] = useState(false);
   const [campaignName, setCampaignName] = useState('');
+  const [otherDetailsFields, setOtherDetailsFields] = useState<Array<{ key: string; value: string }>>([{ key: '', value: '' }]);
 
   // New states for slot filtering
   const [slotFilterPlatform, setSlotFilterPlatform] = useState<number | undefined>(undefined);
@@ -252,6 +256,8 @@ export function AdForm() {
       startTime: '', // Blank by default
       endTime: '', // Blank by default
       creativeUrl: '',
+      logo: '',
+      otherDetails: {},
       gender: 'Male',
       noGenderSpecificity: false,
       noSpecificity: false,
@@ -345,6 +351,39 @@ export function AdForm() {
 
         // Create object URL to load the image
         img.src = URL.createObjectURL(file);
+      }
+    }
+  };
+
+  const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+
+      if (!isImage) {
+        toast.error('Please select a valid image file for the logo.');
+        event.target.value = '';
+        return;
+      }
+
+      // Upload logo without dimension check
+      try {
+        setLoading(true);
+        const currentSlotId = form.getValues('slotId');
+        const result = await adService.uploadLogo(file, currentSlotId || 0);
+
+        if (result.success && result.creativeUrl) {
+          setLogoPreviewUrl(result.creativeUrl);
+          form.setValue('logo', result.creativeUrl);
+          toast.success('Logo uploaded successfully!');
+        } else {
+          toast.error(result.message || 'Failed to upload logo');
+        }
+      } catch (error) {
+        console.error('Logo upload error:', error);
+        toast.error('Failed to upload logo. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -459,6 +498,8 @@ export function AdForm() {
                 endDate: adData.endDate ? adData.endDate.split('T')[0] : undefined,
                 startTime: '', // Blank by default on edit/update
                 endTime: '', // Blank by default on edit/update,
+                logo: adData.logo || '',
+                otherDetails: adData.otherDetails || {}
               });
 
               // Set the selected slot for editing mode
@@ -470,6 +511,20 @@ export function AdForm() {
               // Set preview URL if creative exists
               if (adData.creativeUrl) {
                 setPreviewUrl(adData.creativeUrl);
+              }
+
+              // Set logo preview URL if logo exists
+              if (adData.logo) {
+                setLogoPreviewUrl(adData.logo);
+              }
+
+              // Set otherDetails fields
+              if (adData.otherDetails && typeof adData.otherDetails === 'object') {
+                const fields = Object.entries(adData.otherDetails).map(([key, value]) => ({
+                  key,
+                  value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+                }));
+                setOtherDetailsFields(fields.length > 0 ? fields : [{ key: '', value: '' }]);
               }
             }
           } catch (error) {
@@ -579,10 +634,25 @@ export function AdForm() {
         transformedCategories = data.categories as unknown as Record<number, string>;
       }
 
+      // Build otherDetails object from key-value pairs
+      const parsedOtherDetails: Record<string, any> = {};
+      otherDetailsFields.forEach(field => {
+        if (field.key.trim()) {
+          // Try to parse value as JSON, if it fails use as string
+          try {
+            parsedOtherDetails[field.key] = JSON.parse(field.value);
+          } catch {
+            parsedOtherDetails[field.key] = field.value;
+          }
+        }
+      });
+
       const body = {
         ...data,
         categories: transformedCategories,
         campaignId: Number(campaignId),
+        logo: data.logo || '',
+        otherDetails: parsedOtherDetails,
         ...(isEditMode && { adId: Number(adId) })
       };
 
@@ -986,6 +1056,64 @@ export function AdForm() {
                       <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
                     )}
                   </div>
+
+                  {/* Logo Upload Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        Logo (Optional)
+                      </FormLabel>
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      {logoPreviewUrl ? (
+                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
+                          <img
+                            src={logoPreviewUrl}
+                            alt="Logo preview"
+                            className="h-32 w-32 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (!target.dataset.fallback) {
+                                target.dataset.fallback = 'true';
+                                target.src = 'https://example.com/placeholder-logo.png';
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
+                            onClick={() => {
+                              setLogoPreviewUrl('');
+                              form.setValue('logo', '');
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
+                          <Upload className="h-6 w-6 text-green-500" />
+                          <p className="text-sm text-green-600 dark:text-green-400 text-center font-medium">
+                            Upload Logo
+                          </p>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleLogoFileChange}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Upload a logo for this ad. No dimension requirements.
+                    </p>
+                  </div>
+
 
                   <FormField
                     control={form.control}
@@ -1755,6 +1883,88 @@ export function AdForm() {
                     )}
                   />
                 </div>
+              </div>
+            </Card>
+
+            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-6">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <Settings className="h-3 w-3" />
+                  </div>
+                  Other Details (Optional)
+                </h3>
+              </div>
+              <div className="p-8 space-y-6">
+                {otherDetailsFields.map((field, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start"
+                  >
+                    <div>
+                      <Label className="text-gray-700 dark:text-gray-300">Key</Label>
+                      <Input
+                        placeholder="e.g., dealType"
+                        value={field.key}
+                        onChange={(e) => {
+                          const newFields = [...otherDetailsFields];
+                          newFields[index].key = e.target.value;
+                          setOtherDetailsFields(newFields);
+                        }}
+                        className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label className="text-gray-700 dark:text-gray-300">Value</Label>
+                        <Input
+                          placeholder="e.g., flash-sale"
+                          value={field.value}
+                          onChange={(e) => {
+                            const newFields = [...otherDetailsFields];
+                            newFields[index].value = e.target.value;
+                            setOtherDetailsFields(newFields);
+                          }}
+                          className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        />
+                      </div>
+                      {otherDetailsFields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newFields = otherDetailsFields.filter((_, i) => i !== index);
+                            setOtherDetailsFields(newFields);
+                          }}
+                          className="h-10 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setOtherDetailsFields([...otherDetailsFields, { key: '', value: '' }]);
+                  }}
+                  className="w-full border-dashed border-2 border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Another Field
+                </Button>
+
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                  Add custom key-value pairs for any additional details you want to store with this ad.
+                </p>
               </div>
             </Card>
 

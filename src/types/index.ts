@@ -50,6 +50,8 @@ export interface Ad {
   endDate: string;
   endTime: string;
   creativeUrl: string;
+  logo?: string;
+  otherDetails?: Record<string, any>;
   gender: string;
   isTestPhase: number;
   serveStrategy: number;
@@ -87,6 +89,8 @@ export interface ApiAd {
   endDate: string;
   endTime: string;
   creativeUrl: string;
+  logo?: string;
+  otherDetails?: Record<string, any>;
   gender: string;
   isTestPhase: number;
   serveStrategy: number;
