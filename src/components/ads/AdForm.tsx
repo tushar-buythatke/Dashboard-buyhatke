@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
+import { getCacheBustedUrl } from '@/utils/adUtils';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -1008,7 +1009,7 @@ export function AdForm() {
                             const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(previewUrl) || previewUrl.includes('video');
                             return isVideo ? (
                               <video
-                                src={previewUrl}
+                                src={getCacheBustedUrl(previewUrl)}
                                 controls
                                 className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                               >
@@ -1016,7 +1017,7 @@ export function AdForm() {
                               </video>
                             ) : (
                               <img
-                                src={previewUrl}
+                                src={getCacheBustedUrl(previewUrl)}
                                 alt="Ad preview"
                                 className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                                 onError={(e) => {
@@ -1067,12 +1068,12 @@ export function AdForm() {
                     </div>
 
                     <div className="flex items-center space-x-4">
-                      {logoPreviewUrl ? (
-                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
+                      {getCacheBustedUrl(logoPreviewUrl) ? (
+                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
                           <img
-                            src={logoPreviewUrl}
+                            src={getCacheBustedUrl(logoPreviewUrl)}
                             alt="Logo preview"
-                            className="h-32 w-32 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                            className="h-24 w-24 object-contain rounded-lg"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               if (!target.dataset.fallback) {

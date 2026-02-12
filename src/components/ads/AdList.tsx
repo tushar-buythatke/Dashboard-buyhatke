@@ -19,7 +19,7 @@ import { adService } from '@/services/adService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
-import { extractCategoriesForUpdate } from '@/utils/adUtils';
+import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -448,14 +448,14 @@ export function AdList() {
               {ad.creativeUrl ? (
                 isVideo ? (
                   <video
-                    src={ad.creativeUrl}
+                    src={getCacheBustedUrl(ad.creativeUrl)}
                     className="h-full w-full object-contain rounded-lg"
                     muted
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
                   <img
-                    src={ad.creativeUrl}
+                    src={getCacheBustedUrl(ad.creativeUrl)}
                     alt="Ad creative"
                     className="h-full w-full object-contain rounded-lg"
                     onError={(e) => {
@@ -1034,14 +1034,14 @@ export function AdList() {
                               {ad.creativeUrl ? (
                                 isVideo ? (
                                   <video
-                                    src={ad.creativeUrl}
+                                    src={getCacheBustedUrl(ad.creativeUrl)}
                                     className="h-full w-full object-contain rounded-lg"
                                     muted
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 ) : (
                                   <img
-                                    src={ad.creativeUrl}
+                                    src={getCacheBustedUrl(ad.creativeUrl)}
                                     alt="Ad creative"
                                     className="h-full w-full object-contain rounded-lg"
                                     onError={(e) => {

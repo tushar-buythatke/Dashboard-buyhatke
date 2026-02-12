@@ -11,7 +11,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
-import { extractCategoriesForUpdate } from '@/utils/adUtils';
+import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -474,7 +474,7 @@ export function AdDetail() {
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Logo</h4>
                     <div className="flex justify-center">
                       <img
-                        src={ad.logo}
+                        src={getCacheBustedUrl(ad.logo)}
                         alt="Ad logo"
                         className="max-h-24 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
                         onError={(e) => {
@@ -497,7 +497,7 @@ export function AdDetail() {
                         const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
                         return isVideo ? (
                           <video
-                            src={ad.creativeUrl}
+                            src={getCacheBustedUrl(ad.creativeUrl)}
                             controls
                             className="max-w-full max-h-full rounded-lg"
                           >
@@ -505,7 +505,7 @@ export function AdDetail() {
                           </video>
                         ) : (
                           <img
-                            src={ad.creativeUrl}
+                            src={getCacheBustedUrl(ad.creativeUrl)}
                             alt="Ad creative"
                             className="max-w-full max-h-full object-contain rounded-lg"
                             onError={(e) => {
