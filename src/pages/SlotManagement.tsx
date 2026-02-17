@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, 
   Edit, 
-  Trash2, 
   Smartphone, 
   Monitor, 
   Globe,
@@ -18,10 +17,28 @@ import {
   XCircle,
   Loader2,
   RefreshCw,
-  Settings
+  Settings,
+  LayoutGrid
 } from 'lucide-react';
 import { slotService, Slot, CreateSlotPayload, UpdateSlotPayload } from '@/services/slotService';
 import { toast } from 'sonner';
+
+// Platform config with icon and label
+const PLATFORM_OPTIONS = [
+  { value: -1,  label: 'All',              icon: LayoutGrid },
+  { value: 0,   label: 'Web Ext',          icon: Globe },
+  { value: 1,   label: 'Mobile Ext',       icon: Smartphone },
+  { value: 2,   label: 'Desktop Site',     icon: Monitor },
+  { value: 3,   label: 'Mobile Site',      icon: Smartphone },
+  { value: 4,   label: 'App Overlay',      icon: Smartphone },
+  { value: 5,   label: 'Mobile App',       icon: Smartphone },
+];
+
+function PlatformIcon({ platformId, className }: { platformId: number; className?: string }) {
+  const match = PLATFORM_OPTIONS.find(p => p.value === platformId);
+  const Icon = match?.icon ?? Settings;
+  return <Icon className={className ?? 'w-4 h-4'} />;
+}
 
 export function SlotManagement() {
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -29,9 +46,11 @@ export function SlotManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+
+  // -1 means "All platforms"
+  const [activePlatform, setActivePlatform] = useState<number>(-1);
   const [filterActive, setFilterActive] = useState<number | undefined>(undefined);
 
-  // Form states
   const [createForm, setCreateForm] = useState<CreateSlotPayload>({
     name: '',
     platform: 0,
@@ -48,28 +67,36 @@ export function SlotManagement() {
     isActive: 1
   });
 
-  // Fetch slots
+  // Fetch all slots; platform filtering is done client-side via the toggle
   const fetchSlots = useCallback(async () => {
     setLoading(true);
     try {
       const response = await slotService.getSlots(undefined, filterActive);
       if (response.success) {
-        // Ensure we always have an array
         const slotsData = Array.isArray(response.data) ? response.data : [];
         setSlots(slotsData);
         toast.success(`Loaded ${slotsData.length} slots`);
       } else {
         toast.error(response.message || 'Failed to fetch slots');
-        setSlots([]); // Set empty array on error
+        setSlots([]);
       }
     } catch (error) {
       toast.error('Error fetching slots');
       console.error('Error fetching slots:', error);
-      setSlots([]); // Set empty array on error
+      setSlots([]);
     } finally {
       setLoading(false);
     }
   }, [filterActive]);
+
+  // Derive visible slots based on selected platform toggle
+  const visibleSlots = activePlatform === -1
+    ? slots
+    : slots.filter(s => s.platform === activePlatform);
+
+  // Platform counts badge
+  const countForPlatform = (platformValue: number) =>
+    platformValue === -1 ? slots.length : slots.filter(s => s.platform === platformValue).length;
 
   // Create slot
   const handleCreateSlot = async () => {
@@ -81,7 +108,6 @@ export function SlotManagement() {
       toast.error('Width and height must be greater than 0');
       return;
     }
-
     try {
       const response = await slotService.createSlot(createForm);
       if (response.success) {
@@ -104,7 +130,6 @@ export function SlotManagement() {
       toast.error('Slot name is required');
       return;
     }
-
     try {
       const response = await slotService.updateSlot(updateForm);
       if (response.success) {
@@ -121,7 +146,6 @@ export function SlotManagement() {
     }
   };
 
-  // Open update dialog
   const openUpdateDialog = (slot: Slot) => {
     setSelectedSlot(slot);
     setUpdateForm({
@@ -135,19 +159,6 @@ export function SlotManagement() {
     setUpdateDialogOpen(true);
   };
 
-  // Get platform icon
-  const getPlatformIcon = (platformId: number) => {
-    switch (platformId) {
-      case 0: return <Globe className="w-4 h-4" />; // Web Extension
-      case 1: return <Smartphone className="w-4 h-4" />; // Mobile Extension
-      case 2: return <Monitor className="w-4 h-4" />; // Desktop Site
-      case 3: return <Smartphone className="w-4 h-4" />; // Mobile Site
-      case 4: return <Smartphone className="w-4 h-4" />; // Mobile App Overlay
-      case 5: return <Smartphone className="w-4 h-4" />; // Mobile App
-      default: return <Settings className="w-4 h-4" />;
-    }
-  };
-
   useEffect(() => {
     fetchSlots();
   }, [filterActive]);
@@ -155,27 +166,29 @@ export function SlotManagement() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Slot Management
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
                 Create and manage ad slots for different platforms
               </p>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              {/* Filter */}
-              <Select value={filterActive?.toString() || 'all'} onValueChange={(value) => {
-                setFilterActive(value === 'all' ? undefined : parseInt(value));
-              }}>
+
+            <div className="flex items-center space-x-3">
+              {/* Status filter */}
+              <Select
+                value={filterActive?.toString() ?? 'all'}
+                onValueChange={(v) => setFilterActive(v === 'all' ? undefined : parseInt(v))}
+              >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -197,7 +210,7 @@ export function SlotManagement() {
                 <span>Refresh</span>
               </Button>
 
-              {/* Create New Slot */}
+              {/* Create */}
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
@@ -221,9 +234,10 @@ export function SlotManagement() {
                     </div>
                     <div>
                       <Label htmlFor="platform">Platform</Label>
-                      <Select value={createForm.platform.toString()} onValueChange={(value) => {
-                        setCreateForm({ ...createForm, platform: parseInt(value) });
-                      }}>
+                      <Select
+                        value={createForm.platform.toString()}
+                        onValueChange={(v) => setCreateForm({ ...createForm, platform: parseInt(v) })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select platform" />
                         </SelectTrigger>
@@ -231,7 +245,7 @@ export function SlotManagement() {
                           {slotService.getPlatformOptions().map((option) => (
                             <SelectItem key={option.value} value={option.value.toString()}>
                               <div className="flex items-center space-x-2">
-                                {getPlatformIcon(option.value)}
+                                <PlatformIcon platformId={option.value} />
                                 <span>{option.label}</span>
                               </div>
                             </SelectItem>
@@ -247,7 +261,7 @@ export function SlotManagement() {
                           type="number"
                           value={createForm.width}
                           onChange={(e) => setCreateForm({ ...createForm, width: parseFloat(e.target.value) || 0 })}
-                          placeholder="Width in pixels"
+                          placeholder="Width"
                         />
                       </div>
                       <div>
@@ -257,17 +271,13 @@ export function SlotManagement() {
                           type="number"
                           value={createForm.height}
                           onChange={(e) => setCreateForm({ ...createForm, height: parseFloat(e.target.value) || 0 })}
-                          placeholder="Height in pixels"
+                          placeholder="Height"
                         />
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2 pt-4">
-                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleCreateSlot}>
-                        Create Slot
-                      </Button>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+                      <Button onClick={handleCreateSlot}>Create Slot</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -276,7 +286,61 @@ export function SlotManagement() {
           </div>
         </motion.div>
 
-        {/* Slots Grid */}
+        {/* ── Platform Toggle Bar ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-2 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm w-fit flex-wrap">
+            {PLATFORM_OPTIONS.map((platform) => {
+              const Icon = platform.icon;
+              const isActive = activePlatform === platform.value;
+              const count = countForPlatform(platform.value);
+
+              return (
+                <button
+                  key={platform.value}
+                  onClick={() => setActivePlatform(platform.value)}
+                  className={`
+                    relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-200 cursor-pointer select-none
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{platform.label}</span>
+                  <span
+                    className={`
+                      inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                      rounded-full text-xs font-semibold
+                      ${isActive
+                        ? 'bg-white/25 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }
+                    `}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active platform summary label */}
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {activePlatform === -1
+              ? `Showing all ${slots.length} slots`
+              : `Showing ${visibleSlots.length} slot${visibleSlots.length !== 1 ? 's' : ''} for ${PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label}`
+            }
+          </p>
+        </motion.div>
+
+        {/* ── Slots Grid ── */}
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -288,26 +352,27 @@ export function SlotManagement() {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            <AnimatePresence>
-              {Array.isArray(slots) && slots.map((slot, index) => (
+            <AnimatePresence mode="popLayout">
+              {visibleSlots.map((slot, index) => (
                 <motion.div
                   key={slot.slotId}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.1 }}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: index * 0.05, duration: 0.2 }}
                 >
-                  <Card className="bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow duration-200">
+                  <Card className="bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow duration-200 h-full">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">
                           {slot.name}
                         </CardTitle>
-                        <Badge variant={slot.isActive ? "default" : "secondary"}>
+                        <Badge variant={slot.isActive ? 'default' : 'secondary'} className="flex-shrink-0">
                           {slot.isActive ? (
-                            <><CheckCircle className="w-3 h-3 mr-1" /> Active</>
+                            <><CheckCircle className="w-3 h-3 mr-1" />Active</>
                           ) : (
-                            <><XCircle className="w-3 h-3 mr-1" /> Inactive</>
+                            <><XCircle className="w-3 h-3 mr-1" />Inactive</>
                           )}
                         </Badge>
                       </div>
@@ -315,16 +380,17 @@ export function SlotManagement() {
                     <CardContent>
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                          {getPlatformIcon(slot.platform)}
+                          <PlatformIcon platformId={slot.platform} />
                           <span>{slotService.getPlatformName(slot.platform)}</span>
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                          <span className="font-medium">Dimensions:</span> {parseFloat(slot.width.toString()).toFixed(0)} x {parseFloat(slot.height.toString()).toFixed(0)} px
+                          <span className="font-medium">Dimensions:</span>{' '}
+                          {parseFloat(slot.width.toString()).toFixed(0)} × {parseFloat(slot.height.toString()).toFixed(0)} px
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
                           ID: {slot.slotId}
                         </div>
-                        <div className="flex justify-end space-x-2 pt-2">
+                        <div className="flex justify-end pt-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -343,7 +409,54 @@ export function SlotManagement() {
           </motion.div>
         )}
 
-        {/* Update Dialog */}
+        {/* ── Empty state ── */}
+        {!loading && visibleSlots.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            {activePlatform === -1 ? (
+              <>
+                <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No slots found</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first ad slot to get started</p>
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Slot
+                </Button>
+              </>
+            ) : (
+              <>
+                <PlatformIcon
+                  platformId={activePlatform}
+                  className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  No {PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slots
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  There are no slots configured for this platform yet
+                </p>
+                <Button
+                  onClick={() => {
+                    setCreateForm(prev => ({ ...prev, platform: activePlatform }));
+                    setCreateDialogOpen(true);
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create {PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} Slot
+                </Button>
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── Update Dialog ── */}
         <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -354,16 +467,17 @@ export function SlotManagement() {
                 <Label htmlFor="update-name">Slot Name</Label>
                 <Input
                   id="update-name"
-                  value={updateForm.name || ''}
+                  value={updateForm.name ?? ''}
                   onChange={(e) => setUpdateForm({ ...updateForm, name: e.target.value })}
                   placeholder="Enter slot name"
                 />
               </div>
               <div>
-                <Label htmlFor="update-platform">Platform</Label>
-                <Select value={updateForm.platform?.toString()} onValueChange={(value) => {
-                  setUpdateForm({ ...updateForm, platform: parseInt(value) });
-                }}>
+                <Label>Platform</Label>
+                <Select
+                  value={updateForm.platform?.toString()}
+                  onValueChange={(v) => setUpdateForm({ ...updateForm, platform: parseInt(v) })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
@@ -371,7 +485,7 @@ export function SlotManagement() {
                     {slotService.getPlatformOptions().map((option) => (
                       <SelectItem key={option.value} value={option.value.toString()}>
                         <div className="flex items-center space-x-2">
-                          {getPlatformIcon(option.value)}
+                          <PlatformIcon platformId={option.value} />
                           <span>{option.label}</span>
                         </div>
                       </SelectItem>
@@ -385,9 +499,8 @@ export function SlotManagement() {
                   <Input
                     id="update-width"
                     type="number"
-                    value={updateForm.width || 0}
+                    value={updateForm.width ?? 0}
                     onChange={(e) => setUpdateForm({ ...updateForm, width: parseFloat(e.target.value) || 0 })}
-                    placeholder="Width in pixels"
                   />
                 </div>
                 <div>
@@ -395,17 +508,17 @@ export function SlotManagement() {
                   <Input
                     id="update-height"
                     type="number"
-                    value={updateForm.height || 0}
+                    value={updateForm.height ?? 0}
                     onChange={(e) => setUpdateForm({ ...updateForm, height: parseFloat(e.target.value) || 0 })}
-                    placeholder="Height in pixels"
                   />
                 </div>
               </div>
               <div>
-                <Label htmlFor="update-status">Status</Label>
-                <Select value={updateForm.isActive?.toString()} onValueChange={(value) => {
-                  setUpdateForm({ ...updateForm, isActive: parseInt(value) });
-                }}>
+                <Label>Status</Label>
+                <Select
+                  value={updateForm.isActive?.toString()}
+                  onValueChange={(v) => setUpdateForm({ ...updateForm, isActive: parseInt(v) })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -426,40 +539,13 @@ export function SlotManagement() {
                 </Select>
               </div>
               <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setUpdateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleUpdateSlot}>
-                  Update Slot
-                </Button>
+                <Button variant="outline" onClick={() => setUpdateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleUpdateSlot}>Update Slot</Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Empty State */}
-        {!loading && (!Array.isArray(slots) || slots.length === 0) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No slots found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Create your first ad slot to get started
-            </p>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create First Slot
-            </Button>
-          </motion.div>
-        )}
       </div>
     </div>
   );
