@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/context/PermissionsContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Bell, 
-  Settings, 
-  User as UserIcon, 
-  LogOut, 
+import {
+  Bell,
+  Settings,
+  User as UserIcon,
+  LogOut,
   ChevronDown,
   Moon,
   Sun,
@@ -46,13 +47,13 @@ function getInitials(userName: string | null | undefined) {
   const name = userName.trim();
   if (name.length === 0) return 'U';
   if (name.length === 1) return name.toUpperCase();
-  
+
   // Check if it contains spaces or underscores
   const parts = name.split(/[\s_]/).filter(Boolean);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  
+
   // If no spaces, take first two characters
   return name.slice(0, 2).toUpperCase();
 }
@@ -66,18 +67,18 @@ function FloatingParticle({ delay = 0 }: { delay?: number }) {
   return (
     <motion.div
       className="absolute w-1 h-1 bg-white/20 rounded-full"
-      initial={{ 
-        x: Math.random() * window.innerWidth, 
+      initial={{
+        x: Math.random() * window.innerWidth,
         y: window.innerHeight + 10,
-        opacity: 0 
+        opacity: 0
       }}
-      animate={{ 
-        y: -10, 
+      animate={{
+        y: -10,
         opacity: [0, 1, 0],
         scale: [0, 1, 0]
       }}
-      transition={{ 
-        duration: 8 + Math.random() * 4, 
+      transition={{
+        duration: 8 + Math.random() * 4,
         delay: delay,
         repeat: Infinity,
         ease: "linear"
@@ -146,13 +147,13 @@ function NotificationDropdown() {
             </div>
           )}
         </div>
-        
+
         {notifications.length > 0 && (
           <div className="flex items-center space-x-1 sm:space-x-2">
             {unreadCount > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={markAllAsRead}
                 className="flex-1 text-xs sm:text-sm text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 dark:text-indigo-400 dark:border-indigo-700 dark:hover:bg-indigo-900/30 py-1.5 sm:py-2"
               >
@@ -161,9 +162,9 @@ function NotificationDropdown() {
                 <span className="sm:hidden">Read all</span>
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={clearAllNotifications}
               className="flex-1 text-xs sm:text-sm text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 py-1.5 sm:py-2"
             >
@@ -196,9 +197,8 @@ function NotificationDropdown() {
               key={notification.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`group p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all duration-300 ${
-                !notification.isRead ? 'bg-blue-50/70 dark:bg-blue-900/20' : ''
-              }`}
+              className={`group p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all duration-300 ${!notification.isRead ? 'bg-blue-50/70 dark:bg-blue-900/20' : ''
+                }`}
               onClick={() => {
                 markAsRead(notification.id);
                 if (notification.metadata?.adId) {
@@ -269,9 +269,9 @@ function NotificationDropdown() {
 
       {notifications.length > 4 && (
         <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="w-full h-8 sm:h-10 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 font-medium text-xs sm:text-sm"
             onClick={openNotificationsModal}
           >
@@ -289,6 +289,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
+  const { userRole } = usePermissions();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -352,7 +353,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* EPIC FLOWING COLOR RIVER BACKGROUND */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Primary Flowing Gradient River */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 opacity-90"
           style={{
             background: `linear-gradient(45deg, 
@@ -372,9 +373,9 @@ export function Header({ onMenuClick }: HeaderProps) {
             ease: "linear"
           }}
         />
-        
+
         {/* Secondary Rainbow Flow */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 opacity-60"
           style={{
             background: `linear-gradient(-45deg, 
@@ -398,7 +399,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         {particles.map((_, index) => (
           <FloatingParticle key={index} delay={index * 0.5} />
         ))}
-        
+
         {/* Rainbow Gradient Orbs */}
         <motion.div
           className="absolute -top-10 -left-10 w-40 h-40 rounded-full blur-3xl opacity-30"
@@ -526,7 +527,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       <div className="flex items-center justify-between max-w-7xl mx-auto relative z-10">
         {/* Left Section - Mobile Menu + Logo & Title */}
-        <motion.div 
+        <motion.div
           className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -537,25 +538,25 @@ export function Header({ onMenuClick }: HeaderProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onMenuClick}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMenuClick}
               className="lg:hidden h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/40 transition-all duration-300"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="relative"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <motion.div 
+            <motion.div
               onClick={() => navigate('/')}
               className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 dark:bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 dark:border-gray-600/30 group hover:bg-white/30 dark:hover:bg-white/20 transition-all duration-300 cursor-pointer"
-              whileHover={{ 
+              whileHover={{
                 boxShadow: "0 20px 40px rgba(255, 255, 255, 0.2)",
                 background: "rgba(255, 255, 255, 0.3)"
               }}
@@ -568,7 +569,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               />
             </motion.div>
-            <motion.div 
+            <motion.div
               className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-green-400 rounded-full border border-white dark:border-gray-800 shadow-sm"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -576,21 +577,21 @@ export function Header({ onMenuClick }: HeaderProps) {
               <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
             </motion.div>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             onClick={() => navigate('/')}
             className="hidden sm:block cursor-pointer"
             whileHover={{ x: 5 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            <motion.h1 
+            <motion.h1
               className="text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight hover:text-blue-100 transition-colors duration-200"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
               <span className="inline-flex items-center">
-              Hatke! Dashboard
+                Hatke! Dashboard
                 <motion.div
                   className="ml-2"
                   animate={{ rotate: [0, 10, -10, 0] }}
@@ -600,7 +601,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </motion.div>
               </span>
             </motion.h1>
-            <motion.p 
+            <motion.p
               className="text-blue-100 dark:text-gray-300 text-xs sm:text-sm font-medium"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -610,7 +611,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </motion.p>
           </motion.div>
           {/* Mobile title */}
-          <motion.div 
+          <motion.div
             onClick={() => navigate('/')}
             className="sm:hidden cursor-pointer ml-2"
             whileHover={{ x: 5 }}
@@ -625,7 +626,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </motion.div>
 
         {/* Right Section - Actions & Profile */}
-        <motion.div 
+        <motion.div
           className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -639,14 +640,14 @@ export function Header({ onMenuClick }: HeaderProps) {
             whileHover={{ scale: 1.05, rotate: 180 }}
             whileTap={{ scale: 0.95 }}
           >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
               className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-300"
-          >
+            >
               <AnimatePresence mode="wait">
-            {theme === 'dark' ? (
+                {theme === 'dark' ? (
                   <motion.div
                     key="sun"
                     initial={{ opacity: 0, rotate: -90 }}
@@ -654,7 +655,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                     exit={{ opacity: 0, rotate: 90 }}
                     transition={{ duration: 0.3 }}
                   >
-              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -664,40 +665,40 @@ export function Header({ onMenuClick }: HeaderProps) {
                     exit={{ opacity: 0, rotate: 90 }}
                     transition={{ duration: 0.3 }}
                   >
-              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </motion.div>
-            )}
+                )}
               </AnimatePresence>
-          </Button>
+            </Button>
           </motion.div>
 
           {/* Enhanced Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-          <div className="relative">
+              <div className="relative">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-            <Button
-              variant="ghost"
-              size="sm"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-300"
                   >
                     <motion.div
                       animate={unreadCount > 0 ? { rotate: [0, -10, 10, 0] } : {}}
                       transition={{ duration: 0.5, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
-            >
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                    >
+                      <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                     </motion.div>
                   </Button>
                 </motion.div>
                 {unreadCount > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border border-white sm:border-2"
-                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border border-white sm:border-2"
+                  >
                     <motion.span
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 1, repeat: Infinity }}
@@ -705,9 +706,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                     >
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </motion.span>
-                </motion.div>
-              )}
-          </div>
+                  </motion.div>
+                )}
+              </div>
             </DropdownMenuTrigger>
             <NotificationDropdown />
           </DropdownMenu>
@@ -720,52 +721,52 @@ export function Header({ onMenuClick }: HeaderProps) {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                <Button
-                  variant="ghost"
+                  <Button
+                    variant="ghost"
                     className="h-10 sm:h-12 px-2 sm:px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 hover:border-white/30 transition-all duration-300 focus:ring-2 focus:ring-white/30 focus:outline-none"
-                >
-                  <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
+                  >
+                    <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
                       <motion.div
                         whileHover={{ scale: 1.1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
                         {/* Profile SVG Icon */}
                         <div className="h-6 w-6 sm:h-8 sm:w-8 bg-white/20 rounded-lg flex items-center justify-center border border-white/30 shadow-lg">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="1.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                             className="sm:w-5 sm:h-5 text-white"
                           >
-                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
                           </svg>
                         </div>
                       </motion.div>
-                    
-                    <div className="hidden sm:flex items-center space-x-1">
-                      <span className="text-xs sm:text-sm font-medium text-white truncate max-w-16 sm:max-w-24">
-                        {user.username}
-                      </span>
+
+                      <div className="hidden sm:flex items-center space-x-1">
+                        <span className="text-xs sm:text-sm font-medium text-white truncate max-w-16 sm:max-w-24">
+                          {user.username}
+                        </span>
                         <motion.div
                           animate={{ rotate: [0, 180] }}
                           transition={{ duration: 0.3, ease: "easeInOut" }}
                           className="group-data-[state=open]:rotate-180"
                         >
-                      <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-white/80" />
+                          <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-white/80" />
                         </motion.div>
+                      </div>
+
+                      {/* Mobile view - only show chevron */}
+                      <ChevronDown className="h-3 w-3 sm:hidden text-white/80" />
                     </div>
-                    
-                    {/* Mobile view - only show chevron */}
-                    <ChevronDown className="h-3 w-3 sm:hidden text-white/80" />
-                  </div>
-                </Button>
+                  </Button>
                 </motion.div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 sm:w-64 p-0 mt-2 border shadow-lg bg-white dark:bg-slate-800 rounded-lg z-[100000]">
@@ -775,20 +776,20 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <div className="relative mx-auto w-fit">
                       {/* Clean Profile SVG Icon */}
                       <div className="h-10 w-10 sm:h-14 sm:w-14 mx-auto bg-white dark:bg-slate-700 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-500 shadow-sm">
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          width="20" 
-                          height="20" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="1.5" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                           className="sm:w-7 sm:h-7 text-slate-600 dark:text-slate-300"
                         >
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                          <circle cx="12" cy="7" r="4"/>
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
                         </svg>
                       </div>
                       {/* Fixed Online Indicator Position */}
@@ -796,7 +797,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                         <div className="w-full h-full bg-green-500 rounded-full animate-pulse"></div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1 sm:space-y-2">
                       <h3 className="font-semibold text-base sm:text-lg text-slate-800 dark:text-slate-200">
                         Welcome back!
@@ -805,8 +806,13 @@ export function Header({ onMenuClick }: HeaderProps) {
                         {user.username}
                       </p>
                       <div className="flex items-center justify-center space-x-1 sm:space-x-2">
-                        <Badge className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 border-0 text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1">
-                          {user.role === 0 ? 'Admin' : 'User'}
+                        <Badge className={`border-0 text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 ${userRole === 'admin'
+                            ? 'bg-amber-200 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300'
+                            : userRole === 'editor'
+                              ? 'bg-green-200 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                              : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300'
+                          }`}>
+                          {userRole === 'admin' ? '🛡️ Admin' : userRole === 'editor' ? '✏️ Editor' : '👁️ Viewer'}
                         </Badge>
                         <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
                           <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full"></div>
@@ -832,12 +838,12 @@ export function Header({ onMenuClick }: HeaderProps) {
                     </span>
                   </button>
                 </div>
-             </DropdownMenuContent>
-           </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </motion.div>
       </div>
-      
+
       {/* Notifications Modal */}
       <NotificationsModal />
     </header>

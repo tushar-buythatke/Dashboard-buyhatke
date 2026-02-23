@@ -12,6 +12,7 @@ import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
+import { usePermissions } from '@/context/PermissionsContext';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -19,6 +20,7 @@ const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg
 export function AdDetail() {
   const { campaignId, adId } = useParams<{ campaignId: string; adId: string }>();
   const navigate = useNavigate();
+  const { canEdit } = usePermissions();
   const [ad, setAd] = useState<Ad | null>(null);
   const [slot, setSlot] = useState<Slot | null>(null);
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
@@ -203,8 +205,8 @@ export function AdDetail() {
       const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          adId: ad.adId, 
+        body: JSON.stringify({
+          adId: ad.adId,
           status: newStatus,
           categories: categoriesPayload
         })
@@ -271,11 +273,12 @@ export function AdDetail() {
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-                className="h-10 w-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
               >
-                <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <ArrowLeft className="h-4 w-4 text-gray-700 dark:text-gray-200 mr-1.5" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Back</span>
               </Button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
@@ -301,25 +304,29 @@ export function AdDetail() {
               </Badge>
 
               <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
-                  className="flex items-center space-x-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Edit</span>
-                </Button>
+                {canEdit && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
+                      className="flex items-center space-x-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>Edit</span>
+                    </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCloneAd}
-                  className="flex items-center space-x-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  <span>Clone</span>
-                </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCloneAd}
+                      className="flex items-center space-x-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span>Clone</span>
+                    </Button>
+                  </>
+                )}
 
                 <Button
                   variant="outline"
@@ -331,26 +338,30 @@ export function AdDetail() {
                   <span>Export</span>
                 </Button>
 
-                {ad.status === 1 ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStatusChange(0)}
-                    className="flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
-                  >
-                    <Pause className="h-4 w-4" />
-                    <span>Pause</span>
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStatusChange(1)}
-                    className="flex items-center space-x-2 text-green-600 border-green-300 hover:bg-green-50"
-                  >
-                    <Play className="h-4 w-4" />
-                    <span>Activate</span>
-                  </Button>
+                {canEdit && (
+                  <>
+                    {ad.status === 1 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStatusChange(0)}
+                        className="flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+                      >
+                        <Pause className="h-4 w-4" />
+                        <span>Pause</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStatusChange(1)}
+                        className="flex items-center space-x-2 text-green-600 border-green-300 hover:bg-green-50"
+                      >
+                        <Play className="h-4 w-4" />
+                        <span>Activate</span>
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -808,98 +819,98 @@ export function AdDetail() {
                       </div>
                     );
                   } else if (typeof categories === 'object' && 'ln' in categories && Array.isArray((categories as any).ln)) {
-                     // { l0: [], ln: [...] } format
-                     const lnCategories = (categories as any).ln;
-                     if (lnCategories.length === 0) return null;
+                    // { l0: [], ln: [...] } format
+                    const lnCategories = (categories as any).ln;
+                    if (lnCategories.length === 0) return null;
 
-                     // Constants for show more/less
-                     const INITIAL_DISPLAY_COUNT = 12;
-                     const hasMoreCategories = lnCategories.length > INITIAL_DISPLAY_COUNT;
-                     const displayedCategories = showAllCategories ? lnCategories : lnCategories.slice(0, INITIAL_DISPLAY_COUNT);
+                    // Constants for show more/less
+                    const INITIAL_DISPLAY_COUNT = 12;
+                    const hasMoreCategories = lnCategories.length > INITIAL_DISPLAY_COUNT;
+                    const displayedCategories = showAllCategories ? lnCategories : lnCategories.slice(0, INITIAL_DISPLAY_COUNT);
 
-                     return (
-                        <div className="space-y-4">
-                           <div className="flex items-center justify-between">
-                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                                <Tag className="h-4 w-4 mr-2" />
-                                Categories
-                             </h4>
-                             <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                               {lnCategories.length} selected
-                             </Badge>
-                           </div>
-
-                           <div className="flex flex-wrap gap-2">
-                              {displayedCategories.map((cat: any, idx: number) => (
-                                 <motion.div
-                                   key={cat.catId}
-                                   initial={{ opacity: 0, scale: 0.9 }}
-                                   animate={{ opacity: 1, scale: 1 }}
-                                   transition={{ delay: idx * 0.02 }}
-                                 >
-                                   <Badge
-                                     className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 text-sm font-medium shadow-sm hover:shadow-md transition-all cursor-default"
-                                   >
-                                     {cat.catName}
-                                   </Badge>
-                                 </motion.div>
-                              ))}
-                           </div>
-
-                           {hasMoreCategories && (
-                             <div className="flex justify-center pt-2">
-                               <Button
-                                 type="button"
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => setShowAllCategories(!showAllCategories)}
-                                 className="text-sm"
-                               >
-                                 {showAllCategories ? (
-                                   <>
-                                     Show Less
-                                     <ChevronRight className="h-4 w-4 ml-1 -rotate-90" />
-                                   </>
-                                 ) : (
-                                   <>
-                                     Show {lnCategories.length - INITIAL_DISPLAY_COUNT} More
-                                     <ChevronRight className="h-4 w-4 ml-1 rotate-90" />
-                                   </>
-                                 )}
-                               </Button>
-                             </div>
-                           )}
+                    return (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                            <Tag className="h-4 w-4 mr-2" />
+                            Categories
+                          </h4>
+                          <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                            {lnCategories.length} selected
+                          </Badge>
                         </div>
-                     );
+
+                        <div className="flex flex-wrap gap-2">
+                          {displayedCategories.map((cat: any, idx: number) => (
+                            <motion.div
+                              key={cat.catId}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: idx * 0.02 }}
+                            >
+                              <Badge
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 text-sm font-medium shadow-sm hover:shadow-md transition-all cursor-default"
+                              >
+                                {cat.catName}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                        </div>
+
+                        {hasMoreCategories && (
+                          <div className="flex justify-center pt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAllCategories(!showAllCategories)}
+                              className="text-sm"
+                            >
+                              {showAllCategories ? (
+                                <>
+                                  Show Less
+                                  <ChevronRight className="h-4 w-4 ml-1 -rotate-90" />
+                                </>
+                              ) : (
+                                <>
+                                  Show {lnCategories.length - INITIAL_DISPLAY_COUNT} More
+                                  <ChevronRight className="h-4 w-4 ml-1 rotate-90" />
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
                   } else {
-                     // {catId: catName} format
-                     const categoryMap = categories as unknown as Record<number, string>;
-                     if (Object.keys(categoryMap).length === 0) return null;
+                    // {catId: catName} format
+                    const categoryMap = categories as unknown as Record<number, string>;
+                    if (Object.keys(categoryMap).length === 0) return null;
 
-                     return (
-                        <div className="space-y-4">
-                           <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                              <Tag className="h-4 w-4 mr-2" />
-                              Categories
-                           </h4>
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <Tag className="h-4 w-4 mr-2" />
+                          Categories
+                        </h4>
 
-                           <div className="flex flex-wrap gap-2">
-                              {Object.entries(categoryMap).map(([catId, catName]) => (
-                                 <div
-                                    key={catId}
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
-                                 >
-                                    <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
-                                       {catId}
-                                    </Badge>
-                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {typeof catName === 'object' ? JSON.stringify(catName) : catName}
-                                    </span>
-                                 </div>
-                              ))}
-                           </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(categoryMap).map(([catId, catName]) => (
+                            <div
+                              key={catId}
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+                            >
+                              <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
+                                {catId}
+                              </Badge>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {typeof catName === 'object' ? JSON.stringify(catName) : catName}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                     );
+                      </div>
+                    );
                   }
                 })()}
 

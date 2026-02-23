@@ -135,7 +135,7 @@ class AuthService {
       // Use getAuthApiUrl() to respect local auth setting if enabled
       const authUrl = getAuthApiUrl();
       console.debug(`� Checking session with backend at: ${authUrl}`);
-      
+
       const response = await fetch(`${authUrl}/isLoggedIn`, this.getRequestOptions(null, 'isLoggedIn'));
 
       if (!response.ok) {
@@ -215,7 +215,7 @@ class AuthService {
       // Use getAuthApiUrl() to respect local auth setting if enabled
       const authUrl = getAuthApiUrl();
       console.debug(`🔐 Attempting login at: ${authUrl}`);
-      
+
       const response = await fetch(`${authUrl}/validateLogin`, this.getRequestOptions({
         userName: credentials.userName,
         password: encryptedPassword,
@@ -229,7 +229,16 @@ class AuthService {
       console.debug('Login response:', result);
 
       if (result.status === 1) {
-        const user = result.user || { userName: credentials.userName, type: 0 };
+        const rawUser = result.user || { userName: credentials.userName, type: 0 };
+
+        // Map backend fields to frontend User interface
+        // Backend sends: userId, userName, type, dashboardId, permissions
+        // Frontend expects: id, username, role
+        const user: User = {
+          id: rawUser.userId ?? rawUser.id ?? 0,
+          username: rawUser.userName ?? rawUser.username ?? credentials.userName,
+          role: rawUser.type ?? rawUser.role ?? 0,
+        };
 
         // Update session cache immediately
         this.sessionInfo = {
@@ -239,7 +248,7 @@ class AuthService {
         };
         this.currentUser = user;
 
-        console.debug('✅ Login successful');
+        console.debug('✅ Login successful, user role:', user.role);
         return {
           success: true,
           user,
@@ -275,7 +284,7 @@ class AuthService {
       // Use getAuthApiUrl() to respect local auth setting if enabled
       const authUrl = getAuthApiUrl();
       console.debug(`🔐 Logging out from: ${authUrl}`);
-      
+
       const response = await fetch(`${authUrl}/logout`, this.getRequestOptions(null, 'logout'));
 
       if (response.ok) {

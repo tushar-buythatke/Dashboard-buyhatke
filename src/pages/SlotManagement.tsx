@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { slotService, Slot, CreateSlotPayload, UpdateSlotPayload } from '@/services/slotService';
 import { toast } from 'sonner';
+import { usePermissions } from '@/context/PermissionsContext';
 
 // Platform config with icon and label
 const PLATFORM_OPTIONS = [
@@ -46,6 +47,7 @@ export function SlotManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const { canEdit } = usePermissions();
 
   // -1 means "All platforms"
   const [activePlatform, setActivePlatform] = useState<number>(-1);
@@ -211,6 +213,7 @@ export function SlotManagement() {
               </Button>
 
               {/* Create */}
+              {canEdit && (
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
@@ -282,6 +285,7 @@ export function SlotManagement() {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
           </div>
         </motion.div>
@@ -390,6 +394,7 @@ export function SlotManagement() {
                         <div className="text-xs text-gray-400 dark:text-gray-500">
                           ID: {slot.slotId}
                         </div>
+                        {canEdit && (
                         <div className="flex justify-end pt-2">
                           <Button
                             variant="outline"
@@ -400,6 +405,7 @@ export function SlotManagement() {
                             Edit
                           </Button>
                         </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -421,6 +427,7 @@ export function SlotManagement() {
                 <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No slots found</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first ad slot to get started</p>
+                {canEdit && (
                 <Button
                   onClick={() => setCreateDialogOpen(true)}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
@@ -428,6 +435,7 @@ export function SlotManagement() {
                   <Plus className="w-4 h-4 mr-2" />
                   Create First Slot
                 </Button>
+                )}
               </>
             ) : (
               <>
@@ -441,6 +449,7 @@ export function SlotManagement() {
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   There are no slots configured for this platform yet
                 </p>
+                {canEdit && (
                 <Button
                   onClick={() => {
                     setCreateForm(prev => ({ ...prev, platform: activePlatform }));
@@ -451,6 +460,7 @@ export function SlotManagement() {
                   <Plus className="w-4 h-4 mr-2" />
                   Create {PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} Slot
                 </Button>
+                )}
               </>
             )}
           </motion.div>

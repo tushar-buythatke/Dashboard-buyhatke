@@ -4,10 +4,12 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { EnvironmentProvider } from '@/context/EnvironmentContext';
+import { PermissionsProvider } from '@/context/PermissionsContext';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import Analytics from '@/pages/Analytics';
 import { SlotManagement } from '@/pages/SlotManagement';
+import { AdminPanel } from '@/pages/AdminPanel';
 import { CampaignList } from '@/components/campaigns/CampaignList';
 import { CampaignForm } from '@/components/campaigns/CampaignForm';
 import { AdList } from '@/components/ads/AdList';
@@ -63,6 +65,7 @@ function AppRoutes() {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="slot-management" element={<SlotManagement />} />
+            <Route path="admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
@@ -77,11 +80,13 @@ function App() {
     <ThemeProvider>
       <EnvironmentProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <FilterProvider>
-              <AppRoutes />
-            </FilterProvider>
-          </NotificationProvider>
+          <PermissionsProvider>
+            <NotificationProvider>
+              <FilterProvider>
+                <AppRoutes />
+              </FilterProvider>
+            </NotificationProvider>
+          </PermissionsProvider>
         </AuthProvider>
       </EnvironmentProvider>
     </ThemeProvider>

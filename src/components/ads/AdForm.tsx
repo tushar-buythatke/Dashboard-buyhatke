@@ -23,6 +23,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
 import { getCacheBustedUrl } from '@/utils/adUtils';
+import { usePermissions } from '@/context/PermissionsContext';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -214,6 +215,15 @@ export function AdForm() {
   const { adId } = useParams<{ adId?: string }>();
   const isEditMode = !!adId;
   const navigate = useNavigate();
+  const { canEdit } = usePermissions();
+
+  // Redirect view-only users
+  useEffect(() => {
+    if (!canEdit) {
+      toast.error('You do not have permission to create or edit ads.');
+      navigate(`/campaigns/${campaignId}/ads`);
+    }
+  }, [canEdit, navigate, campaignId]);
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
@@ -474,7 +484,7 @@ export function AdForm() {
 
               // Transform categories from API format to form format
               let categoriesForForm: { selections: Array<{ path: Array<{ catId: number; catName: string }>; selected: { catId: number; catName: string } }> } = { selections: [] };
-              
+
               if (adData.categories && typeof adData.categories === 'object') {
                 // Handle the API format: { l0: [], ln: [{ catId, catName }] }
                 if ('ln' in adData.categories && Array.isArray(adData.categories.ln)) {
@@ -816,11 +826,12 @@ export function AdForm() {
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-                className="h-100 w-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
               >
-                <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <ArrowLeft className="h-4 w-4 text-gray-700 dark:text-gray-200 mr-1.5" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Back</span>
               </Button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
@@ -1949,7 +1960,7 @@ export function AdForm() {
                     </div>
                   </motion.div>
                 ))}
-                
+
                 <Button
                   type="button"
                   variant="outline"

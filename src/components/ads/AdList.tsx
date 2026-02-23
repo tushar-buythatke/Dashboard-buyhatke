@@ -20,6 +20,7 @@ import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
+import { usePermissions } from '@/context/PermissionsContext';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -42,6 +43,7 @@ export function AdList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { theme } = useTheme();
+  const { canEdit } = usePermissions();
   const { checkPerformanceAlerts, addNotification } = useNotifications();
   const [ads, setAds] = useState<Ad[]>([]);
   const [filteredAds, setFilteredAds] = useState<Ad[]>([]);
@@ -484,12 +486,12 @@ export function AdList() {
                   <Badge
                     variant={ad.status === 1 ? 'success' : ad.status === -1 ? 'destructive' : 'outline'}
                     className={`text-xs ${ad.status === 1
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
-                        : ad.status === 0
-                          ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
-                          : ad.status === -1
-                            ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
-                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
+                      : ad.status === 0
+                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
+                        : ad.status === -1
+                          ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
+                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
                       }`}
                   >
                     {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
@@ -529,54 +531,58 @@ export function AdList() {
                     <Eye className="mr-2 h-4 w-4 text-indigo-600" />
                     <span>View Details</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
-                    }}
-                  >
-                    <Edit className="mr-2 h-4 w-4 text-blue-600" />
-                    <span>Edit</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloneAd(ad.adId);
-                    }}
-                  >
-                    <Copy className="mr-2 h-4 w-4 text-purple-600" />
-                    <span>Clone</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleArchiveAd(ad.adId);
-                    }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Archive className="mr-2 h-4 w-4" />
-                    <span>Archive</span>
-                  </DropdownMenuItem>
-                  {ad.status === 1 ? (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatusChange(ad.adId, 0);
-                      }}
-                    >
-                      <Pause className="mr-2 h-4 w-4 text-orange-600" />
-                      <span>Pause</span>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatusChange(ad.adId, 1);
-                      }}
-                    >
-                      <Play className="mr-2 h-4 w-4 text-green-600" />
-                      <span>Activate</span>
-                    </DropdownMenuItem>
+                  {canEdit && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                        <span>Edit</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloneAd(ad.adId);
+                        }}
+                      >
+                        <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                        <span>Clone</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveAd(ad.adId);
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        <span>Archive</span>
+                      </DropdownMenuItem>
+                      {ad.status === 1 ? (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(ad.adId, 0);
+                          }}
+                        >
+                          <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                          <span>Pause</span>
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(ad.adId, 1);
+                          }}
+                        >
+                          <Play className="mr-2 h-4 w-4 text-green-600" />
+                          <span>Activate</span>
+                        </DropdownMenuItem>
+                      )}
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -672,17 +678,13 @@ export function AdList() {
           <div className="relative z-10">
             <div className="flex flex-col space-y-6 sm:space-y-0 sm:flex-row sm:items-center justify-between">
               <div className="flex items-center space-x-4 sm:space-x-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse" />
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse delay-75" />
-                  <div className="w-3 h-3 bg-pink-500 rounded-full animate-pulse delay-150" />
-                </div>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => navigate('/campaigns')}
-                  className="h-12 w-12 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-all duration-300 hover:scale-110"
+                  className="h-10 px-3 rounded-xl bg-white/10 dark:bg-white/10 backdrop-blur-sm border border-white/20 dark:border-white/20 hover:bg-white/20 dark:hover:bg-white/20 transition-all duration-200"
                 >
-                  <ArrowLeft className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <ArrowLeft className="h-4 w-4 text-white mr-1.5" />
+                  <span className="text-sm font-medium text-white">Back</span>
                 </Button>
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-700 via-gray-800 to-slate-900 dark:from-slate-100 dark:via-gray-200 dark:to-slate-100 bg-clip-text text-transparent">
@@ -715,6 +717,8 @@ export function AdList() {
                 <Button
                   onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-10 px-6 transition-all duration-200"
+                  disabled={!canEdit}
+                  style={!canEdit ? { display: 'none' } : {}}
                 >
                   <Plus className="w-4 h-4" />
                   <span className="ml-2 text-sm">Create Ad</span>
@@ -1068,10 +1072,10 @@ export function AdList() {
                             >
                               <Badge
                                 className={`font-semibold text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 ${ad.status === 1
-                                    ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
-                                    : ad.status === 0
-                                      ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700'
-                                      : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                                  ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
+                                  : ad.status === 0
+                                    ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700'
+                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
                                   }`}
                               >
                                 {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
@@ -1152,58 +1156,62 @@ export function AdList() {
                                   <Eye className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
                                   <span className="text-gray-700 dark:text-gray-300 font-medium">View Details</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
-                                  }}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  <Edit className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCloneAd(ad.adId);
-                                  }}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleArchiveAd(ad.adId);
-                                  }}
-                                  className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
-                                >
-                                  <Archive className="mr-2 h-4 w-4" />
-                                  <span className="font-medium">Archive</span>
-                                </DropdownMenuItem>
-                                {ad.status === 1 ? (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(ad.adId, 0);
-                                    }}
-                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                  >
-                                    <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
-                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(ad.adId, 1);
-                                    }}
-                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                  >
-                                    <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
-                                  </DropdownMenuItem>
+                                {canEdit && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
+                                      }}
+                                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                      <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCloneAd(ad.adId);
+                                      }}
+                                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                      <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                      <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleArchiveAd(ad.adId);
+                                      }}
+                                      className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      <span className="font-medium">Archive</span>
+                                    </DropdownMenuItem>
+                                    {ad.status === 1 ? (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStatusChange(ad.adId, 0);
+                                        }}
+                                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                      >
+                                        <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                        <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStatusChange(ad.adId, 1);
+                                        }}
+                                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                      >
+                                        <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                                        <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

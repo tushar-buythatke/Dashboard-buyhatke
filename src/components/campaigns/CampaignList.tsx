@@ -15,6 +15,7 @@ import { campaignService } from '@/services/campaignService';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
+import { usePermissions } from '@/context/PermissionsContext';
 
 // Constants for localStorage
 const ZOOM_REMINDER_KEY = 'campaign_zoom_reminder_shown';
@@ -40,22 +41,23 @@ const statusMap = {
 export function CampaignList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { canEdit } = usePermissions();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
-  
+
   const [liveAdsCount, setLiveAdsCount] = useState<Record<number, number>>({});
-  
+
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     campaignId?: number;
     campaignName?: string;
   }>({ isOpen: false });
-  
+
   const statusFilter = searchParams.get('status') || 'all';
   const brandNameFilter = searchParams.get('brandName') || '';
 
@@ -67,15 +69,15 @@ export function CampaignList() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`${getApiBaseUrl()}/campaigns`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch campaigns');
       }
-      
+
       const result: CampaignResponse = await response.json();
-      
+
       if (result.status === 1 && result.data?.campaignList) {
         setCampaigns(result.data.campaignList);
 
@@ -89,7 +91,7 @@ export function CampaignList() {
           if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks };
         });
         setCampaignMetrics(metricMap);
-        
+
         // Fetch live ads count for each campaign
         const liveAdsPromises = result.data.campaignList.map(async (c) => {
           try {
@@ -107,7 +109,7 @@ export function CampaignList() {
             return { campaignId: c.campaignId, count: 0 };
           }
         });
-        
+
         const liveAdsResults = await Promise.all(liveAdsPromises);
         const liveAdsMap: Record<number, number> = {};
         liveAdsResults.forEach(({ campaignId, count }) => {
@@ -213,7 +215,7 @@ export function CampaignList() {
   const handleCloneCampaign = async (campaignId: number) => {
     try {
       const response = await campaignService.cloneCampaign(campaignId, 1);
-      
+
       if (response.success) {
         toast.success('Campaign cloned successfully');
         fetchCampaigns();
@@ -237,10 +239,10 @@ export function CampaignList() {
 
   const confirmArchiveCampaign = async () => {
     if (!confirmationModal.campaignId) return;
-    
+
     try {
       const response = await campaignService.archiveCampaign(confirmationModal.campaignId, 1);
-      
+
       if (response.success) {
         toast.success(`Campaign "${confirmationModal.campaignName}" and associated ads archived successfully`);
         fetchCampaigns(); // Refresh the list
@@ -262,7 +264,7 @@ export function CampaignList() {
       });
 
       if (!response.ok) throw new Error('Failed to update campaign status');
-      
+
       const result = await response.json();
       if (result.status === 1) {
         toast.success(`Campaign ${statusMap[newStatus as keyof typeof statusMap]?.label?.toLowerCase()} successfully`);
@@ -291,7 +293,7 @@ export function CampaignList() {
   // Calculate summary stats
   const activeCampaigns = campaigns.filter(c => c.status === 1).length;
   const totalBudget = campaigns.reduce((sum, c) => sum + parseFloat(c.totalBudget), 0);
-  const totalImpressions = Object.values(campaignMetrics).reduce((s,m)=>s+m.impressions,0);
+  const totalImpressions = Object.values(campaignMetrics).reduce((s, m) => s + m.impressions, 0);
 
 
 
@@ -305,7 +307,7 @@ export function CampaignList() {
       </div>
 
       {/* Enhanced Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -329,9 +331,9 @@ export function CampaignList() {
                 </p>
               </div>
             </div>
-            
+
             {/* Enhanced Action Buttons */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
@@ -349,7 +351,7 @@ export function CampaignList() {
                   {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </span>
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -359,7 +361,7 @@ export function CampaignList() {
                 <Download className="h-4 w-4 text-green-600 dark:text-green-400 group-hover:animate-bounce" />
                 <span className="ml-2 text-sm font-semibold text-green-700 dark:text-green-300">Export</span>
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -369,14 +371,16 @@ export function CampaignList() {
                 <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
                 <span className="ml-2 text-sm font-semibold text-purple-700 dark:text-purple-300">Analytics</span>
               </Button>
-              
-              <Button 
-                onClick={() => navigate('/campaigns/new')} 
-                className="group relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold h-11 px-6 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-0"
-              >
-                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="ml-2 text-sm relative z-10">Create Campaign</span>
-              </Button>
+
+              {canEdit && (
+                <Button
+                  onClick={() => navigate('/campaigns/new')}
+                  className="group relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold h-11 px-6 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-0"
+                >
+                  <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                  <span className="ml-2 text-sm relative z-10">Create Campaign</span>
+                </Button>
+              )}
             </motion.div>
           </div>
         </div>
@@ -407,7 +411,7 @@ export function CampaignList() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-indigo-400/10 to-purple-400/20"></div>
               <div className="relative z-10 flex items-center justify-between">
@@ -423,7 +427,7 @@ export function CampaignList() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-pink-400/10 to-rose-400/20"></div>
               <div className="relative z-10 flex items-center justify-between">
@@ -454,38 +458,38 @@ export function CampaignList() {
                 <Filter className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h2>
                 <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent"></div>
-            </div>
-            
+              </div>
+
               <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:gap-6">
-              <div className="flex-1">
-                <Select 
-                  value={statusFilter} 
-                  onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
-                >
+                <div className="flex-1">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
+                  >
                     <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300">
                       <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
+                    </SelectTrigger>
                     <SelectContent className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border-white/20 rounded-xl">
-                    {statusOptions.map(option => (
+                      {statusOptions.map(option => (
                         <SelectItem key={option.value} value={option.value} className="font-medium">
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex-1">
-                <div className="relative">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1">
+                  <div className="relative">
                     <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
                       <Search className="text-purple-500 h-4 w-4" />
                     </div>
-                  <Input
+                    <Input
                       placeholder="Search by brand name..."
                       className="pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 h-12 rounded-xl font-semibold transition-all duration-300"
-                    value={brandNameFilter}
-                    onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
-                  />
+                      value={brandNameFilter}
+                      onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
+                    />
                   </div>
                 </div>
               </div>
@@ -500,7 +504,7 @@ export function CampaignList() {
             className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-2xl"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-pink-900/20"></div>
-            
+
             {/* Table Header */}
             <div className="relative z-10 bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-800/80 dark:to-gray-700/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-600/50 p-4">
               <div className="flex items-center space-x-3">
@@ -540,7 +544,7 @@ export function CampaignList() {
                   </span>
                 </div>
               ) : error ? (
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="text-center py-16"
@@ -550,7 +554,7 @@ export function CampaignList() {
                   </div>
                 </motion.div>
               ) : filteredCampaigns.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="text-center py-16"
@@ -637,7 +641,7 @@ export function CampaignList() {
                   <TableBody>
                     <AnimatePresence mode="popLayout">
                       {filteredCampaigns.map((campaign, index) => (
-                        <motion.tr 
+                        <motion.tr
                           key={campaign.campaignId}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -650,29 +654,28 @@ export function CampaignList() {
                             <div className="flex items-center space-x-3">
                               <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
                               <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                              {campaign.brandName}
+                                {campaign.brandName}
                               </div>
                             </div>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 w-[140px]" onClick={(e) => e.stopPropagation()}>
-                              <Badge 
-                              className={`text-xs font-bold px-3 py-1 rounded-full ${
-                                  campaign.status === 1 
-                                  ? 'bg-green-500 text-white' 
-                                    : campaign.status === 3 
-                                    ? 'bg-yellow-500 text-white' 
-                                      : campaign.status === 0
+                            <Badge
+                              className={`text-xs font-bold px-3 py-1 rounded-full ${campaign.status === 1
+                                  ? 'bg-green-500 text-white'
+                                  : campaign.status === 3
+                                    ? 'bg-yellow-500 text-white'
+                                    : campaign.status === 0
                                       ? 'bg-gray-500 text-white'
-                                        : campaign.status === 2
+                                      : campaign.status === 2
                                         ? 'bg-blue-500 text-white'
                                         : 'bg-gray-400 text-white'
                                 }`}
-                              >
-                                {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
-                              </Badge>
+                            >
+                              {statusMap[campaign.status as keyof typeof statusMap]?.label || 'Unknown'}
+                            </Badge>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 w-[100px]">
                             <div className="text-center">
                               <span className={`font-bold text-sm ${liveAdsCount[campaign.campaignId] > 0 ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -680,62 +683,62 @@ export function CampaignList() {
                               </span>
                             </div>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 w-[130px]">
                             <div className="text-sm text-gray-700 dark:text-gray-300">
-                            {formatDate(campaign.createdAt)}
+                              {formatDate(campaign.createdAt)}
                             </div>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-right w-[140px]">
                             <span className="font-semibold text-blue-800 dark:text-blue-300 text-sm">
-                            {campaign.impressionTarget.toLocaleString()}
+                              {campaign.impressionTarget.toLocaleString()}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-right w-[130px]">
                             <span className="font-semibold text-purple-800 dark:text-purple-300 text-sm">
-                            {campaign.clickTarget.toLocaleString()}
+                              {campaign.clickTarget.toLocaleString()}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-center w-[110px]">
                             <span className="font-semibold text-indigo-800 dark:text-indigo-300 text-sm">
-                            {campaign.impressionTarget > 0 ? ((campaign.clickTarget / campaign.impressionTarget) * 100).toFixed(1) + '%' : '—'}
+                              {campaign.impressionTarget > 0 ? ((campaign.clickTarget / campaign.impressionTarget) * 100).toFixed(1) + '%' : '—'}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-right w-[130px]">
                             <span className="font-semibold text-green-800 dark:text-green-300 text-sm">
-                            {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
+                              {campaignMetrics[campaign.campaignId]?.impressions?.toLocaleString() ?? '—'}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-right w-[120px]">
                             <span className="font-semibold text-orange-800 dark:text-orange-300 text-sm">
-                            {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
+                              {campaignMetrics[campaign.campaignId]?.clicks?.toLocaleString() ?? '—'}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-center w-[110px]">
                             <span className="font-semibold text-pink-800 dark:text-pink-300 text-sm">
-                            {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
-                              ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
-                              : '—'}
+                              {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
+                                ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
+                                : '—'}
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-right w-[120px]">
                             <span className="font-semibold text-orange-800 dark:text-orange-300 text-sm">
-                            ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
+                              ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
                             </span>
                           </TableCell>
-                          
+
                           <TableCell className="p-4 text-center w-[100px]" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="h-8 w-8 p-0 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-full"
                                 >
@@ -746,56 +749,70 @@ export function CampaignList() {
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/campaigns/${campaign.campaignId}/edit`);
+                                    navigate(`/campaigns/${campaign.campaignId}/ads`);
                                   }}
                                   className="text-sm"
                                 >
-                                  <Edit className="mr-2 h-4 w-4 text-blue-600" />
-                                  Edit
+                                  <Eye className="mr-2 h-4 w-4 text-indigo-600" />
+                                  View Ads
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCloneCampaign(campaign.campaignId);
-                                  }}
-                                  className="text-sm"
-                                >
-                                  <Copy className="mr-2 h-4 w-4 text-purple-600" />
-                                  Clone
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleArchiveCampaign(campaign.campaignId);
-                                  }}
-                                  className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Archive className="mr-2 h-4 w-4" />
-                                  Archive
-                                </DropdownMenuItem>
-                                {campaign.status !== 3 && (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(campaign.campaignId, 3);
-                                    }}
-                                    className="text-sm"
-                                  >
-                                    <Pause className="mr-2 h-4 w-4 text-orange-600" />
-                                    Pause
-                                  </DropdownMenuItem>
-                                )}
-                                {campaign.status === 3 && (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(campaign.campaignId, 1);
-                                    }}
-                                    className="text-sm"
-                                  >
-                                    <Play className="mr-2 h-4 w-4 text-green-600" />
-                                    Resume
-                                  </DropdownMenuItem>
+                                {canEdit && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/campaigns/${campaign.campaignId}/edit`);
+                                      }}
+                                      className="text-sm"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCloneCampaign(campaign.campaignId);
+                                      }}
+                                      className="text-sm"
+                                    >
+                                      <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                                      Clone
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleArchiveCampaign(campaign.campaignId);
+                                      }}
+                                      className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      Archive
+                                    </DropdownMenuItem>
+                                    {campaign.status !== 3 && (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStatusChange(campaign.campaignId, 3);
+                                        }}
+                                        className="text-sm"
+                                      >
+                                        <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                                        Pause
+                                      </DropdownMenuItem>
+                                    )}
+                                    {campaign.status === 3 && (
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStatusChange(campaign.campaignId, 1);
+                                        }}
+                                        className="text-sm"
+                                      >
+                                        <Play className="mr-2 h-4 w-4 text-green-600" />
+                                        Resume
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

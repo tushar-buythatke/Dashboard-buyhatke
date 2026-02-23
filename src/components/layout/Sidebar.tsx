@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BarChart3, Lamp as Campaign, TrendingUp, Settings, X } from 'lucide-react';
+import { BarChart3, Lamp as Campaign, TrendingUp, Settings, X, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePermissions } from '@/context/PermissionsContext';
 
-const navigation = [
+const baseNavigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Campaigns', href: '/campaigns', icon: Campaign },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
@@ -18,7 +19,13 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
-  
+  const { isAdmin } = usePermissions();
+
+  const navigation = [
+    ...baseNavigation,
+    ...(isAdmin ? [{ name: 'Admin Panel', href: '/admin', icon: Shield }] : []),
+  ];
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -59,7 +66,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex flex-col h-full">
               {/* Mobile header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <div 
+                <div
                   onClick={() => {
                     navigate('/');
                     onClose();

@@ -314,7 +314,13 @@ export default function AuthLogin() {
 
             if (result.status === 1) {
                 toast.success('Login successful!');
-                setUser(result.user || userData);
+                // Map backend fields (userId, userName, type) to frontend User interface (id, username, role)
+                const verifiedUser = result.user ? {
+                    id: result.user.userId ?? result.user.id ?? userData?.id ?? 0,
+                    username: result.user.userName ?? result.user.username ?? userData?.username ?? '',
+                    role: result.user.type ?? result.user.role ?? userData?.role ?? 0,
+                } : userData;
+                setUser(verifiedUser);
                 navigate('/');
             } else {
                 setError(result.message || 'Invalid code');
