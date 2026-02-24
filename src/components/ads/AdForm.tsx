@@ -533,7 +533,7 @@ export function AdForm() {
               if (adData.otherDetails && typeof adData.otherDetails === 'object') {
                 const fields = Object.entries(adData.otherDetails).map(([key, value]) => ({
                   key,
-                  value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+                  value: typeof value === 'object' ? JSON.stringify(value) : String(value).replace(/\n/g, '\\n')
                 }));
                 setOtherDetailsFields(fields.length > 0 ? fields : [{ key: '', value: '' }]);
               }
@@ -653,7 +653,8 @@ export function AdForm() {
           try {
             parsedOtherDetails[field.key] = JSON.parse(field.value);
           } catch {
-            parsedOtherDetails[field.key] = field.value;
+            // Replace literal '\n' typed by user with actual newline character
+            parsedOtherDetails[field.key] = field.value.replace(/\\n/g, '\n');
           }
         }
       });
