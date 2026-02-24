@@ -1073,17 +1073,17 @@ export function AdDetail() {
               <div className="p-4 sm:p-6">
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <pre className="text-sm text-gray-900 dark:text-gray-100 overflow-x-auto whitespace-pre-wrap font-mono">
-                    {JSON.stringify(ad.otherDetails, null, 2)}
+                    {JSON.stringify(ad.otherDetails, null, 2).replace(/\\\\n/g, '\\n')}
                   </pre>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {Object.entries(ad.otherDetails).map(([key, value]) => (
                     <div key={key} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      <label className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                         {key}
                       </label>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 break-words">
-                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      <p className="mt-1 text-sm text-gray-800 dark:text-gray-200 break-words whitespace-pre-wrap font-medium">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2).replace(/\\\\n/g, '\\n') : String(value).replace(/\\n/g, '\n')}
                       </p>
                     </div>
                   ))}
