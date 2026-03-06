@@ -401,7 +401,7 @@ export function AdForm() {
 
   const fetchSlots = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots`);
+      const response = await fetch(`${getApiBaseUrl()}/slots?isActive=1`);
       if (!response.ok) throw new Error('Failed to fetch slots');
 
       const result = await response.json();

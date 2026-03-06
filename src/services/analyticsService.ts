@@ -200,7 +200,7 @@ class AnalyticsService {
   // Get slots for dropdown
   async getSlots(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots`);
+      const response = await fetch(`${getApiBaseUrl()}/slots?isActive=1`);
       const result = await response.json();
 
       if (result.status === 1 && result.data?.slotList) {
