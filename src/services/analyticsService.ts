@@ -51,6 +51,15 @@ export interface MetricsData {
   roi: number;
 }
 
+interface AnalyticsSlot {
+  slotId: number;
+  name: string;
+  platform: number;
+  width: string | number;
+  height: string | number;
+  isActive: number;
+}
+
 class AnalyticsService {
   // Get overall metrics
   async getMetrics(payload: MetricsPayload): Promise<{ success: boolean; data?: MetricsData; message?: string }> {
@@ -204,9 +213,11 @@ class AnalyticsService {
       const result = await response.json();
 
       if (result.status === 1 && result.data?.slotList) {
+        const uniqueSlots = this.normalizeSlots(result.data.slotList);
+
         return {
           success: true,
-          data: result.data.slotList,
+          data: uniqueSlots,
           message: result.message
         };
       } else {
@@ -222,6 +233,30 @@ class AnalyticsService {
         message: 'Failed to fetch slots'
       };
     }
+  }
+
+  private normalizeSlots(slotList: AnalyticsSlot[]): AnalyticsSlot[] {
+    if (!Array.isArray(slotList)) {
+      return [];
+    }
+
+    const uniqueSlots = new Map<number, AnalyticsSlot>();
+
+    slotList.forEach((slot) => {
+      const normalizedSlotId = Number(slot.slotId);
+
+      if (!Number.isFinite(normalizedSlotId) || uniqueSlots.has(normalizedSlotId)) {
+        return;
+      }
+
+      uniqueSlots.set(normalizedSlotId, {
+        ...slot,
+        slotId: normalizedSlotId,
+        platform: Number(slot.platform),
+      });
+    });
+
+    return Array.from(uniqueSlots.values());
   }
 
   // Get sites for dropdown (marketplaces/POS)

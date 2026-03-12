@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, ChevronUp, BarChart3, PieChart, Table, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -88,6 +88,38 @@ const getPlatformName = (platformId: number | string): string => {
   }
 };
 
+const dedupeNumericIds = (values?: (string | number)[]): number[] | undefined => {
+  if (!values || values.length === 0) return undefined;
+
+  const normalizedValues = values
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
+
+  return normalizedValues.length > 0 ? Array.from(new Set(normalizedValues)) : undefined;
+};
+
+const sanitizeSlots = (rawSlots: Slot[]): Slot[] => {
+  const uniqueSlots = new Map<number, Slot>();
+
+  rawSlots.forEach((slot) => {
+    const normalizedSlotId = Number(slot.slotId);
+
+    if (!Number.isFinite(normalizedSlotId) || uniqueSlots.has(normalizedSlotId)) {
+      return;
+    }
+
+    uniqueSlots.set(normalizedSlotId, {
+      ...slot,
+      slotId: normalizedSlotId,
+      platform: Number(slot.platform),
+      width: String(slot.width),
+      height: String(slot.height),
+    });
+  });
+
+  return Array.from(uniqueSlots.values());
+};
+
 export default function Analytics() {
   const { filters } = useFilters(); // Get filters from context
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -136,6 +168,40 @@ export default function Analytics() {
   // Loading states
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+
+  const slotLabelCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    slots.forEach((slot) => {
+      const slotName = slot.name?.trim() || `Slot ${slot.slotId}`;
+      const slotLabelKey = `${slotName} • ${getPlatformName(slot.platform)}`;
+      counts.set(slotLabelKey, (counts.get(slotLabelKey) || 0) + 1);
+    });
+
+    return counts;
+  }, [slots]);
+
+  const slotLookup = useMemo(
+    () => new Map(slots.map((slot) => [Number(slot.slotId), slot])),
+    [slots]
+  );
+
+  const filteredSlotIdSet = useMemo(
+    () => new Set(filteredSlots.map((slot) => Number(slot.slotId))),
+    [filteredSlots]
+  );
+
+  const getSlotDisplayLabel = (slot: Slot) => {
+    const slotName = slot.name?.trim() || `Slot ${slot.slotId}`;
+    const platformName = getPlatformName(slot.platform);
+    const baseLabel = `${slotName} • ${platformName}`;
+
+    if ((slotLabelCounts.get(baseLabel) || 0) <= 1) {
+      return baseLabel;
+    }
+
+    return `${baseLabel} • #${slot.slotId}`;
+  };
 
 
   // Fetch dropdown data on component mount
@@ -213,6 +279,23 @@ export default function Analytics() {
     }
   }, [selectedPlatforms, slots]);
 
+  useEffect(() => {
+    setSelectedSlots((previousSelectedSlots) => {
+      const normalizedSelectedSlots = dedupeNumericIds(previousSelectedSlots) || [];
+
+      const nextSelectedSlots = normalizedSelectedSlots.filter((slotId) => filteredSlotIdSet.has(slotId));
+
+      if (
+        nextSelectedSlots.length === previousSelectedSlots.length &&
+        nextSelectedSlots.every((slotId, index) => Number(previousSelectedSlots[index]) === slotId)
+      ) {
+        return previousSelectedSlots;
+      }
+
+      return nextSelectedSlots;
+    });
+  }, [filteredSlotIdSet]);
+
   // Removed automatic fetching on dataGrouping change to prevent infinite loops
   // Data fetching is now manual via "Fetch Results" button
   // useEffect(() => {
@@ -243,7 +326,7 @@ export default function Analytics() {
       }
 
       if (slotsResult.success && slotsResult.data) {
-        setSlots(slotsResult.data);
+        setSlots(sanitizeSlots(slotsResult.data));
       }
 
       if (sitesResult.success && sitesResult.data) {
@@ -313,15 +396,15 @@ export default function Analytics() {
 
       // Centralized filter validation logic
       const validCampaignIdsAcrossViews = selectedCampaigns.length > 0
-        ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
         : undefined;
 
       const validSlotIdsAcrossViews = selectedSlots.length > 0
-        ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-        : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
+        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+        : dedupeNumericIds(filteredSlots.map(s => s.slotId));
 
       const validPOSIdsAcrossViews = selectedPOS.length > 0
-        ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
         : undefined;
 
       // Build payload based on active view
@@ -423,10 +506,10 @@ export default function Analytics() {
               analyticsService.getTrendData(payload)
             ]);
 
-            const slot = slots.find(s => s.slotId === slotId);
+            const slot = slots.find(s => s.slotId === Number(slotId));
             return {
               slotId,
-              slotName: slot?.name || `Slot ${slotId}`,
+              slotName: slot ? getSlotDisplayLabel(slot) : `Slot ${slotId}`,
               metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
               trendData: trendRes.success ? trendRes.data : []
             };
@@ -594,13 +677,13 @@ export default function Analytics() {
 
         // Validate all filter IDs to ensure they exist in the fetched data
         const validCampaignIds = selectedCampaigns.length > 0
-          ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+          ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
           : undefined;
         const validSlotIds = selectedSlots.length > 0
-          ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-          : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
+          ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+          : dedupeNumericIds(filteredSlots.map(s => s.slotId));
         const validPOSIds = selectedPOS.length > 0
-          ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+          ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
           : undefined;
 
         const basePayload: MetricsPayload = {
@@ -658,13 +741,13 @@ export default function Analytics() {
 
       // Fetch breakdown data and tables (non-view-specific) with validated filters
       const validCampaignIds = selectedCampaigns.length > 0
-        ? selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === id))
+        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
         : undefined;
       const validSlotIds = selectedSlots.length > 0
-        ? selectedSlots.filter(id => slots.some(s => s.slotId === id))
-        : filteredSlots.length > 0 ? filteredSlots.map(s => s.slotId) : undefined;
+        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+        : dedupeNumericIds(filteredSlots.map(s => s.slotId));
       const validPOSIds = selectedPOS.length > 0
-        ? selectedPOS.filter(id => sites.some(s => s.posId === id))
+        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
         : undefined;
 
       const basePayload: MetricsPayload = {
@@ -1178,7 +1261,7 @@ export default function Analytics() {
                     </div>
                     <div className="relative">
                       <MultiSelectDropdown
-                        options={filteredSlots.map(s => ({ value: s.slotId, label: s.name }))}
+                        options={filteredSlots.map(s => ({ value: s.slotId, label: getSlotDisplayLabel(s) }))}
                         selectedValues={selectedSlots}
                         onChange={setSelectedSlots}
                         placeholder="Select slots..."
@@ -1415,6 +1498,8 @@ export default function Analytics() {
                         dataGrouping === '30d' ? '(Monthly)' : ''
                       }`}
                     period={dataGrouping}
+                    enableSeriesFilters={activeView === 'slot'}
+                    enablePlatformFilter={activeView === 'slot'}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16">
@@ -1444,6 +1529,8 @@ export default function Analytics() {
               dataKey="clicks"
               yAxisLabel="Clicks"
               period={dataGrouping}
+              enableSeriesFilters={activeView === 'slot'}
+              enablePlatformFilter={activeView === 'slot'}
             />
           </motion.div>
 
@@ -1460,6 +1547,8 @@ export default function Analytics() {
               dataKey="ctr"
               yAxisLabel="CTR (%)"
               period={dataGrouping}
+              enableSeriesFilters={activeView === 'slot'}
+              enablePlatformFilter={activeView === 'slot'}
             />
           </motion.div>
 
@@ -1520,8 +1609,9 @@ export default function Analytics() {
                     .map(slot => {
                       const impressions = slot.impressions || 0;
                       const clicks = slot.clicks || 0;
+                      const mappedSlot = slotLookup.get(Number(slot.slotId));
                       return {
-                        slotName: `Slot ${slot.slotId || 'Unknown'}`,
+                        slotName: mappedSlot ? getSlotDisplayLabel(mappedSlot) : `Slot ${slot.slotId || 'Unknown'}`,
                         impressions,
                         clicks,
                         conversionRate: impressions > 0 ? `${((clicks / impressions) * 100).toFixed(2)}%` : '0.00%'
