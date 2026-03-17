@@ -44,6 +44,12 @@ function AdminRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
+function EditorRoute({ children }: { children: JSX.Element }) {
+  const { canEdit } = usePermissions();
+  if (!canEdit) return <Navigate to="/" replace />;
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Router
@@ -73,7 +79,7 @@ function AppRoutes() {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="slot-management" element={<SlotManagement />} />
-            <Route path="offers-config" element={<AdminRoute><OffersConfig /></AdminRoute>} />
+            <Route path="offers-config" element={<EditorRoute><OffersConfig /></EditorRoute>} />
             <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

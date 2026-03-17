@@ -19,14 +19,12 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, canEdit } = usePermissions();
 
   const navigation = [
     ...baseNavigation,
-    ...(isAdmin ? [
-      { name: 'Offers Config', href: '/offers-config', icon: ImagePlus },
-      { name: 'Admin Panel', href: '/admin', icon: Shield },
-    ] : []),
+    ...(canEdit ? [{ name: 'Offers Config', href: '/offers-config', icon: ImagePlus }] : []),
+    ...(isAdmin ? [{ name: 'Admin Panel', href: '/admin', icon: Shield }] : []),
   ];
 
   return (
