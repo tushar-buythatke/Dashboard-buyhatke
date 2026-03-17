@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { FilterProvider } from '@/context/FilterContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/context/PermissionsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { EnvironmentProvider } from '@/context/EnvironmentContext';
 import { PermissionsProvider } from '@/context/PermissionsContext';
@@ -37,6 +38,12 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
+function AdminRoute({ children }: { children: JSX.Element }) {
+  const { isAdmin } = usePermissions();
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Router
@@ -66,8 +73,8 @@ function AppRoutes() {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="slot-management" element={<SlotManagement />} />
-            <Route path="offers-config" element={<OffersConfig />} />
-            <Route path="admin" element={<AdminPanel />} />
+            <Route path="offers-config" element={<AdminRoute><OffersConfig /></AdminRoute>} />
+            <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

@@ -10,7 +10,6 @@ const baseNavigation = [
   { name: 'Campaigns', href: '/campaigns', icon: Campaign },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Slot Management', href: '/slot-management', icon: Settings },
-  { name: 'Offers Config', href: '/offers-config', icon: ImagePlus },
 ];
 
 interface SidebarProps {
@@ -24,7 +23,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navigation = [
     ...baseNavigation,
-    ...(isAdmin ? [{ name: 'Admin Panel', href: '/admin', icon: Shield }] : []),
+    ...(isAdmin ? [
+      { name: 'Offers Config', href: '/offers-config', icon: ImagePlus },
+      { name: 'Admin Panel', href: '/admin', icon: Shield },
+    ] : []),
   ];
 
   return (
