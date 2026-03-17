@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BarChart3, Lamp as Campaign, TrendingUp, Settings, X, Shield } from 'lucide-react';
+import { BarChart3, Lamp as Campaign, TrendingUp, Settings, X, Shield, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,7 @@ const baseNavigation = [
   { name: 'Campaigns', href: '/campaigns', icon: Campaign },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Slot Management', href: '/slot-management', icon: Settings },
+  { name: 'Offers Config', href: '/offers-config', icon: ImagePlus },
 ];
 
 interface SidebarProps {

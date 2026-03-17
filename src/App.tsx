@@ -17,6 +17,7 @@ import { AdForm } from '@/components/ads/AdForm';
 import { AdDetail } from '@/components/ads/AdDetail';
 import { Toaster } from '@/components/ui/sonner';
 import AuthLogin from '@/pages/AuthLogin';
+import OffersConfig from '@/pages/OffersConfig';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, loading } = useAuth();
@@ -65,6 +66,7 @@ function AppRoutes() {
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="slot-management" element={<SlotManagement />} />
+            <Route path="offers-config" element={<OffersConfig />} />
             <Route path="admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
