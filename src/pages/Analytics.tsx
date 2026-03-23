@@ -426,7 +426,7 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               campaignId: [Number(campaignId)],
-              slotId: validSlotIdsAcrossViews?.map(Number),
+              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
               siteId: validPOSIdsAcrossViews?.map(Number),
               adId: validAdIds,
               interval: dataGrouping
@@ -563,7 +563,7 @@ export default function Analytics() {
               ...dateRange,
               siteId: [Number(posId)],
               campaignId: validCampaignIdsAcrossViews?.map(Number),
-              slotId: validSlotIdsAcrossViews?.map(Number),
+              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -631,7 +631,7 @@ export default function Analytics() {
               ...dateRange,
               adId: [ad.adId],
               campaignId: validCampaignIdsAcrossViews?.map(Number),
-              slotId: validSlotIdsAcrossViews?.map(Number),
+              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
               siteId: validPOSIdsAcrossViews?.map(Number),
               interval: dataGrouping
             };
@@ -903,6 +903,7 @@ export default function Analytics() {
           clicks: 'Clicks',
           conversions: 'Conversions',
           ctr_percent: 'CTR %',
+          series_name: 'Campaign / Slot / Ad',
           date: 'Date',
           rank: 'Rank',
           location_name: 'Location',

@@ -199,21 +199,26 @@ export function formatMetricsForCSV(metricsData: any, breakdownData: any, trendD
   }
 
   // 5. TREND DATA (Only dates with actual data)
+  // trendData is TrendChartSeries[] — each item is { name: string, data: TrendDataPoint[] }
   if (trendData && trendData.length > 0) {
-    const validTrendData = trendData.filter((trend: any) => 
-      trend.date && (trend.impressions > 0 || trend.clicks > 0 || trend.conversions > 0)
-    );
-    
-    validTrendData.forEach((trend: any) => {
-      exportData.push({
-        sheet_section: 'TREND_DATA',
-        date: trend.date,
-        impressions: trend.impressions || 0,
-        clicks: trend.clicks || 0,
-        conversions: trend.conversions || 0,
-        ctr_percent: trend.impressions > 0 ? ((trend.clicks / trend.impressions) * 100).toFixed(2) : '0.00',
-        export_date: exportDate
-      });
+    trendData.forEach((series: any) => {
+      const seriesName = series.name || 'Unknown';
+      const dataPoints: any[] = Array.isArray(series.data) ? series.data : [];
+
+      dataPoints
+        .filter((point: any) => point.date && (point.impressions > 0 || point.clicks > 0 || point.conversions > 0))
+        .forEach((point: any) => {
+          exportData.push({
+            sheet_section: 'TREND_DATA',
+            series_name: seriesName,
+            date: point.date,
+            impressions: point.impressions || 0,
+            clicks: point.clicks || 0,
+            conversions: point.conversions || 0,
+            ctr_percent: point.impressions > 0 ? ((point.clicks / point.impressions) * 100).toFixed(2) : '0.00',
+            export_date: exportDate
+          });
+        });
     });
   }
 
