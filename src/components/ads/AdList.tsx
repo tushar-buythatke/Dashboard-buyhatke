@@ -359,21 +359,52 @@ export function AdList() {
 
   const handleStatusChange = async (adId: number, newStatus: 0 | 1) => {
     try {
-      // Find the ad to get categories
+      // Find the ad to get all its data
       const adToUpdate = ads.find(a => a.adId === adId);
+      if (!adToUpdate) {
+        toast.error('Ad not found');
+        return;
+      }
 
       // Extract categories for payload
-      const categoriesPayload = adToUpdate
-        ? extractCategoriesForUpdate(adToUpdate.categories)
-        : {};
+      const categoriesPayload = extractCategoriesForUpdate(adToUpdate.categories);
 
+      // Send full ad data to prevent backend from resetting missing fields
       const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adId,
+          campaignId: adToUpdate.campaignId,
+          name: adToUpdate.name,
+          label: adToUpdate.label,
+          slotId: adToUpdate.slotId,
+          impressionTarget: adToUpdate.impressionTarget,
+          clickTarget: adToUpdate.clickTarget,
+          impressionPixel: adToUpdate.impressionPixel,
+          clickPixel: adToUpdate.clickPixel,
+          targetUrl: adToUpdate.targetUrl,
           status: newStatus,
-          categories: categoriesPayload
+          categories: categoriesPayload,
+          sites: adToUpdate.sites,
+          location: adToUpdate.location,
+          brandTargets: adToUpdate.brandTargets,
+          priceRangeMin: adToUpdate.priceRangeMin,
+          priceRangeMax: adToUpdate.priceRangeMax,
+          ageRangeMin: adToUpdate.ageRangeMin,
+          ageRangeMax: adToUpdate.ageRangeMax,
+          priority: adToUpdate.priority,
+          startDate: adToUpdate.startDate,
+          startTime: adToUpdate.startTime,
+          endDate: adToUpdate.endDate,
+          endTime: adToUpdate.endTime,
+          creativeUrl: adToUpdate.creativeUrl,
+          logo: adToUpdate.logo || '',
+          otherDetails: adToUpdate.otherDetails || {},
+          gender: adToUpdate.gender,
+          isTestPhase: adToUpdate.isTestPhase,
+          serveStrategy: adToUpdate.serveStrategy,
+          isModelType: adToUpdate.isModelType,
         })
       });
 

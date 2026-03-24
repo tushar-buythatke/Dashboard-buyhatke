@@ -202,13 +202,42 @@ export function AdDetail() {
       // Extract categories for payload
       const categoriesPayload = extractCategoriesForUpdate(ad.categories);
 
+      // Send full ad data to prevent backend from resetting missing fields
       const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adId: ad.adId,
+          campaignId: ad.campaignId,
+          name: ad.name,
+          label: ad.label,
+          slotId: ad.slotId,
+          impressionTarget: ad.impressionTarget,
+          clickTarget: ad.clickTarget,
+          impressionPixel: ad.impressionPixel,
+          clickPixel: ad.clickPixel,
+          targetUrl: ad.targetUrl,
           status: newStatus,
-          categories: categoriesPayload
+          categories: categoriesPayload,
+          sites: ad.sites,
+          location: ad.location,
+          brandTargets: ad.brandTargets,
+          priceRangeMin: ad.priceRangeMin,
+          priceRangeMax: ad.priceRangeMax,
+          ageRangeMin: ad.ageRangeMin,
+          ageRangeMax: ad.ageRangeMax,
+          priority: ad.priority,
+          startDate: ad.startDate,
+          startTime: ad.startTime,
+          endDate: ad.endDate,
+          endTime: ad.endTime,
+          creativeUrl: ad.creativeUrl,
+          logo: ad.logo || '',
+          otherDetails: ad.otherDetails || {},
+          gender: ad.gender,
+          isTestPhase: ad.isTestPhase,
+          serveStrategy: ad.serveStrategy,
+          isModelType: ad.isModelType,
         })
       });
 
