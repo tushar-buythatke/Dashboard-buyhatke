@@ -26,7 +26,7 @@ export function AdDetail() {
   const [campaign, setCampaign] = useState<{ brandName?: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liveMetrics, setLiveMetrics] = useState<{ impressions: number; clicks: number } | null>(null);
+  const [liveMetrics, setLiveMetrics] = useState<{ impressions: number; clicks: number; landingCount: number } | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
   useEffect(() => {
@@ -103,6 +103,7 @@ export function AdDetail() {
         setLiveMetrics({
           impressions: resp.data.impressions,
           clicks: resp.data.clicks,
+          landingCount: resp.data.landingCount,
         });
       }
     } catch (error) {
@@ -462,7 +463,7 @@ export function AdDetail() {
                 Live Performance
               </h3>
             </div>
-            <div className="p-4 sm:p-6 grid grid-cols-3 gap-4">
+            <div className="p-4 sm:p-6 grid grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Impressions</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -481,6 +482,12 @@ export function AdDetail() {
                   {liveMetrics && liveMetrics.impressions > 0
                     ? `${((liveMetrics.clicks / liveMetrics.impressions) * 100).toFixed(2)}%`
                     : '0.00%'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Landing</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {liveMetrics?.landingCount?.toLocaleString() ?? '0'}
                 </p>
               </div>
             </div>

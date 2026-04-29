@@ -53,7 +53,7 @@ export function AdList() {
   const [slots, setSlots] = useState<Record<number, Slot>>({});
   const [campaign, setCampaign] = useState<{ brandName?: string; id?: number }>({});
   const [error, setError] = useState<string | null>(null);
-  const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number; landingCount: number }>>({});
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     adId?: number;
@@ -239,13 +239,14 @@ export function AdList() {
 
         const metricsResults = await Promise.all(metricsPromises);
 
-        const newAdMetrics: Record<number, { impressions: number; clicks: number }> = {};
+        const newAdMetrics: Record<number, { impressions: number; clicks: number; landingCount: number }> = {};
         metricsResults.forEach((resp, index) => {
           const adId = enrichedAds[index].adId;
           if (resp.success && resp.data) {
             newAdMetrics[adId] = {
               impressions: resp.data.impressions,
               clicks: resp.data.clicks,
+              landingCount: resp.data.landingCount,
             };
           }
         });
@@ -257,6 +258,7 @@ export function AdList() {
           ...ad,
           liveImpressions: newAdMetrics[ad.adId]?.impressions || 0,
           liveClicks: newAdMetrics[ad.adId]?.clicks || 0,
+          liveLandingCount: newAdMetrics[ad.adId]?.landingCount || 0,
         }));
 
         // Check performance and trigger notifications
@@ -460,6 +462,7 @@ export function AdList() {
 
   const totalLiveImpressions = Object.values(adMetrics).reduce((sum, metrics) => sum + (metrics.impressions || 0), 0);
   const totalLiveClicks = Object.values(adMetrics).reduce((sum, metrics) => sum + (metrics.clicks || 0), 0);
+  const totalLiveLandingCount = Object.values(adMetrics).reduce((sum, metrics) => sum + (metrics.landingCount || 0), 0);
   const liveCTR = totalLiveImpressions > 0 ? (totalLiveClicks / totalLiveImpressions) * 100 : 0;
 
   // Mobile Ad Card Component
@@ -620,7 +623,7 @@ export function AdList() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-4 gap-3 mt-3">
               {/* Target Metrics */}
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
@@ -638,6 +641,12 @@ export function AdList() {
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
                 <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) : '0'}%
+                </div>
+              </div>
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Landing</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  —
                 </div>
               </div>
 
@@ -660,6 +669,12 @@ export function AdList() {
                   {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
                     ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
                     : '0.0%'}
+                </div>
+              </div>
+              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Landing</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {adMetrics[ad.adId]?.landingCount?.toLocaleString() ?? '0'}
                 </div>
               </div>
             </div>
@@ -764,7 +779,7 @@ export function AdList() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6"
+          className="grid grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6"
         >
           {/* Total Ads Card */}
           <motion.div
@@ -884,6 +899,27 @@ export function AdList() {
                     <span className="text-xs text-pink-600 dark:text-pink-400 font-medium">Live</span>
                     <span className="text-lg font-semibold text-pink-900 dark:text-pink-100">{liveCTR.toFixed(2)}%</span>
                   </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Landing Count Card */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -5 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="relative group"
+          >
+            <Card className="relative overflow-hidden bg-gradient-to-br from-teal-100 via-cyan-50 to-emerald-100 dark:from-teal-900/80 dark:via-cyan-800/80 dark:to-emerald-900/80 border-teal-300/50 dark:border-teal-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-400/10 to-emerald-400/10"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-teal-700 dark:text-teal-300 text-sm font-semibold">Landing</p>
+                  <Zap className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div className="flex items-baseline space-x-2">
+                  <p className="text-3xl font-bold text-teal-900 dark:text-teal-100">{totalLiveLandingCount.toLocaleString()}</p>
+                  <span className="text-teal-600 dark:text-teal-400 text-sm font-medium">live</span>
                 </div>
               </div>
             </Card>
@@ -1025,6 +1061,9 @@ export function AdList() {
                     <TableHead className="text-blue-700 dark:text-blue-300 font-semibold text-sm w-[110px] text-center bg-blue-50/50 dark:bg-blue-900/20 px-3">
                       Live CTR
                     </TableHead>
+                    <TableHead className="text-teal-700 dark:text-teal-300 font-semibold text-sm w-[120px] text-right bg-teal-50/50 dark:bg-teal-900/20 px-3">
+                      Live Landing
+                    </TableHead>
                     <TableHead className="text-gray-700 dark:text-gray-300 font-semibold text-sm w-[80px] text-center px-3">
                       Actions
                     </TableHead>
@@ -1033,7 +1072,7 @@ export function AdList() {
                 <TableBody>
                   {filteredAds.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
+                      <TableCell colSpan={12} className="h-32 text-center">
                         <div className="text-gray-500 dark:text-gray-400 p-6">
                           <span className="font-medium text-lg">
                             {searchQuery
@@ -1161,6 +1200,9 @@ export function AdList() {
                                   : '0.0%'}
                               </span>
                             </motion.div>
+                          </TableCell>
+                          <TableCell className="text-teal-700 dark:text-teal-300 font-black text-right p-3 text-sm group-hover:text-teal-600 dark:group-hover:text-teal-200 transition-colors">
+                            {adMetrics[ad.adId]?.landingCount?.toLocaleString() ?? '0'}
                           </TableCell>
                           <TableCell className="text-center p-3">
                             <DropdownMenu>

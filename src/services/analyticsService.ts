@@ -49,6 +49,7 @@ export interface MetricsData {
   conversions: number;
   revenue: number;
   roi: number;
+  landingCount: number;
 }
 
 interface AnalyticsSlot {
@@ -343,17 +344,20 @@ class AnalyticsService {
 
       if (result.status === 1 && result.data) {
         // Process the data to extract metrics
-        let impressions = 0;
-        let clicks = 0;
-        const conversions = result.data.conversionStats?.conversionCount || 0;
+    let impressions = 0;
+    let clicks = 0;
+    let landingCount = 0;
+    const conversions = result.data.conversionStats?.conversionCount || 0;
 
-        // Extract impressions and clicks from adStats
+        // Extract impressions, clicks, and landingCount from adStats
         if (Array.isArray(result.data.adStats)) {
           result.data.adStats.forEach((stat: any) => {
             if (stat.eventType === "0") {
               impressions = Number(stat.eventCount) || 0;
             } else if (stat.eventType === "1") {
               clicks = Number(stat.eventCount) || 0;
+            } else if (stat.eventType === "2") {
+              landingCount = Number(stat.eventCount) || 0;
             }
           });
         }
@@ -371,7 +375,8 @@ class AnalyticsService {
           ctr,
           conversions,
           revenue,
-          roi
+          roi,
+          landingCount
         };
 
         return {
@@ -399,6 +404,7 @@ class AnalyticsService {
     let impressions = 0;
     let clicks = 0;
     let conversions = 0;
+    let landingCount = 0;
 
     if (rawData) {
       // Extract conversion count if present
@@ -406,7 +412,7 @@ class AnalyticsService {
         conversions = Number(rawData.conversionStats.conversionCount) || 0;
       }
 
-      // Aggregate impressions & clicks from adStats (eventType mapping: 0 → impression, 1 → click)
+      // Aggregate impressions, clicks & landingCount from adStats (eventType mapping: 0 → impression, 1 → click, 2 → landingCount)
       if (Array.isArray(rawData.adStats)) {
         rawData.adStats.forEach((event: any) => {
           const type = Number(event.eventType);
@@ -414,6 +420,8 @@ class AnalyticsService {
             impressions += Number(event.eventCount) || 0;
           } else if (type === 1) {
             clicks += Number(event.eventCount) || 0;
+          } else if (type === 2) {
+            landingCount += Number(event.eventCount) || 0;
           }
         });
       }
@@ -432,7 +440,8 @@ class AnalyticsService {
       ctr,
       conversions,
       revenue,
-      roi
+      roi,
+      landingCount
     };
   }
 

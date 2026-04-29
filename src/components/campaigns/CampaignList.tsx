@@ -47,7 +47,7 @@ export function CampaignList() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number }>>({});
+  const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number; landingCount: number }>>({});
 
   const [liveAdsCount, setLiveAdsCount] = useState<Record<number, number>>({});
 
@@ -86,9 +86,9 @@ export function CampaignList() {
           const mRes = await analyticsService.getMetrics({ ...dateRange, campaignId: c.campaignId });
           return { id: c.campaignId, metrics: mRes.success && mRes.data ? mRes.data : null };
         }));
-        const metricMap: Record<number, { impressions: number; clicks: number }> = {};
+        const metricMap: Record<number, { impressions: number; clicks: number; landingCount: number }> = {};
         metricsArr.forEach(({ id, metrics }) => {
-          if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks };
+          if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks, landingCount: metrics.landingCount };
         });
         setCampaignMetrics(metricMap);
 
@@ -294,6 +294,7 @@ export function CampaignList() {
   const activeCampaigns = campaigns.filter(c => c.status === 1).length;
   const totalBudget = campaigns.reduce((sum, c) => sum + parseFloat(c.totalBudget), 0);
   const totalImpressions = Object.values(campaignMetrics).reduce((s, m) => s + m.impressions, 0);
+  const totalLandingCount = Object.values(campaignMetrics).reduce((s, m) => s + m.landingCount, 0);
 
 
 
@@ -394,7 +395,7 @@ export function CampaignList() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-4 gap-6"
           >
             <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 via-emerald-400/10 to-teal-400/20"></div>
@@ -440,6 +441,22 @@ export function CampaignList() {
                 </div>
                 <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg shadow-purple-500/30">
                   <Target className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-400/20 via-cyan-400/10 to-emerald-400/20"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Zap className="h-5 w-5 text-teal-600" />
+                    <p className="text-teal-700 dark:text-teal-400 text-sm font-bold">Live Landing</p>
+                  </div>
+                  <p className="text-3xl font-black text-teal-800 dark:text-teal-300">{totalLandingCount.toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl shadow-lg shadow-teal-500/30">
+                  <Zap className="h-6 w-6 text-white" />
                 </div>
               </div>
             </div>
@@ -629,6 +646,12 @@ export function CampaignList() {
                       </TableHead>
                       <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-right w-[120px]">
                         <div className="flex items-center justify-end space-x-2">
+                          <Zap className="h-4 w-4 text-teal-600" />
+                          <span>Live Landing</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-right w-[120px]">
+                        <div className="flex items-center justify-end space-x-2">
                           <span className="text-orange-600 font-bold">₹</span>
                           <span>Budget</span>
                         </div>
@@ -725,6 +748,12 @@ export function CampaignList() {
                               {campaignMetrics[campaign.campaignId] && campaignMetrics[campaign.campaignId].impressions > 0
                                 ? ((campaignMetrics[campaign.campaignId].clicks / campaignMetrics[campaign.campaignId].impressions) * 100).toFixed(1) + '%'
                                 : '—'}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="p-4 text-right w-[120px]">
+                            <span className="font-semibold text-teal-800 dark:text-teal-300 text-sm">
+                              {campaignMetrics[campaign.campaignId]?.landingCount?.toLocaleString() ?? '—'}
                             </span>
                           </TableCell>
 
