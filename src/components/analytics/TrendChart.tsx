@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 interface TrendChartProps {
   series: TrendChartSeries[];
   title: string;
-  dataKey?: 'impressions' | 'clicks' | 'ctr';
+  dataKey?: 'impressions' | 'clicks' | 'ctr' | 'landingCount';
   yAxisLabel?: string;
   height?: number;
   showGrid?: boolean;
@@ -57,6 +57,7 @@ const groupDataByPeriod = (data: TrendDataPoint[], viewPeriod: ViewPeriod): Tren
       existing.impressions += point.impressions;
       existing.clicks += point.clicks;
       existing.conversions += point.conversions;
+      existing.landingCount = (existing.landingCount || 0) + (point.landingCount || 0);
       existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
       existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
     } else {
@@ -66,6 +67,7 @@ const groupDataByPeriod = (data: TrendDataPoint[], viewPeriod: ViewPeriod): Tren
         impressions: point.impressions,
         clicks: point.clicks,
         conversions: point.conversions,
+        landingCount: point.landingCount || 0,
         ctr: point.impressions > 0 ? (point.clicks / point.impressions) * 100 : 0,
         conversionRate: point.clicks > 0 ? (point.conversions / point.clicks) * 100 : 0
       });
@@ -159,7 +161,7 @@ const formatDisplayDate = (dateStr: string, viewPeriod?: ViewPeriod) => {
   }
 };
 
-const formatMetricValue = (value: number, dataKey: 'impressions' | 'clicks' | 'ctr') => {
+const formatMetricValue = (value: number, dataKey: 'impressions' | 'clicks' | 'ctr' | 'landingCount') => {
   if (dataKey === 'ctr') {
     return Number(value || 0).toLocaleString('en-US', {
       minimumFractionDigits: 0,

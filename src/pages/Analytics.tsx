@@ -64,7 +64,8 @@ const getDefaultMetrics = (): MetricsData => ({
   impressions: 0,
   clicks: 0,
   ctr: 0,
-  conversions: 0
+  conversions: 0,
+  landingCount: 0
 });
 
 // Helper function to map platform IDs to proper names
@@ -149,6 +150,7 @@ export default function Analytics() {
   const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
   const [comparisonMetricsData, setComparisonMetricsData] = useState<MetricsData | null>(null);
   const [trendData, setTrendData] = useState<TrendChartSeries[]>([]);
+  const [landingTrendData, setLandingTrendData] = useState<TrendChartSeries[]>([]);
   const [breakdownData, setBreakdownData] = useState<{
     gender: BreakdownData[];
     age: BreakdownData[];
@@ -470,6 +472,7 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
             }
           } catch (error) {
             console.error('Error processing campaign metrics:', error, result);
@@ -537,6 +540,7 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
             }
           } catch (error) {
             console.error('Error processing slot metrics:', error, result);
@@ -604,6 +608,7 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
             }
           } catch (error) {
             console.error('Error processing POS metrics:', error, result);
@@ -661,6 +666,7 @@ export default function Analytics() {
               aggregatedMetrics.impressions += result.metrics.impressions || 0;
               aggregatedMetrics.clicks += result.metrics.clicks || 0;
               aggregatedMetrics.conversions += result.metrics.conversions || 0;
+              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
             }
           } catch (error) {
             console.error('Error processing ad results:', error, result);
@@ -714,6 +720,53 @@ export default function Analytics() {
       // Set the processed data
       setMetricsData(aggregatedMetrics);
       setTrendData(trendSeries);
+
+      // Fetch landing count trend day-by-day (workaround until /metrics/trend supports landingCount)
+      try {
+        const landingPayload: MetricsPayload = {
+          ...dateRange,
+          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
+          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
+          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          adId: validAdIds,
+        };
+
+        const getDatesInRange = (from: string, to: string): string[] => {
+          const dates: string[] = [];
+          const current = new Date(from);
+          const end = new Date(to);
+          while (current <= end) {
+            dates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+          }
+          return dates;
+        };
+
+        const dates = getDatesInRange(dateRange.from, dateRange.to);
+        console.log(`📊 Fetching landing trend for ${dates.length} days...`);
+
+        const landingResults = await Promise.all(
+          dates.map(date => analyticsService.getMetrics({ ...landingPayload, from: date, to: date }))
+        );
+
+        const landingPoints: TrendDataPoint[] = landingResults
+          .map((res, idx) => ({
+            date: dates[idx],
+            impressions: 0,
+            clicks: 0,
+            conversions: 0,
+            ctr: 0,
+            conversionRate: 0,
+            landingCount: (res.success && res.data) ? res.data.landingCount || 0 : 0
+          }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        setLandingTrendData([{ name: 'Live Landings', data: landingPoints }]);
+        console.log('Landing trend data fetched successfully:', landingPoints);
+      } catch (error) {
+        console.error('Error fetching landing trend data:', error);
+        setLandingTrendData([]);
+      }
 
       // Fetch comparison metrics for the previous period
       try {
@@ -848,6 +901,7 @@ export default function Analytics() {
       setMetricsData(getDefaultMetrics());
       setComparisonMetricsData(null);
       setTrendData([]);
+      setLandingTrendData([]);
       setBreakdownData({ gender: [], age: [], platform: [], location: [] });
       setTopLocations([]);
       setTopSlotsData([]);
@@ -1551,6 +1605,34 @@ export default function Analytics() {
               enableSeriesFilters={activeView === 'slot'}
               enablePlatformFilter={activeView === 'slot'}
             />
+          </motion.div>
+
+          {/* Live Landings Over Time Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.45, ease: 'easeOut' }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+          >
+            {landingTrendData.length > 0 && landingTrendData[0]?.data?.length > 0 ? (
+              <TrendChart
+                series={landingTrendData}
+                title="🛬 Live Landings Over Time"
+                dataKey="landingCount"
+                yAxisLabel="Live Landings"
+                period={dataGrouping}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="text-6xl mb-4">🛬</div>
+                <p className="text-gray-600 dark:text-gray-400 text-lg font-medium text-center">
+                  No landing trend data available yet
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-sm text-center mt-2">
+                  Please select filters and click "🚀 Fetch Results" to view landing analytics
+                </p>
+              </div>
+            )}
           </motion.div>
 
           {/* Data Tables Section */}

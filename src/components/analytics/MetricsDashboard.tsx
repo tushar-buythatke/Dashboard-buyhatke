@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Eye, MousePointerClick, TrendingDown, Target } from 'lucide-react';
+import { TrendingUp, Eye, MousePointerClick, TrendingDown, Target, ArrowDownToLine } from 'lucide-react';
 import { MetricsData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -87,6 +87,15 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
       changeData: calculateChange(data.ctr, comparisonData?.ctr || 0)
     },
     {
+      title: 'Live Landings',
+      value: formatNumber(data.landingCount),
+      rawValue: data.landingCount,
+      icon: ArrowDownToLine,
+      color: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-50 dark:bg-teal-900/20',
+      changeData: calculateChange(data.landingCount, comparisonData?.landingCount || 0)
+    },
+    {
       title: 'Conversions',
       value: formatNumber(data.conversions),
       rawValue: data.conversions,
@@ -98,7 +107,7 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <AnimatePresence>
         {metrics.map((metric, index) => (
           <motion.div
@@ -116,8 +125,8 @@ export function MetricsDashboard({ data, comparisonData, period }: MetricsDashbo
                         index === 0 ? 'bg-blue-500' :
                         index === 1 ? 'bg-green-500' :
                         index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' :
-                        index === 4 ? 'bg-emerald-500' : 'bg-indigo-500'
+                        index === 3 ? 'bg-teal-500' :
+                        index === 4 ? 'bg-orange-500' : 'bg-indigo-500'
                       }`}
                     />
                     {metric.title}

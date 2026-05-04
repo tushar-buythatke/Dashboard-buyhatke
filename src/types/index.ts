@@ -124,6 +124,7 @@ export interface MetricsData {
   clicks: number;
   ctr: number;
   conversions: number;
+  landingCount: number;
 }
 
 export interface TrendDataPoint {
@@ -133,6 +134,7 @@ export interface TrendDataPoint {
   conversions: number;
   ctr: number;
   conversionRate: number;
+  landingCount?: number;
 }
 
 export interface BreakdownData {
