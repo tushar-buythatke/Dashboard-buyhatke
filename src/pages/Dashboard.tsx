@@ -24,7 +24,8 @@ const getDefaultMetrics = (): MetricsData => ({
   impressions: 0,
   clicks: 0,
   conversions: 0,
-  ctr: 0
+  ctr: 0,
+  landingCount: 0
 });
 
 // Helper function to save data to localStorage
