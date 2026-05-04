@@ -31,6 +31,7 @@ export interface TrendDataPoint {
   ctr: number;
   conversionRate: number;
   revenue?: number;
+  landingCount?: number;
 }
 
 export interface BreakdownData {
@@ -449,13 +450,14 @@ class AnalyticsService {
   private processTrendData(rawData: any, interval?: string): TrendDataPoint[] {
     if (!rawData || !rawData.total) return [];
 
-    const { impression = {}, click = {}, conversion = {} } = rawData.total;
+    const { impression = {}, click = {}, conversion = {}, adtrack = {} } = rawData.total;
 
     // Collect all unique buckets (dates / weeks / months)
     const buckets = new Set<string>([
       ...Object.keys(impression),
       ...Object.keys(click),
-      ...Object.keys(conversion)
+      ...Object.keys(conversion),
+      ...Object.keys(adtrack)
     ]);
 
     console.log('📅 Raw date buckets from API:', Array.from(buckets));
@@ -466,6 +468,7 @@ class AnalyticsService {
       const impressions = impression[bucket] ?? 0;
       const clicks = click[bucket] ?? 0;
       const conversions = conversion[bucket] ?? 0;
+      const landingCount = adtrack[bucket] ?? 0;
 
       // Normalize the date/bucket format for consistent parsing
       const normalizedDate = this.normalizeDateBucket(bucket);
@@ -478,7 +481,8 @@ class AnalyticsService {
         conversions,
         ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
         conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
-        revenue: conversions * 100 // example revenue calculation
+        revenue: conversions * 100, // example revenue calculation
+        landingCount
       });
     });
 
@@ -544,6 +548,7 @@ class AnalyticsService {
         existing.impressions += point.impressions;
         existing.clicks += point.clicks;
         existing.conversions += point.conversions;
+        existing.landingCount = (existing.landingCount || 0) + (point.landingCount || 0);
         existing.ctr = existing.impressions > 0 ? (existing.clicks / existing.impressions) * 100 : 0;
         existing.conversionRate = existing.clicks > 0 ? (existing.conversions / existing.clicks) * 100 : 0;
         existing.revenue = (existing.revenue || 0) + (point.revenue || 0);
@@ -554,6 +559,7 @@ class AnalyticsService {
           impressions: point.impressions,
           clicks: point.clicks,
           conversions: point.conversions,
+          landingCount: point.landingCount || 0,
           ctr: point.impressions > 0 ? (point.clicks / point.impressions) * 100 : 0,
           conversionRate: point.clicks > 0 ? (point.conversions / point.clicks) * 100 : 0,
           revenue: point.revenue || 0

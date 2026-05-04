@@ -721,50 +721,31 @@ export default function Analytics() {
       setMetricsData(aggregatedMetrics);
       setTrendData(trendSeries);
 
-      // Fetch landing count trend day-by-day (workaround until /metrics/trend supports landingCount)
+      // Build landing trend directly from trend data (adTrack now included in /metrics/trend)
       try {
-        const landingPayload: MetricsPayload = {
-          ...dateRange,
-          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
-          adId: validAdIds,
-        };
+        const landingMap = new Map<string, number>();
+        trendSeries.forEach((series) => {
+          series.data.forEach((point: TrendDataPoint) => {
+            landingMap.set(point.date, (landingMap.get(point.date) || 0) + (point.landingCount || 0));
+          });
+        });
 
-        const getDatesInRange = (from: string, to: string): string[] => {
-          const dates: string[] = [];
-          const current = new Date(from);
-          const end = new Date(to);
-          while (current <= end) {
-            dates.push(current.toISOString().split('T')[0]);
-            current.setDate(current.getDate() + 1);
-          }
-          return dates;
-        };
-
-        const dates = getDatesInRange(dateRange.from, dateRange.to);
-        console.log(`📊 Fetching landing trend for ${dates.length} days...`);
-
-        const landingResults = await Promise.all(
-          dates.map(date => analyticsService.getMetrics({ ...landingPayload, from: date, to: date }))
-        );
-
-        const landingPoints: TrendDataPoint[] = landingResults
-          .map((res, idx) => ({
-            date: dates[idx],
+        const landingPoints: TrendDataPoint[] = Array.from(landingMap.entries())
+          .map(([date, landingCount]) => ({
+            date,
             impressions: 0,
             clicks: 0,
             conversions: 0,
             ctr: 0,
             conversionRate: 0,
-            landingCount: (res.success && res.data) ? res.data.landingCount || 0 : 0
+            landingCount
           }))
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         setLandingTrendData([{ name: 'Live Landings', data: landingPoints }]);
-        console.log('Landing trend data fetched successfully:', landingPoints);
+        console.log('Landing trend data built from trend API:', landingPoints);
       } catch (error) {
-        console.error('Error fetching landing trend data:', error);
+        console.error('Error building landing trend data:', error);
         setLandingTrendData([]);
       }
 
