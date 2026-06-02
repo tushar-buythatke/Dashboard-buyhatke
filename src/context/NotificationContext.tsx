@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
 
 export interface Notification {
@@ -65,6 +65,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     const cleanupInterval = setInterval(cleanupOldNotifications, 60 * 60 * 1000);
     return () => clearInterval(cleanupInterval);
   }, []);
+
+  // Prune the dedup ref cache so it never grows unbounded. Re-seeds from the
+  // current notification list so existing entries remain de-duplicated.
+  useEffect(() => {
+    const seed = new Set<string>();
+    notifications.forEach((n) => seed.add(dedupKey(n)));
+    recentKeysRef.current = seed;
+  }, [notifications]);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -138,10 +146,25 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setCheckedTargets(new Set());
   };
 
+  const recentKeysRef = useRef<Set<string>>(new Set());
+
+  const dedupKey = (n: Pick<Notification, 'title' | 'message' | 'metadata'>) =>
+    `${n.title}|${n.message}|${n.metadata?.adId ?? ''}|${n.metadata?.campaignId ?? ''}|${n.metadata?.metric ?? ''}`;
+
   const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
-    // Check for duplicates based on title, message, adId, campaignId, and metric
-    const isDuplicate = notifications.some(existing => 
-      existing.title === notification.title && 
+    const key = dedupKey(notification);
+
+    // Short-circuit via ref-based recent-key cache (avoids re-scanning the
+    // notification array on every poll and prevents console spam).
+    if (recentKeysRef.current.has(key)) {
+      return;
+    }
+    recentKeysRef.current.add(key);
+
+    // Also guard against duplicates already sitting in state (e.g. when the
+    // ref cache was cleared on a fresh mount but the list still has them).
+    const isDuplicate = notifications.some(existing =>
+      existing.title === notification.title &&
       existing.message === notification.message &&
       existing.metadata?.adId === notification.metadata?.adId &&
       existing.metadata?.campaignId === notification.metadata?.campaignId &&
@@ -149,7 +172,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     );
 
     if (isDuplicate) {
-      console.log('Duplicate notification prevented:', notification.title);
       return;
     }
 
@@ -161,23 +183,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     };
 
     setNotifications(prev => {
-      // Double-check for duplicates in current state as well
-      const currentDuplicate = prev.some(existing => 
-        existing.title === notification.title && 
+      // Re-check inside the updater to avoid race conditions when multiple
+      // addNotification calls land in the same tick. Silently no-op on dup.
+      const currentDuplicate = prev.some(existing =>
+        existing.title === notification.title &&
         existing.message === notification.message &&
         existing.metadata?.adId === notification.metadata?.adId &&
         existing.metadata?.campaignId === notification.metadata?.campaignId &&
         existing.metadata?.metric === notification.metadata?.metric
       );
-      
+
       if (currentDuplicate) {
-        console.log('Duplicate notification prevented in state:', notification.title);
         return prev;
       }
-      
-      // Add new notification at the beginning
-      const updated = [newNotification, ...prev];
-      return updated;
+
+      return [newNotification, ...prev];
     });
 
     // Show toast notification
@@ -186,7 +206,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         toast.success(notification.title, { description: notification.message });
         break;
       case 'achievement':
-        toast.success(`🎉 ${notification.title}`, { description: notification.message });
+        toast.success(notification.title, { description: notification.message });
         break;
       case 'warning':
         toast.warning(notification.title, { description: notification.message });

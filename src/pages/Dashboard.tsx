@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
-import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Download, TrendingUp, Users, Target, Zap, Sparkles, Rocket, Award, Crown, Star, Activity, BarChart3, PieChart, Eye, MousePointer, Settings } from 'lucide-react';
+import { BreakdownModal } from '@/components/analytics/BreakdownModal';
+import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
+import { CometCard } from '@/components/ui/comet-card';
 import { analyticsService, MetricsPayload } from '@/services/analyticsService';
 import { MetricsData, BreakdownData, TrendChartSeries, Campaign } from '@/types';
 import { toast } from 'sonner';
+import { coerceName, formatCompactNumber, formatSmartPercent } from '@/lib/format';
 
 // Utils
 import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
@@ -18,6 +19,8 @@ import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
 // Constants for localStorage
 const DASHBOARD_CACHE_KEY = 'dashboard_analytics_cache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+const card = 'velvet-surface velvet-micro-shadow p-5';
 
 // Helper function to get default metrics
 const getDefaultMetrics = (): MetricsData => ({
@@ -110,6 +113,12 @@ export function Dashboard() {
     conversionRate: 0
   });
 
+  const [breakdownModal, setBreakdownModal] = useState<{ open: boolean; title: string; data: any[] }>({
+    open: false,
+    title: '',
+    data: []
+  });
+
   // Check for cached data on component mount
   useEffect(() => {
     const cachedData = loadDashboardCache();
@@ -129,7 +138,7 @@ export function Dashboard() {
         conversionRate: 0
       });
       setDataLoaded(true);
-      toast.success('📊 Loaded dashboard data from cache!');
+      toast.success('Loaded dashboard data from cache');
     }
   }, []);
 
@@ -335,7 +344,11 @@ export function Dashboard() {
         // Aggregate data for this breakdown type
         allCampaignBreakdownData.forEach(campaignData => {
           campaignData.forEach((item: any) => {
-            const key = item[breakdownType] || item.name || 'Unknown';
+            // CRITICAL: coerce to a string for the map key.
+            // Backend may return objects like { city, state } for location
+            // — which would dedupe everything under "[object Object]".
+            const rawKey = item[breakdownType] ?? item.name;
+            const key = coerceName(rawKey, 'Unspecified');
             if (!breakdownByType[key]) {
               breakdownByType[key] = {
                 [breakdownType]: key,
@@ -346,7 +359,7 @@ export function Dashboard() {
                 value: 0
               };
             }
-            
+
             breakdownByType[key].impressions += item.impressions || 0;
             breakdownByType[key].clicks += item.clicks || 0;
             breakdownByType[key].conversions += item.conversions || 0;
@@ -427,8 +440,6 @@ export function Dashboard() {
       });
       console.log('✅ Set quick stats using aggregated data:', { activeCampaigns: activeCampaignsCount, bestCTR, topPlatform, conversionRate });
 
-      toast.success(`Last 7 days combined data loaded from ${allCampaignIds.length} campaigns!`);
-      
       // Also fetch comparison data if possible (individual campaigns in parallel)
       try {
         const previous7DaysPayload = {
@@ -534,7 +545,7 @@ export function Dashboard() {
   const handleFetchAnalytics = async () => {
     setLoading(true);
     await fetchDashboardData();
-    toast.success('Last 7 days analytics loaded successfully! 📊');
+    toast.success('Last 7 days analytics loaded successfully');
   };
 
   const handleClearCache = () => {
@@ -553,7 +564,7 @@ export function Dashboard() {
       topPlatform: 'Unknown',
       conversionRate: 0
     });
-    toast.success('Dashboard cache cleared! 🧹');
+    toast.success('Dashboard cache cleared');
   };
 
   const handleRefresh = async () => {
@@ -562,7 +573,7 @@ export function Dashboard() {
     localStorage.removeItem(DASHBOARD_CACHE_KEY);
     await fetchDashboardData();
     setIsRefreshing(false);
-    toast.success('Last 7 days dashboard refreshed with fresh data! 🚀');
+    toast.success('Last 7 days dashboard refreshed with fresh data');
   };
 
   const handleExport = () => {
@@ -644,388 +655,182 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">🚀 Loading Dashboard</h2>
-          <p className="text-gray-600 dark:text-gray-400">Fetching real analytics data and comparison metrics...</p>
-        </motion.div>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <VelvetLoader size={36} label="Loading dashboard" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
-      {/* Enhanced Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-            <motion.div 
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="flex items-center space-x-3 sm:space-x-4"
-            >
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-100"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse delay-200"></div>
-              </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
-                  Dashboard
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base font-medium">
-                  Real-time analytics for the last 7 days! 📈
-                </p>
-              </div>
-            </motion.div>
-            
-            {/* Action Buttons - Only show when data is loaded */}
-            {dataLoaded && (
-              <motion.div 
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="flex items-center justify-center space-x-2 h-11"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  <span className="font-semibold">{isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh'}</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearCache}
-                  className="flex items-center justify-center space-x-2 h-11"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span className="font-semibold">🧹 Clear Cache</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  className="flex items-center justify-center space-x-2 h-11"
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="font-semibold">📥 Export</span>
-                </Button>
-                
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => navigate('/analytics')}
-                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold h-11 shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Deep Analytics</span>
-                </Button>
-                
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => navigate('/slot-management')}
-                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold h-11 shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Manage Slots</span>
-                </Button>
-              </motion.div>
-            )}
-          </div>
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="page-eyebrow">Dashboard</p>
+          <h1 className="page-display">
+            <span className="velvet-header-gradient">Performance</span> <span className="page-display-serif gradient-text">overview</span>
+          </h1>
         </div>
+        {dataLoaded && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="btn-velvet-ghost h-9"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button onClick={handleClearCache} className="btn-velvet-ghost h-9">
+              <Zap className="h-3.5 w-3.5" />
+              Clear cache
+            </button>
+            <button onClick={handleExport} className="btn-velvet-ghost h-9">
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+            <button onClick={() => navigate('/analytics')} className="btn-velvet h-9">
+              Deep analytics
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Check if we have data loaded or if this is initial load */}
       {!dataLoaded && !loading ? (
-        /* Initial State - Show Fetch Button */
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="container mx-auto px-4 py-8"
-        >
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="p-12 text-center">
-              <div className="mb-6">
-                <BarChart3 className="h-16 w-16 mx-auto text-blue-500 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Last 7 Days Analytics</h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Click below to fetch combined analytics data from all your campaigns for the last 7 days
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Data will be cached for 24 hours to improve performance
-                </p>
-              </div>
-              
-              <Button
-                onClick={handleFetchAnalytics}
-                disabled={loading}
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-              >
+        <CometCard className="mx-auto max-w-md">
+          <div className="velvet-surface velvet-micro-shadow p-10 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-4">
+              <BarChart3 className="h-6 w-6 text-[var(--indigo-500)]" />
+            </div>
+            <h2 className="text-lg font-semibold text-[var(--text-1)]">Ready to fetch</h2>
+            <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">
+              Combined metrics from all campaigns · cached 24h
+            </p>
+            <div className="mt-6 flex justify-center">
+              <button onClick={handleFetchAnalytics} disabled={loading} className="btn-velvet h-10 px-5">
                 {loading ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Fetching Analytics...
-                  </>
+                  <span className="inline-flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Fetching…
+                  </span>
                 ) : (
-                  <>
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Fetch Last 7 Days Analytics
-                  </>
+                  <span className="inline-flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Fetch analytics
+                  </span>
                 )}
-              </Button>
-              
-              <p className="text-xs text-gray-500 mt-4">
-                This will aggregate data from all your campaigns individually
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </button>
+            </div>
+          </div>
+        </CometCard>
       ) : (
-        /* Main Dashboard Content */
-        <>
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2">
-        <div className="space-y-6 sm:space-y-8">
-          {/* Performance Summary Banner - Only show if we have REAL comparison data */}
+        <div className="space-y-5">
           {hasComparisonData && ctrGrowth !== null && (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div 
-                  className="flex items-center space-x-4"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 300 
-                  }}
-                >
-                  <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-                    <Rocket className="h-8 w-8 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                      🔥 7-Day Power
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                      ⚡ Real comparison data
-                    </p>
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <div>
-                    <div className="text-2xl font-black text-green-600 dark:text-green-400">
-                      {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
-                    </div>
-                    <div className="text-sm text-green-600 dark:text-green-400 font-semibold">🎯 CTR Growth</div>
-                  </div>
-                  <Sparkles className="h-8 w-8 text-green-500" />
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <div>
-                    <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                      {metricsData.ctr.toFixed(2)}%
-                    </div>
-                    <div className="text-sm text-purple-600 dark:text-purple-400 font-semibold">👑 Overall CTR</div>
-                  </div>
-                  <Crown className="h-8 w-8 text-purple-500" />
-                </motion.div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center gap-3 min-h-[88px]">
+                <div className="metric-icon-tone metric-icon-tone--accent relative">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold">7-day period</p>
+                  <p className="text-[13px] font-semibold text-[var(--text-1)] truncate">Week-over-week</p>
+                </div>
               </div>
-            </motion.div>
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between min-h-[88px]">
+                <div>
+                  <p className={`text-[20px] font-semibold tabular-nums leading-none ${ctrGrowth >= 0 ? 'text-[var(--pos)]' : 'text-[var(--neg)]'}`}>
+                    {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
+                  </p>
+                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold mt-1.5">CTR growth</p>
+                </div>
+                <Sparkles className="h-4 w-4 text-[var(--gold-500)] opacity-70 flex-shrink-0" />
+              </div>
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between min-h-[88px]">
+                <div>
+                  <p className="text-[20px] font-semibold tabular-nums leading-none text-[var(--text-1)]">
+                    {metricsData.ctr.toFixed(2)}<span className="text-[var(--text-3)] text-[14px]">%</span>
+                  </p>
+                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold mt-1.5">Overall CTR</p>
+                </div>
+                <TrendingUp className="h-4 w-4 text-[var(--indigo-500)] opacity-80 flex-shrink-0" />
+              </div>
+            </div>
           )}
 
-          {/* Metrics Dashboard */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg"
-          >
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-full shadow-lg" />
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white">LAST 7 DAYS METRICS</h2>
-              <Badge variant="secondary" className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold border-0 shadow-lg">
-                📈 DAILY TRENDS
-              </Badge>
-            </div>
-            <MetricsDashboard data={metricsData} comparisonData={comparisonMetricsData || undefined} />
-          </motion.div>
+          <section className="space-y-3">
+            <div className="velvet-section-title">Key metrics</div>
+            <MetricsDashboard data={metricsData} comparisonData={comparisonMetricsData || undefined} period="7d" />
+          </section>
 
-          {/* Slot Management Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25 }}
-            className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-800 shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-800 rounded-xl">
-                  <Settings className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
-                    Ad Slot Management
-                  </h3>
-                  <p className="text-emerald-700 dark:text-emerald-300 text-sm">
-                    Create, update, and manage ad slots for different platforms
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={() => navigate('/slot-management')}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Manage Slots
-              </Button>
+          <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[var(--text-1)]">Ad slot management</p>
+              <p className="text-[11.5px] text-[var(--text-3)]">Slots across platforms</p>
             </div>
-          </motion.div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Performance Trends */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="xl:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <TrendChart 
-                series={trendData}
-                title="📈 Last 7 Days Performance Trends"
-                showGrid={true}
-                animated={true}
-              />
-            </motion.div>
-            
-            {/* Quick Insights Panel */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg"
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <Activity className="h-6 w-6 text-blue-500" />
-                <h3 className="text-xl font-black text-gray-900 dark:text-white">
-                  ⚡ LIVE INSIGHTS
-                </h3>
-              </div>
-              <div className="space-y-4">
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800"
-                  whileHover={{ scale: 1.05, x: 5 }}
-                >
-                  <span className="text-gray-900 dark:text-white font-semibold">🚀 Active Campaigns</span>
-                  <span className="font-black text-green-600 dark:text-green-400 text-xl">
-                    {quickStats.activeCampaigns}
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
-                  whileHover={{ scale: 1.05, x: 5 }}
-                >
-                  <span className="text-gray-900 dark:text-white font-semibold">🎯 Overall CTR</span>
-                  <span className="font-black text-blue-600 dark:text-blue-400 text-xl">
-                    {metricsData.ctr.toFixed(2)}%
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800"
-                  whileHover={{ scale: 1.05, x: 5 }}
-                >
-                  <span className="text-gray-900 dark:text-white font-semibold">📱 Top Platform</span>
-                  <span className="font-black text-purple-600 dark:text-purple-400 text-xl">
-                    {quickStats.topPlatform}
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800"
-                  whileHover={{ scale: 1.05, x: 5 }}
-                >
-                  <span className="text-gray-900 dark:text-white font-semibold">💫 Conversion Rate</span>
-                  <span className="font-black text-orange-600 dark:text-orange-400 text-xl">
-                    {quickStats.conversionRate.toFixed(1)}%
-                  </span>
-                </motion.div>
-              </div>
-            </motion.div>
+            <button onClick={() => navigate('/slot-management')} className="btn-velvet-ghost h-8 text-[12px] flex-shrink-0">
+              Manage slots
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
           </div>
 
-          {/* Breakdown Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[400px]"
-            >
-              <BreakdownPieChart data={genderBreakdown} title="Gender (7 Days)" />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[400px]"
-            >
-              <BreakdownPieChart data={platformBreakdown} title="Platform (7 Days)" />
-            </motion.div>
-
-          <motion.div
-              initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[400px]"
-            >
-              <BreakdownPieChart data={ageBreakdown} title="Age Groups (7 Days)" />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[400px]"
-            >
-              <BreakdownPieChart data={locationBreakdown} title="Location (7 Days)" />
-            </motion.div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="velvet-surface velvet-micro-shadow xl:col-span-2 p-4 flex flex-col min-h-[360px]">
+              <div className="velvet-section-title mb-3">Performance trends</div>
+              <div className="flex-1 min-h-[300px]">
+                <TrendChart series={trendData} title="7-day performance" showGrid animated={false} height={300} />
+              </div>
             </div>
+            <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col min-h-[360px]">
+              <div className="velvet-section-title mb-3">Quick insights</div>
+              <div className="flex-1 space-y-1.5">
+                {[
+                  { label: 'Active campaigns', value: quickStats.activeCampaigns },
+                  { label: 'Overall CTR', value: `${metricsData.ctr.toFixed(2)}%` },
+                  { label: 'Top platform', value: quickStats.topPlatform },
+                  { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%` },
+                ].map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--bg-panel-2)] px-3 py-2.5"
+                  >
+                    <span className="text-[11.5px] text-[var(--text-2)]">{row.label}</span>
+                    <span className="text-[12.5px] font-semibold tabular-nums text-[var(--text-1)]">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { data: genderBreakdown, title: 'Gender' },
+              { data: platformBreakdown, title: 'Platform' },
+              { data: ageBreakdown, title: 'Age' },
+              { data: locationBreakdown, title: 'Location' },
+            ].map(({ data, title }) => (
+              <CometCard key={title} className="h-[400px]">
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModal({ open: true, title: `${title} · 7 days`, data })}
+                  className="relative velvet-surface velvet-micro-shadow group cursor-pointer w-full h-full text-left transition-all duration-300 hover:shadow-[var(--shadow-velvet)] hover:-translate-y-0.5 overflow-hidden flex flex-col"
+                >
+                  <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-[var(--violet-500)]/0 via-[var(--violet-500)]/0 to-[var(--plum-500)]/5" />
+                  <div className="relative flex-1 min-h-0 p-3">
+                    <BreakdownPieChart data={data} title={`${title} · 7 days`} />
+                  </div>
+                </button>
+              </CometCard>
+            ))}
+          </div>
         </div>
-      </div>
-        </>
       )}
+
+      <BreakdownModal
+        open={breakdownModal.open}
+        onOpenChange={(open: boolean) => setBreakdownModal((prev) => ({ ...prev, open }))}
+        title={breakdownModal.title}
+        data={breakdownModal.data}
+      />
     </div>
   );
 }

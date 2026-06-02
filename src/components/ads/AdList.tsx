@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X, Target, Activity, Zap, Star, Sparkles, Archive, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -475,17 +475,17 @@ export function AdList() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: index * 0.05 }}
         onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-gray-900/20 transition-all duration-200 active:scale-95 cursor-pointer"
+        className="velvet-surface rounded-xl p-4 hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99] cursor-pointer group"
       >
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
           {/* Creative */}
           <div className="flex-shrink-0 self-center lg:self-auto">
-            <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-[var(--bg-panel-2)] rounded-lg border border-[var(--line)] shadow-[var(--shadow-1)] group-hover:border-[var(--line-violet)] group-hover:shadow-[var(--shadow-2)] transition-all duration-200">
               {ad.creativeUrl ? (
                 isVideo ? (
                   <video
                     src={getCacheBustedUrl(ad.creativeUrl)}
-                    className="h-full w-full object-contain rounded-lg"
+                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
                     muted
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -493,7 +493,7 @@ export function AdList() {
                   <img
                     src={getCacheBustedUrl(ad.creativeUrl)}
                     alt="Ad creative"
-                    className="h-full w-full object-contain rounded-lg"
+                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       if (!target.dataset.fallback) {
@@ -517,19 +517,11 @@ export function AdList() {
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <Badge
-                    variant={ad.status === 1 ? 'success' : ad.status === -1 ? 'destructive' : 'outline'}
-                    className={`text-xs ${ad.status === 1
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
-                      : ad.status === 0
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
-                        : ad.status === -1
-                          ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700'
-                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
-                      }`}
-                  >
-                    {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
-                  </Badge>
+                  <StatusPill
+                    status={ad.status === 1 ? 'live' : ad.status === 0 ? 'paused' : ad.status === -1 ? 'archived' : 'muted'}
+                    label={ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
+                    size="sm"
+                  />
                   {ad.slotName && (
                     <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
                       {ad.slotName}
@@ -540,8 +532,8 @@ export function AdList() {
                   {ad.name}
                 </div>
                 {ad.slotWidth && ad.slotHeight && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {ad.slotWidth} x {ad.slotHeight}px
+                  <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                    {Math.round(Number(ad.slotWidth))} × {Math.round(Number(ad.slotHeight))} px
                   </p>
                 )}
               </div>
@@ -640,7 +632,7 @@ export function AdList() {
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
                 <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                  {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1) : '0'}%
+                  {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) : '0.00'}%
                 </div>
               </div>
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -667,7 +659,7 @@ export function AdList() {
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live CTR</div>
                 <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                    ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1) + '%'
+                    ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(2) + '%'
                     : '0.0%'}
                 </div>
               </div>
@@ -723,21 +715,25 @@ export function AdList() {
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-blue-600/5 to-pink-600/5"></div>
           <div className="relative z-10">
             <div className="flex flex-col space-y-6 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-              <div className="flex items-center space-x-4 sm:space-x-6">
-                <Button
-                  variant="outline"
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <button
+                  type="button"
                   onClick={() => navigate('/campaigns')}
-                  className="h-10 px-3 rounded-xl bg-white/10 dark:bg-white/10 backdrop-blur-sm border border-white/20 dark:border-white/20 hover:bg-white/20 dark:hover:bg-white/20 transition-all duration-200"
+                  aria-label="Back to campaigns"
+                  className="group flex items-center justify-center h-9 w-9 rounded-full text-[var(--text-2)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-tint)] transition-all duration-200"
                 >
-                  <ArrowLeft className="h-4 w-4 text-white mr-1.5" />
-                  <span className="text-sm font-medium text-white">Back</span>
-                </Button>
+                  <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-200 group-hover:-translate-x-0.5" />
+                </button>
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-700 via-gray-800 to-slate-900 dark:from-slate-100 dark:via-gray-200 dark:to-slate-100 bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-700 via-gray-800 to-slate-900 dark:from-slate-100 dark:via-gray-200 dark:to-slate-100 bg-clip-text text-transparent">
                     {campaign?.brandName || 'Campaign'} Ads
                   </h1>
-                  <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm font-medium">
-                    Manage and monitor your advertising campaigns
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-3)]">
+                    {totalAds} Total Ads
+                    <span className="mx-1.5 text-[var(--text-3)]/40">•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {activeAds} Live
+                    </span>
                   </p>
                 </div>
               </div>
@@ -774,248 +770,182 @@ export function AdList() {
           </div>
         </motion.div>
 
-        {/* Enhanced Summary Stats */}
+        {/* Enhanced Summary Stats — Velvet aesthetic */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4"
         >
-          {/* Total Ads Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-100 via-blue-50 to-cyan-100 dark:from-blue-900/80 dark:via-blue-800/80 dark:to-cyan-900/80 border-blue-300/50 dark:border-blue-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-cyan-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-blue-700 dark:text-blue-300 text-sm font-semibold">Total Ads</p>
-                  <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalAds}</p>
-                  <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">total</span>
-                </div>
+          <MetricCard
+            label="Total Ads"
+            value={totalAds}
+            tone="violet"
+            icon={<TrendingUp className="h-4 w-4" />}
+            className="!p-4 sm:!p-5"
+          />
+          <MetricCard
+            label="Active Ads"
+            value={activeAds}
+            tone="accent"
+            icon={<Play className="h-4 w-4" />}
+            className="!p-4 sm:!p-5"
+          />
+          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
+            <div className="metric-label flex items-center justify-between pr-9">
+              <span>Impressions</span>
+              <div className="metric-icon-tone metric-icon-tone--plum !static !w-6 !h-6">
+                <Eye className="h-3.5 w-3.5" />
               </div>
-            </Card>
-          </motion.div>
-
-          {/* Active Ads Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-green-100 via-emerald-50 to-teal-100 dark:from-green-900/80 dark:via-emerald-800/80 dark:to-teal-900/80 border-green-300/50 dark:border-green-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-teal-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-green-700 dark:text-green-300 text-sm font-semibold">Active Ads</p>
-                  <Play className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl font-bold text-green-900 dark:text-green-100">{activeAds}</p>
-                  <span className="text-green-600 dark:text-green-400 text-sm font-medium">live</span>
-                </div>
+            </div>
+            <div className="space-y-1.5 mt-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {totalTargetImpressions.toLocaleString()}
+                </span>
               </div>
-            </Card>
-          </motion.div>
-
-          {/* Impressions Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100 dark:from-orange-900/80 dark:via-amber-800/80 dark:to-yellow-900/80 border-orange-300/50 dark:border-orange-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-400/10 to-yellow-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-orange-700 dark:text-orange-300 text-sm font-semibold">Impressions</p>
-                  <Eye className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">Target</span>
-                    <span className="text-lg font-semibold text-orange-900 dark:text-orange-100">{totalTargetImpressions.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">Live</span>
-                    <span className="text-lg font-semibold text-orange-900 dark:text-orange-100">{totalLiveImpressions.toLocaleString()}</span>
-                  </div>
-                </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {totalLiveImpressions.toLocaleString()}
+                </span>
               </div>
-            </Card>
-          </motion.div>
-
-          {/* Clicks Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-purple-100 via-violet-50 to-fuchsia-100 dark:from-purple-900/80 dark:via-violet-800/80 dark:to-fuchsia-900/80 border-purple-300/50 dark:border-purple-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-fuchsia-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-purple-700 dark:text-purple-300 text-sm font-semibold">Clicks</p>
-                  <MousePointerClick className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Target</span>
-                    <span className="text-lg font-semibold text-purple-900 dark:text-purple-100">{totalTargetClicks.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Live</span>
-                    <span className="text-lg font-semibold text-purple-900 dark:text-purple-100">{totalLiveClicks.toLocaleString()}</span>
-                  </div>
-                </div>
+            </div>
+          </div>
+          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
+            <div className="metric-label flex items-center justify-between pr-9">
+              <span>Clicks</span>
+              <div className="metric-icon-tone metric-icon-tone--violet !static !w-6 !h-6">
+                <MousePointerClick className="h-3.5 w-3.5" />
               </div>
-            </Card>
-          </motion.div>
-
-          {/* CTR Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-pink-100 via-rose-50 to-red-100 dark:from-pink-900/80 dark:via-rose-800/80 dark:to-red-900/80 border-pink-300/50 dark:border-pink-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-400/10 to-red-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-pink-700 dark:text-pink-300 text-sm font-semibold">CTR</p>
-                  <TrendingUp className="h-5 w-5 text-pink-600 dark:text-pink-400" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-pink-600 dark:text-pink-400 font-medium">Target</span>
-                    <span className="text-lg font-semibold text-pink-900 dark:text-pink-100">{targetCTR.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-pink-600 dark:text-pink-400 font-medium">Live</span>
-                    <span className="text-lg font-semibold text-pink-900 dark:text-pink-100">{liveCTR.toFixed(2)}%</span>
-                  </div>
-                </div>
+            </div>
+            <div className="space-y-1.5 mt-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {totalTargetClicks.toLocaleString()}
+                </span>
               </div>
-            </Card>
-          </motion.div>
-
-          {/* Landing Count Card */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -5 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-teal-100 via-cyan-50 to-emerald-100 dark:from-teal-900/80 dark:via-cyan-800/80 dark:to-emerald-900/80 border-teal-300/50 dark:border-teal-700/50 p-5 sm:p-6 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-400/10 to-emerald-400/10"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-teal-700 dark:text-teal-300 text-sm font-semibold">Landing</p>
-                  <Zap className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div className="flex items-baseline space-x-2">
-                  <p className="text-3xl font-bold text-teal-900 dark:text-teal-100">{totalLiveLandingCount.toLocaleString()}</p>
-                  <span className="text-teal-600 dark:text-teal-400 text-sm font-medium">live</span>
-                </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {totalLiveClicks.toLocaleString()}
+                </span>
               </div>
-            </Card>
-          </motion.div>
+            </div>
+          </div>
+          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
+            <div className="metric-label flex items-center justify-between pr-9">
+              <span>CTR</span>
+              <div className="metric-icon-tone metric-icon-tone--accent !static !w-6 !h-6">
+                <TrendingUp className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {targetCTR.toFixed(2)}%
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
+                  {liveCTR.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <MetricCard
+            label="Landing"
+            value={totalLiveLandingCount}
+            tone="plum"
+            icon={<Zap className="h-4 w-4" />}
+            className="!p-4 sm:!p-5"
+          />
         </motion.div>
 
-        {/* Enhanced Search and Filters */}
+        {/* Inline control bar — flat, low-profile, beneath KPI cards */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col sm:flex-row sm:items-center gap-3"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/5 via-purple-600/5 to-pink-600/5"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <Search className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Search & Filter
-                </h3>
-              </div>
-              {(searchQuery || statusFilter !== 'all') && (
-                <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg">
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    {filteredAds.length} results
-                  </span>
-                </div>
-              )}
+          <div className="relative flex-1 sm:max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-[var(--text-3)]" />
             </div>
-
-            <div className="flex items-center space-x-4 w-full">
-              <div className="relative flex-1 sm:max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
-                <Input
-                  placeholder="Search ads by name..."
-                  className="pl-10 pr-10 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg transition-all duration-200"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-1 transition-all duration-200"
-                    >
-                      <span className="sr-only">Clear search</span>
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    const newSearchParams = new URLSearchParams(searchParams);
-                    if (value === 'all') {
-                      newSearchParams.delete('status');
-                    } else {
-                      newSearchParams.set('status', value);
-                    }
-                    setSearchParams(newSearchParams);
-                  }}
+            <Input
+              placeholder="Search ads by name..."
+              className="pl-10 pr-10 h-10 bg-white/70 dark:bg-[var(--bg-panel-2)]/70 border-slate-200/80 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-[var(--text-1)] placeholder:text-[var(--text-3)] rounded-xl transition-all duration-200 backdrop-blur-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-[var(--text-3)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-tint)] rounded-full p-1 transition-all duration-200"
                 >
-                  <SelectTrigger className="w-40 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {(searchQuery || statusFilter !== 'all') && filteredAds.length === 0 && (
-              <div className="mt-4 text-center py-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
-                <div className="text-amber-700 dark:text-amber-300 font-medium">
-                  No ads found {searchQuery && `matching "${searchQuery}"`}
-                  {statusFilter !== 'all' && ` with status "${statusOptions.find(opt => opt.value === statusFilter)?.label}"`}
-                </div>
-                <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                  Try adjusting your filters or create a new ad
-                </p>
+                  <span className="sr-only">Clear search</span>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
           </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[var(--text-3)]" />
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                const newSearchParams = new URLSearchParams(searchParams);
+                if (value === 'all') {
+                  newSearchParams.delete('status');
+                } else {
+                  newSearchParams.set('status', value);
+                }
+                setSearchParams(newSearchParams);
+              }}
+            >
+              <SelectTrigger className="w-40 h-10 bg-white/70 dark:bg-[var(--bg-panel-2)]/70 border-slate-200/80 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-[var(--text-1)] rounded-xl backdrop-blur-sm">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(searchQuery || statusFilter !== 'all') && (
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+              {filteredAds.length} {filteredAds.length === 1 ? 'result' : 'results'}
+            </span>
+          )}
         </motion.div>
+
+        {(searchQuery || statusFilter !== 'all') && filteredAds.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-3 px-4 bg-amber-50/80 dark:bg-amber-900/20 rounded-xl border border-amber-200/80 dark:border-amber-700/50"
+          >
+            <div className="text-amber-700 dark:text-amber-300 font-medium text-sm">
+              No ads found {searchQuery && `matching "${searchQuery}"`}
+              {statusFilter !== 'all' && ` with status "${statusOptions.find(opt => opt.value === statusFilter)?.label}"`}
+            </div>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+              Try adjusting your filters or create a new ad
+            </p>
+          </motion.div>
+        )}
 
         {/* Ads Content */}
         <motion.div
@@ -1024,47 +954,47 @@ export function AdList() {
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           {/* Enhanced Desktop Table View */}
-          <div className="hidden lg:block bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="hidden lg:block velvet-surface overflow-hidden">
             <div className="overflow-x-auto">
               <Table className="min-w-full">
                 <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-slate-50 via-blue-50 to-purple-50 dark:from-gray-800 dark:via-slate-700 dark:to-gray-800 border-slate-200 dark:border-gray-600">
-                    <TableHead className="text-slate-700 dark:text-slate-300 font-semibold text-sm w-[100px] px-4">
+                  <TableRow className="border-b border-[var(--line)] hover:bg-transparent bg-[var(--bg-panel-2)]">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[100px] px-4">
                       Creative
                     </TableHead>
-                    <TableHead className="text-slate-700 dark:text-slate-300 font-semibold text-sm w-[120px] px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] px-3">
                       Status
                     </TableHead>
-                    <TableHead className="text-slate-700 dark:text-slate-300 font-semibold text-sm w-[180px] px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[180px] px-3">
                       Name
                     </TableHead>
-                    <TableHead className="text-slate-700 dark:text-slate-300 font-semibold text-sm w-[140px] px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[140px] px-3">
                       Slot
                     </TableHead>
                     {/* Target group */}
-                    <TableHead className="text-orange-700 dark:text-orange-300 font-semibold text-sm w-[120px] text-right bg-orange-50/50 dark:bg-orange-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
                       Target Impr.
                     </TableHead>
-                    <TableHead className="text-orange-700 dark:text-orange-300 font-semibold text-sm w-[120px] text-right bg-orange-50/50 dark:bg-orange-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
                       Target Clicks
                     </TableHead>
-                    <TableHead className="text-orange-700 dark:text-orange-300 font-semibold text-sm w-[110px] text-center bg-orange-50/50 dark:bg-orange-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[110px] text-center px-3">
                       Target CTR
                     </TableHead>
                     {/* Live group */}
-                    <TableHead className="text-blue-700 dark:text-blue-300 font-semibold text-sm w-[120px] text-right bg-blue-50/50 dark:bg-blue-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
                       Live Impr.
                     </TableHead>
-                    <TableHead className="text-blue-700 dark:text-blue-300 font-semibold text-sm w-[120px] text-right bg-blue-50/50 dark:bg-blue-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
                       Live Clicks
                     </TableHead>
-                    <TableHead className="text-blue-700 dark:text-blue-300 font-semibold text-sm w-[110px] text-center bg-blue-50/50 dark:bg-blue-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[110px] text-center px-3">
                       Live CTR
                     </TableHead>
-                    <TableHead className="text-teal-700 dark:text-teal-300 font-semibold text-sm w-[120px] text-right bg-teal-50/50 dark:bg-teal-900/20 px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
                       Live Landing
                     </TableHead>
-                    <TableHead className="text-gray-700 dark:text-gray-300 font-semibold text-sm w-[80px] text-center px-3">
+                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[80px] text-center px-3">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -1094,22 +1024,22 @@ export function AdList() {
                           transition={{ duration: 0.3, delay: index * 0.02 }}
                           whileHover={{
                             scale: 1.005,
-                            backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)'
+                            backgroundColor: theme === 'dark' ? 'rgba(99, 76, 230, 0.08)' : 'rgba(99, 76, 230, 0.04)'
                           }}
                           onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-                          className="group transition-all duration-300 border-slate-100 dark:border-slate-700 cursor-pointer hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm"
+                          className="group velvet-row-hover transition-colors duration-150 border-[var(--line)] cursor-pointer"
                         >
                           <TableCell className="p-3">
                             <motion.div
                               whileHover={{ scale: 1.05 }}
                               transition={{ type: "spring", stiffness: 300 }}
-                              className="h-14 w-20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-700 dark:to-gray-700 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm group-hover:shadow-md transition-all duration-300"
+                              className="h-14 w-20 flex items-center justify-center overflow-hidden bg-[var(--bg-panel-2)] rounded-lg border border-[var(--line)] shadow-[var(--shadow-1)] group-hover:border-[var(--line-violet)] group-hover:shadow-[var(--shadow-2)] transition-all duration-200"
                             >
                               {ad.creativeUrl ? (
                                 isVideo ? (
                                   <video
                                     src={getCacheBustedUrl(ad.creativeUrl)}
-                                    className="h-full w-full object-contain rounded-lg"
+                                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
                                     muted
                                     onClick={(e) => e.stopPropagation()}
                                   />
@@ -1117,7 +1047,7 @@ export function AdList() {
                                   <img
                                     src={getCacheBustedUrl(ad.creativeUrl)}
                                     alt="Ad creative"
-                                    className="h-full w-full object-contain rounded-lg"
+                                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       if (!target.dataset.fallback) {
@@ -1128,49 +1058,39 @@ export function AdList() {
                                   />
                                 )
                               ) : (
-                                <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                                <div className="flex flex-col items-center justify-center text-[var(--text-3)]">
                                   <ImageIcon className="h-4 w-4 mb-1" />
-                                  <span className="text-xs font-semibold">No Media</span>
+                                  <span className="text-[10px] font-semibold">No Media</span>
                                 </div>
                               )}
                             </motion.div>
                           </TableCell>
                           <TableCell className="p-3">
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                            >
-                              <Badge
-                                className={`font-semibold text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 ${ad.status === 1
-                                  ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700'
-                                  : ad.status === 0
-                                    ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700'
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
-                                  }`}
-                              >
-                                {ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
-                              </Badge>
-                            </motion.div>
+                            <StatusPill
+                              status={ad.status === 1 ? 'live' : ad.status === 0 ? 'paused' : ad.status === -1 ? 'archived' : 'muted'}
+                              label={ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
+                              size="sm"
+                            />
                           </TableCell>
                           <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
-                            <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.name}</span>
+                            <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors">{ad.name}</span>
                           </TableCell>
                           <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
                             {ad.slotName && (
                               <div className="flex flex-col space-y-1">
-                                <span className="font-black text-sm truncate max-w-32 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">{ad.slotName}</span>
+                                <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors">{ad.slotName}</span>
                                 {ad.slotWidth && ad.slotHeight && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-center font-medium">
-                                    {ad.slotWidth} x {ad.slotHeight}
+                                  <span className="text-[10.5px] text-[var(--text-3)] bg-[var(--bg-panel-2)] border border-[var(--line)] px-2 py-0.5 rounded-md text-center font-medium tabular-nums">
+                                    {Math.round(Number(ad.slotWidth))} × {Math.round(Number(ad.slotHeight))} px
                                   </span>
                                 )}
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
+                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
                             {ad.impressionTarget.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-orange-700 dark:text-orange-300 font-black text-right p-3 text-sm group-hover:text-orange-600 dark:group-hover:text-orange-200 transition-colors">
+                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
                             {ad.clickTarget.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center p-3">
@@ -1178,15 +1098,15 @@ export function AdList() {
                               whileHover={{ scale: 1.1 }}
                               transition={{ type: "spring", stiffness: 400 }}
                             >
-                              <span className="bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-orange-200 dark:border-orange-700">
-                                {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(1)}%` : '0.0%'}
+                              <span className="bg-[var(--bg-tint)] text-[var(--indigo-500)] px-2 py-0.5 rounded-md text-[10.5px] font-semibold border border-[var(--line-violet)]">
+                                {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2)}%` : '0.00%'}
                               </span>
                             </motion.div>
                           </TableCell>
-                          <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
                             {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
                           </TableCell>
-                          <TableCell className="text-blue-700 dark:text-blue-300 font-black text-right p-3 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
                             {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
                           </TableCell>
                           <TableCell className="text-center p-3">
@@ -1194,14 +1114,14 @@ export function AdList() {
                               whileHover={{ scale: 1.1 }}
                               transition={{ type: "spring", stiffness: 400 }}
                             >
-                              <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md text-xs font-semibold border border-blue-200 dark:border-blue-700">
+                              <span className="bg-[var(--bg-tint)] text-[var(--indigo-500)] px-2 py-0.5 rounded-md text-[10.5px] font-semibold tabular-nums border border-[var(--line-violet)]">
                                 {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                                  ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(1)}%`
-                                  : '0.0%'}
+                                  ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(2)}%`
+                                  : '0.00%'}
                               </span>
                             </motion.div>
                           </TableCell>
-                          <TableCell className="text-teal-700 dark:text-teal-300 font-black text-right p-3 text-sm group-hover:text-teal-600 dark:group-hover:text-teal-200 transition-colors">
+                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
                             {adMetrics[ad.adId]?.landingCount?.toLocaleString() ?? '0'}
                           </TableCell>
                           <TableCell className="text-center p-3">

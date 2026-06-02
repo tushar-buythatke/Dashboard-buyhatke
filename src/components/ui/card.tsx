@@ -9,7 +9,9 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-xl border bg-card text-card-foreground shadow',
+      'relative rounded-[14px] border border-[var(--line)] bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)] overflow-hidden',
+      'before:content-[""] before:absolute before:top-0 before:left-0 before:right-0 before:h-px',
+      'before:bg-[linear-gradient(90deg,transparent_0%,var(--line-violet)_50%,transparent_100%)] before:opacity-60 before:pointer-events-none',
       className
     )}
     {...props}
@@ -23,7 +25,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    className={cn('flex flex-col space-y-1 p-5', className)}
     {...props}
   />
 ));
@@ -35,7 +37,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('font-semibold leading-none tracking-tight', className)}
+    className={cn('text-sm font-semibold leading-tight tracking-tight text-[var(--text-1)]', className)}
     {...props}
   />
 ));
@@ -47,7 +49,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn('text-xs text-[var(--text-3)] leading-relaxed', className)}
     {...props}
   />
 ));
@@ -57,7 +59,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  <div ref={ref} className={cn('p-5 pt-0', className)} {...props} />
 ));
 CardContent.displayName = 'CardContent';
 
@@ -67,7 +69,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center p-6 pt-0', className)}
+    className={cn('flex items-center p-5 pt-0', className)}
     {...props}
   />
 ));

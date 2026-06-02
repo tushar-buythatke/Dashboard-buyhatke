@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatChartValue } from '@/lib/format';
 
 interface ComboChartProps {
   data: any[];
@@ -17,33 +18,25 @@ interface ComboChartProps {
 
 const CustomTooltip = memo(({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-
-  const formatValue = (value: number, key: string) => {
-    if (key === 'conversions') return value.toLocaleString();
-    if (key === 'impressions') return value.toLocaleString();
-    if (key === 'ctr') return `${value}%`;
-    return value.toLocaleString();
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[200px]">
-      <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)]/95 backdrop-blur-xl shadow-[var(--shadow-3)] px-2.5 py-1.5 min-w-[170px] max-w-[230px]">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-1 leading-tight">
         {label}
       </div>
-      <div className="space-y-2">
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: entry.color }}
+      <div className="space-y-0.5">
+        {payload.map((entry: any, i: number) => (
+          <div key={i} className="flex items-center justify-between gap-2 leading-none">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div
+                className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: entry.color || entry.fill }}
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-[10.5px] text-[var(--text-2)] truncate">
                 {entry.name}
               </span>
             </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">
-              {formatValue(entry.value, entry.dataKey)}
+            <span className="text-[11px] font-semibold tabular-nums text-[var(--text-1)]">
+              {formatChartValue(entry.value, entry.dataKey || entry.name)}
             </span>
           </div>
         ))}
@@ -51,12 +44,11 @@ const CustomTooltip = memo(({ active, payload, label }: any) => {
     </div>
   );
 });
-
 CustomTooltip.displayName = 'CustomTooltip';
 
-export const ComboChart = memo<ComboChartProps>(({ 
-  data, 
-  title, 
+export const ComboChart = memo<ComboChartProps>(({
+  data,
+  title,
   barKey,
   lineKey,
   barName,
@@ -64,105 +56,108 @@ export const ComboChart = memo<ComboChartProps>(({
   height = 400,
   showGrid = true,
   animated = true,
-  barColor = '#6366F1',
-  lineColor = '#059669'
+  barColor = '#7c6feb',
+  lineColor = '#c462a0',
 }) => {
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
-      <div className="h-[400px] w-full">
+    <div className="space-y-3">
+      <div className="velvet-section-title">{title}</div>
+      <div className="h-[360px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <ComposedChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 8 }}>
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={barColor} stopOpacity={0.8}/>
-                <stop offset="95%" stopColor={barColor} stopOpacity={0.1}/>
+                <stop offset="0%" stopColor={barColor} stopOpacity={0.85} />
+                <stop offset="100%" stopColor={barColor} stopOpacity={0.45} />
               </linearGradient>
             </defs>
-            
+
             {showGrid && (
-              <CartesianGrid 
-                strokeDasharray="2 4" 
-                stroke="currentColor" 
-                strokeOpacity={0.2}
+              <CartesianGrid
+                strokeDasharray="2 4"
+                stroke="currentColor"
+                strokeOpacity={0.15}
                 vertical={false}
-                className="text-gray-300 dark:text-gray-600"
+                className="text-[var(--text-3)]"
               />
             )}
-            
-            <XAxis 
-              dataKey="period" 
+
+            <XAxis
+              dataKey="period"
               stroke="currentColor"
-              fontSize={12}
+              fontSize={10.5}
               fontWeight={500}
               axisLine={false}
               tickLine={false}
-              dy={10}
-              className="text-gray-600 dark:text-gray-400"
+              dy={6}
+              className="text-[var(--text-3)]"
             />
-            
-            <YAxis 
+
+            <YAxis
               yAxisId="left"
               stroke="currentColor"
-              fontSize={12}
-              fontWeight={500}
+              fontSize={10.5}
               axisLine={false}
               tickLine={false}
-              dx={-10}
-              className="text-gray-600 dark:text-gray-400"
+              dx={-6}
+              tickFormatter={(v) => formatChartValue(v)}
+              className="text-[var(--text-3)]"
             />
-            
-            <YAxis 
+
+            <YAxis
               yAxisId="right"
               orientation="right"
               stroke="currentColor"
-              fontSize={12}
-              fontWeight={500}
+              fontSize={10.5}
               axisLine={false}
               tickLine={false}
-              dx={10}
-              className="text-gray-600 dark:text-gray-400"
-            />
-            
-            <Tooltip content={<CustomTooltip />} />
-            
-            <Legend 
-              wrapperStyle={{
-                paddingTop: '24px',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
+              dx={6}
+              tickFormatter={(v) => formatChartValue(v, lineKey)}
+              className="text-[var(--text-3)]"
             />
 
-            <Bar 
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: 'var(--bg-tint)', opacity: 0.6 }}
+              wrapperStyle={{ outline: 'none' }}
+            />
+
+            <Legend
+              wrapperStyle={{
+                paddingTop: '12px',
+                fontSize: '10.5px',
+                fontWeight: 500,
+                color: 'var(--text-2)',
+              }}
+              iconType="circle"
+              iconSize={6}
+            />
+
+            <Bar
               yAxisId="left"
-              dataKey={barKey} 
+              dataKey={barKey}
               fill="url(#barGradient)"
               name={barName}
-              animationDuration={animated ? 1500 : 0}
-              radius={[4, 4, 0, 0]}
+              animationDuration={animated ? 800 : 0}
+              radius={[8, 8, 0, 0]}
+              maxBarSize={32}
             />
-            
-            <Line 
+
+            <Line
               yAxisId="right"
-              type="monotone" 
-              dataKey={lineKey} 
+              type="monotone"
+              dataKey={lineKey}
               stroke={lineColor}
-              strokeWidth={3}
+              strokeWidth={2}
               name={lineName}
-              dot={{ 
-                fill: lineColor, 
-                strokeWidth: 3, 
-                r: 5,
-                stroke: '#fff'
+              dot={false}
+              activeDot={{
+                r: 4,
+                fill: lineColor,
+                stroke: 'var(--bg-panel)',
+                strokeWidth: 2,
               }}
-              activeDot={{ 
-                r: 8, 
-                stroke: lineColor,
-                strokeWidth: 4,
-                fill: '#fff'
-              }}
-              animationDuration={animated ? 1500 : 0}
+              animationDuration={animated ? 800 : 0}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -171,4 +166,4 @@ export const ComboChart = memo<ComboChartProps>(({
   );
 });
 
-ComboChart.displayName = 'ComboChart'; 
+ComboChart.displayName = 'ComboChart';

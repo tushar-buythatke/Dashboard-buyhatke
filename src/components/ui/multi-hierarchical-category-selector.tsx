@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { adService } from '@/services/adService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Badge } from '@/components/ui/badge';
 import { CategoryPath, CategoryLevel, CategorySelection } from '@/types';
 
@@ -285,9 +286,8 @@ export function MultiHierarchicalCategorySelector({
             {/* Category List */}
             <div className="max-h-[400px] overflow-y-auto">
               {loading ? (
-                <div className="p-8 flex items-center justify-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                  <span className="text-gray-600 dark:text-gray-300">Loading...</span>
+                <div className="p-8 flex items-center justify-center">
+                  <VelvetLoader size={22} label="Loading" />
                 </div>
               ) : currentCategories.length > 0 ? (
                 <div className="py-2">

@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { whitelistService, WhitelistUser } from '@/services/whitelistService';
 import { Button } from '@/components/ui/button';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -244,14 +245,9 @@ export function AdminPanel() {
                         <div className="relative z-10 overflow-x-auto">
                             {loading ? (
                                 <div className="flex items-center justify-center py-16">
-                                    <div className="flex space-x-2">
-                                        <motion.div className="w-4 h-4 bg-amber-500 rounded-full" animate={{ y: [-10, 0, -10] }} transition={{ duration: 1, repeat: Infinity, delay: 0 }} />
-                                        <motion.div className="w-4 h-4 bg-orange-500 rounded-full" animate={{ y: [-10, 0, -10] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} />
-                                        <motion.div className="w-4 h-4 bg-red-500 rounded-full" animate={{ y: [-10, 0, -10] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} />
+                                    <div className="flex flex-col items-center gap-3">
+                                      <VelvetLoader size={28} label="Loading users" />
                                     </div>
-                                    <span className="ml-4 text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                                        Loading users...
-                                    </span>
                                 </div>
                             ) : filteredUsers.length === 0 ? (
                                 <div className="text-center py-16">

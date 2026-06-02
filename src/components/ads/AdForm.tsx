@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { VelvetBackButton } from '@/components/ui/velvet-back-button';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
 import { getCacheBustedUrl } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
+import { FileUpload } from '@/components/ui/file-upload';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -366,36 +369,35 @@ export function AdForm() {
     }
   };
 
+  const uploadLogoFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file for the logo.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const currentSlotId = form.getValues('slotId');
+      const result = await adService.uploadLogo(file, currentSlotId || 0);
+      if (result.success && result.creativeUrl) {
+        setLogoPreviewUrl(result.creativeUrl);
+        form.setValue('logo', result.creativeUrl);
+        toast.success('Logo uploaded successfully!');
+      } else {
+        toast.error(result.message || 'Failed to upload logo');
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast.error('Failed to upload logo. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const isImage = file.type.startsWith('image/');
-
-      if (!isImage) {
-        toast.error('Please select a valid image file for the logo.');
-        event.target.value = '';
-        return;
-      }
-
-      // Upload logo without dimension check
-      try {
-        setLoading(true);
-        const currentSlotId = form.getValues('slotId');
-        const result = await adService.uploadLogo(file, currentSlotId || 0);
-
-        if (result.success && result.creativeUrl) {
-          setLogoPreviewUrl(result.creativeUrl);
-          form.setValue('logo', result.creativeUrl);
-          toast.success('Logo uploaded successfully!');
-        } else {
-          toast.error(result.message || 'Failed to upload logo');
-        }
-      } catch (error) {
-        console.error('Logo upload error:', error);
-        toast.error('Failed to upload logo. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+      await uploadLogoFile(file);
+      event.target.value = '';
     }
   };
 
@@ -807,46 +809,41 @@ export function AdForm() {
 
   if (formLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading ad data...</span>
+      <div className="flex items-center justify-center p-12">
+        <VelvetLoader label="Loading ad data" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-[var(--bg-canvas)] transition-colors duration-200">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Modern Header */}
+        {/* Velvet Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="velvet-surface p-5"
         >
-          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <Button
-                variant="outline"
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <VelvetBackButton
+                label="Back"
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-                className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4 text-gray-700 dark:text-gray-200 mr-1.5" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Back</span>
-              </Button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              />
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-1)]">
                   {isEditMode ? 'Edit Ad' : 'Create New Ad'}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-                  for campaign <span className="font-semibold text-purple-600 dark:text-purple-400">{campaignName}</span>
+                <p className="text-xs text-[var(--text-3)] mt-0.5">
+                  for campaign <span className="font-semibold text-[var(--indigo-500)]">{campaignName}</span>
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-lg text-xs sm:text-sm font-medium">
+            <div className="flex items-center">
+              <span className="velvet-chip">
                 {isEditMode ? 'Edit Mode' : 'Create Mode'}
-              </div>
+              </span>
             </div>
           </div>
         </motion.div>
@@ -866,12 +863,12 @@ export function AdForm() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-                  <h3 className="text-xl font-semibold text-white flex items-center">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                      <Target className="h-4 w-4" />
-                    </div>
+              <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                  <div className="metric-icon-tone metric-icon-tone--violet !static">
+                    <Target className="h-4 w-4" />
+                  </div>
+                  <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
                     Ad Details
                   </h3>
                 </div>
@@ -943,7 +940,7 @@ export function AdForm() {
                               setSlotFilterPlatform(value === "all" ? undefined : parseInt(value));
                             }}
                           >
-                            <SelectTrigger className="transition-shadow duration-200 focus:shadow-md">
+                            <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200">
                               <SelectValue placeholder="All Platforms" />
                             </SelectTrigger>
                             <SelectContent>
@@ -966,7 +963,7 @@ export function AdForm() {
                             value={field.value?.toString() || ""}
                           >
                             <FormControl>
-                              <SelectTrigger className="transition-shadow duration-200 focus:shadow-md">
+                              <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200">
                                 <SelectValue placeholder="Select a slot" />
                               </SelectTrigger>
                             </FormControl>
@@ -1108,18 +1105,16 @@ export function AdForm() {
                           </Button>
                         </div>
                       ) : (
-                        <label className="border-2 border-dashed border-green-300 dark:border-green-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
-                          <Upload className="h-6 w-6 text-green-500" />
-                          <p className="text-sm text-green-600 dark:text-green-400 text-center font-medium">
-                            Upload Logo
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleLogoFileChange}
+                        <div className="w-full max-w-md rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700">
+                          <FileUpload
+                            maxFiles={1}
+                            accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'] }}
+                            onChange={(files) => {
+                              if (files[0]) void uploadLogoFile(files[0]);
+                            }}
+                            className="p-2"
                           />
-                        </label>
+                        </div>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1149,7 +1144,7 @@ export function AdForm() {
                                 e.preventDefault();
                               }
                             }}
-                            className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                            className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                           />
                         </FormControl>
                         <FormDescription className="text-gray-500 dark:text-gray-400">
@@ -1181,7 +1176,7 @@ export function AdForm() {
                                 e.preventDefault();
                               }
                             }}
-                            className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                            className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                           />
                         </FormControl>
                         <FormDescription className="text-gray-500 dark:text-gray-400">
@@ -1213,7 +1208,7 @@ export function AdForm() {
                                   e.preventDefault();
                                 }
                               }}
-                              className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                              className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                             />
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                               <div
@@ -1242,7 +1237,7 @@ export function AdForm() {
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                            <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200">
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
@@ -1455,16 +1450,14 @@ export function AdForm() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-white flex items-center">
-                      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                        <Settings className="h-4 w-4" />
-                      </div>
-                      Targeting & Audience
-                    </h3>
+              <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-visible">
+                <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                  <div className="metric-icon-tone metric-icon-tone--plum !static">
+                    <Settings className="h-4 w-4" />
                   </div>
+                  <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
+                    Targeting & Audience
+                  </h3>
                 </div>
                 <div className="p-6 space-y-6">
 
@@ -1535,7 +1528,7 @@ export function AdForm() {
                                 value={field.value}
                                 disabled={form.watch('noSpecificity')}
                               >
-                                <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                                <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200">
                                   <SelectValue placeholder={form.watch('noSpecificity') ? "All Genders (No Specificity)" : "Select gender"} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1635,9 +1628,10 @@ export function AdForm() {
                           <motion.div
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs font-medium"
+                            className="velvet-chip"
                           >
-                            🎯 Focus Here!
+                            <Target className="h-3 w-3" />
+                            Focus here
                           </motion.div>
                         )}
                       </div>
@@ -1688,7 +1682,7 @@ export function AdForm() {
                                         }
                                       }}
                                       disabled={form.watch('noSpecificity')}
-                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                      className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -1718,7 +1712,7 @@ export function AdForm() {
                                         }
                                       }}
                                       disabled={form.watch('noSpecificity')}
-                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                      className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -1824,12 +1818,12 @@ export function AdForm() {
               </Card>
             </motion.div>
 
-            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
-                <h3 className="text-xl font-semibold text-white flex items-center">
-                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                    <Target className="h-3 w-3" />
-                  </div>
+            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                <div className="metric-icon-tone metric-icon-tone--teal !static">
+                  <Target className="h-4 w-4" />
+                </div>
+                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
                   Tracking & Pixels
                 </h3>
               </div>
@@ -1899,13 +1893,13 @@ export function AdForm() {
               </div>
             </Card>
 
-            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-6">
-                <h3 className="text-xl font-semibold text-white flex items-center">
-                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                    <Settings className="h-3 w-3" />
-                  </div>
-                  Other Details (Optional)
+            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                <div className="metric-icon-tone metric-icon-tone--violet !static">
+                  <Settings className="h-4 w-4" />
+                </div>
+                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
+                  Other Details <span className="text-[var(--text-3)] font-normal">(Optional)</span>
                 </h3>
               </div>
               <div className="p-8 space-y-6">
@@ -1927,7 +1921,7 @@ export function AdForm() {
                           newFields[index].key = e.target.value;
                           setOtherDetailsFields(newFields);
                         }}
-                        className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                       />
                     </div>
                     <div className="flex items-end gap-2">
@@ -1941,7 +1935,7 @@ export function AdForm() {
                             newFields[index].value = e.target.value;
                             setOtherDetailsFields(newFields);
                           }}
-                          className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                          className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
                         />
                       </div>
                       {otherDetailsFields.length > 1 && (
@@ -1981,12 +1975,12 @@ export function AdForm() {
               </div>
             </Card>
 
-            <Card className="backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30 shadow-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6">
-                <h3 className="text-xl font-semibold text-white flex items-center">
-                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                    <CalendarIcon className="h-3 w-3" />
-                  </div>
+            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                <div className="metric-icon-tone metric-icon-tone--accent !static">
+                  <CalendarIcon className="h-4 w-4" />
+                </div>
+                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
                   Scheduling
                 </h3>
               </div>
@@ -2186,12 +2180,21 @@ export function AdForm() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700"
+              className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-[var(--line)]"
             >
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
+                disabled={loading}
+                className="w-full sm:w-auto px-6 h-11 rounded-xl border-[var(--line)] text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] transition-all duration-200 order-2 sm:order-1"
+              >
+                Cancel
+              </Button>
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-8 py-3 h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed order-1"
+                className="w-full sm:w-auto px-8 h-11 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white font-semibold shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 order-1 sm:order-2"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
@@ -2199,19 +2202,10 @@ export function AdForm() {
                     Saving...
                   </span>
                 ) : (
-                  <>
+                  <span className="flex items-center gap-2">
                     {isEditMode ? 'Update Ad' : 'Create Ad'}
-                  </>
+                  </span>
                 )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-                disabled={loading}
-                className="w-full sm:w-auto px-6 py-3 h-11 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 order-2"
-              >
-                Cancel
               </Button>
             </motion.div>
           </form>

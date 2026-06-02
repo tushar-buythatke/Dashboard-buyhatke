@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
 import { toast } from 'sonner';
 import { Ad, Slot, ApiAd, mapApiAdToAd, CategoryPath } from '@/types';
 import { motion } from 'framer-motion';
@@ -13,9 +14,114 @@ import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
+import { PageHeader } from '@/components/ui/page-header';
+import { MetricCard } from '@/components/ui/metric-card';
+import { cn } from '@/lib/utils';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
+
+const easeOut = [0.22, 1, 0.36, 1] as const;
+
+/** Velvet section panel — tinted icon chip + mono label header, gradient hairline via .velvet-panel */
+function SectionPanel({
+  icon,
+  title,
+  aside,
+  delay = 0,
+  children,
+  className,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  aside?: React.ReactNode;
+  delay?: number;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay, ease: easeOut }}
+      className={cn('velvet-panel velvet-micro-shadow overflow-hidden', className)}
+    >
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tint)] text-[var(--indigo-400)]">
+            {icon}
+          </span>
+          <h3 className="page-eyebrow !mb-0 !text-[11px] text-[var(--text-2)]">{title}</h3>
+        </div>
+        {aside}
+      </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </motion.section>
+  );
+}
+
+/** Small labelled value used inside detail sections */
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="metric-label">{label}</div>
+      <div className="mt-1 text-sm font-semibold tracking-tight text-[var(--text-1)]">{children}</div>
+    </div>
+  );
+}
+
+/** Code block for pixel/landing URLs with a "copy to clipboard" affordance. */
+function CodeField({ label, value }: { label: string; value?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopied(false), 1600);
+    } catch (err) {
+      toast.error('Copy failed — try selecting manually');
+    }
+  };
+
+  const hasValue = !!value && value.trim().length > 0;
+
+  return (
+    <div>
+      <div className="metric-label flex items-center gap-1.5">
+        <Code2 className="h-3 w-3" />
+        {label}
+      </div>
+      <div className="panel-inset relative mt-1.5 group/code">
+        <p className="break-all font-mono text-[11.5px] leading-relaxed text-[var(--text-2)] pr-9 pl-3 py-2.5">
+          {hasValue ? value : <span className="text-[var(--text-3)] italic">Not configured</span>}
+        </p>
+        {hasValue && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            aria-label="Copy to clipboard"
+            className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md
+                       text-[var(--text-3)] opacity-0 group-hover/code:opacity-100
+                       hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]
+                       transition-all duration-200"
+          >
+            {copied ? <Check className="h-3 w-3 text-[var(--pos)]" /> : <Copy className="h-3 w-3" />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Deep-violet category tag pill — for category filters and target tags. */
+const tagPill =
+  'inline-flex items-center gap-1 rounded-full bg-purple-100/60 dark:bg-[var(--bg-tint)] px-2.5 py-1 text-[11.5px] font-medium text-purple-900 dark:text-[var(--indigo-400)] border border-purple-200/40 dark:border-[var(--line-violet)]';
+
+const chip =
+  'inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--bg-panel-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-1)]';
 
 export function AdDetail() {
   const { campaignId, adId } = useParams<{ campaignId: string; adId: string }>();
@@ -273,8 +379,8 @@ export function AdDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-strong)] border-t-[var(--indigo-500)]" />
       </div>
     );
   }
@@ -282,248 +388,209 @@ export function AdDetail() {
   if (error || !ad) {
     return (
       <div className="p-4 sm:p-6">
-        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error || 'Ad not found'}</span>
+        <div className="panel border-[var(--neg)]/30 px-4 py-3 text-sm" role="alert">
+          <strong className="font-semibold text-[var(--neg)]">Error: </strong>
+          <span className="text-[var(--text-2)]">{error || 'Ad not found'}</span>
         </div>
       </div>
     );
   }
 
+  const statusBadge =
+    ad.status === 1 ? (
+      <StatusPill status="live" label="Active" />
+    ) : ad.status === 0 ? (
+      <StatusPill status="paused" label="Paused" />
+    ) : (
+      <StatusPill status="draft" label="Draft" />
+    );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
-        >
-          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-                className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4 text-gray-700 dark:text-gray-200 mr-1.5" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Back</span>
-              </Button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {ad.name}
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-                  {campaign?.brandName || 'Campaign'} • Ad #{ad.adId}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-              <Badge
-                variant={ad.status === 1 ? 'success' : 'outline'}
-                className={`font-medium text-center ${ad.status === 1
-                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
-                  : ad.status === 0
-                    ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700'
-                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
-                  }`}
-              >
-                {ad.status === 1 ? 'Active' : ad.status === 0 ? 'Paused' : 'Draft'}
-              </Badge>
-
-              <div className="flex space-x-2">
-                {canEdit && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
-                      className="flex items-center space-x-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span>Edit</span>
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCloneAd}
-                      className="flex items-center space-x-2"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Clone</span>
-                    </Button>
-                  </>
-                )}
-
+    <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
+      {/* Header */}
+      <PageHeader
+        crumbs={
+          <VelvetBackButton
+            label="Back to ads"
+            onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
+          />
+        }
+        eyebrow={`${campaign?.brandName || 'Campaign'} · Ad #${ad.adId}`}
+        title={ad.name}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadge}
+            {canEdit && (
+              <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleExport}
-                  className="flex items-center space-x-2"
+                  onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
+                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Export</span>
+                  <Edit className="h-3.5 w-3.5" />
+                  Edit
                 </Button>
-
-                {canEdit && (
-                  <>
-                    {ad.status === 1 ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStatusChange(0)}
-                        className="flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
-                      >
-                        <Pause className="h-4 w-4" />
-                        <span>Pause</span>
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStatusChange(1)}
-                        className="flex items-center space-x-2 text-green-600 border-green-300 hover:bg-green-50"
-                      >
-                        <Play className="h-4 w-4" />
-                        <span>Activate</span>
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCloneAd}
+                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Clone
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+            {canEdit &&
+              (ad.status === 1 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange(0)}
+                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--warn)] hover:bg-[var(--bg-tint)]"
+                >
+                  <Pause className="h-3.5 w-3.5" />
+                  Pause
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => handleStatusChange(1)}
+                  className="btn-velvet h-8 gap-1.5 rounded-lg px-3 text-xs"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Activate
+                </Button>
+              ))}
           </div>
-        </motion.div>
+        }
+      />
 
-        {/* Key Metrics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+      {/* Targets */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MetricCard
+          label="Impression target"
+          value={ad.impressionTarget}
+          tone="violet"
+          icon={<Eye className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Click target"
+          value={ad.clickTarget}
+          tone="accent"
+          icon={<MousePointerClick className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Target CTR"
+          value={
+            ad.impressionTarget > 0
+              ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2)
+              : '0.00'
+          }
+          unit="%"
+          tone="plum"
+          icon={<TrendingUp className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Priority"
+          value={ad.priority}
+          tone="accent"
+          icon={<BarChart3 className="h-4 w-4" />}
+        />
+      </div>
+
+      {/* Live Performance */}
+      <SectionPanel
+        icon={<TrendingUp className="h-3.5 w-3.5" />}
+        title="Live performance"
+        aside={
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-3)]">
+            <span className="live-dot" />
+            since launch
+          </span>
+        }
+        delay={0.06}
+      >
+        <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+          <Field label="Impressions">
+            <span className="text-lg tabular-nums">{liveMetrics?.impressions?.toLocaleString() ?? '0'}</span>
+          </Field>
+          <Field label="Clicks">
+            <span className="text-lg tabular-nums">{liveMetrics?.clicks?.toLocaleString() ?? '0'}</span>
+          </Field>
+          <Field label="CTR">
+            <span className="text-lg tabular-nums">
+              {liveMetrics && liveMetrics.impressions > 0
+                ? `${((liveMetrics.clicks / liveMetrics.impressions) * 100).toFixed(2)}%`
+                : '0.00%'}
+            </span>
+          </Field>
+          <Field label="Landing">
+            <span className="text-lg tabular-nums">{liveMetrics?.landingCount?.toLocaleString() ?? '0'}</span>
+          </Field>
+        </div>
+      </SectionPanel>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Creative & Slot Details */}
+        <SectionPanel
+          icon={<ImageIcon className="h-3.5 w-3.5" />}
+          title="Creative & slot"
+          delay={0.1}
         >
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
+          <div className="space-y-5">
+            <Field label="Ad name">{ad.name}</Field>
+
+            {/* Logo */}
+            {ad.logo && (
               <div>
-                <p className="text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-medium">Impression Target</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">{ad.impressionTarget.toLocaleString()}</p>
-              </div>
-              <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-medium">Click Target</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-900 dark:text-green-100">{ad.clickTarget.toLocaleString()}</p>
-              </div>
-              <MousePointerClick className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-600 dark:text-purple-400 text-xs sm:text-sm font-medium">Target CTR</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
-                  {ad.impressionTarget > 0
-                    ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) + '%'
-                    : '0.00%'}
-                </p>
-              </div>
-              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-600 dark:text-orange-400 text-xs sm:text-sm font-medium">Priority</p>
-                <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{ad.priority}</p>
-              </div>
-              <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 dark:text-orange-400" />
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Live Metrics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        >
-          <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                <TrendingUp className="h-5 w-5 mr-3" />
-                Live Performance
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 grid grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Impressions</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {liveMetrics?.impressions?.toLocaleString() ?? '0'}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Clicks</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {liveMetrics?.clicks?.toLocaleString() ?? '0'}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">CTR</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {liveMetrics && liveMetrics.impressions > 0
-                    ? `${((liveMetrics.clicks / liveMetrics.impressions) * 100).toFixed(2)}%`
-                    : '0.00%'}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Landing</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {liveMetrics?.landingCount?.toLocaleString() ?? '0'}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Creative & Basic Details */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <ImageIcon className="h-5 w-5 mr-3" />
-                  Creative & Slot Details
-                </h3>
-              </div>
-              <div className="p-4 sm:p-6 space-y-6">
-                {/* Ad Name */}
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Ad Name</h4>
-                  <p className="text-blue-700 dark:text-blue-300 font-medium text-lg">{ad.name}</p>
+                <div className="metric-label">Logo</div>
+                <div className="panel-inset mt-1.5 flex justify-center p-3">
+                  <img
+                    src={getCacheBustedUrl(ad.logo)}
+                    alt="Ad logo"
+                    className="max-h-20 rounded-lg object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.dataset.fallback) {
+                        target.dataset.fallback = 'true';
+                        target.src = PLACEHOLDER_IMAGE;
+                      }
+                    }}
+                  />
                 </div>
+              </div>
+            )}
 
-                {/* Logo */}
-                {ad.logo && (
-                  <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Logo</h4>
-                    <div className="flex justify-center">
+            {/* Creative Image/Video */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="panel-inset flex h-60 w-full max-w-sm items-center justify-center overflow-hidden p-2">
+                {ad.creativeUrl ? (
+                  (() => {
+                    const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
+                    return isVideo ? (
+                      <video
+                        src={getCacheBustedUrl(ad.creativeUrl)}
+                        controls
+                        className="max-h-full max-w-full rounded-lg"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
                       <img
-                        src={getCacheBustedUrl(ad.logo)}
-                        alt="Ad logo"
-                        className="max-h-24 object-contain rounded-lg border border-gray-200 dark:border-gray-600"
+                        src={getCacheBustedUrl(ad.creativeUrl)}
+                        alt="Ad creative"
+                        className="max-h-full max-w-full rounded-lg object-contain"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           if (!target.dataset.fallback) {
@@ -532,603 +599,426 @@ export function AdDetail() {
                           }
                         }}
                       />
-                    </div>
-                  </div>
-                )}
-
-                {/* Creative Image/Video */}
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-full max-w-sm h-64 flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    {ad.creativeUrl ? (
-                      (() => {
-                        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
-                        return isVideo ? (
-                          <video
-                            src={getCacheBustedUrl(ad.creativeUrl)}
-                            controls
-                            className="max-w-full max-h-full rounded-lg"
-                          >
-                            Your browser does not support the video tag.
-                          </video>
-                        ) : (
-                          <img
-                            src={getCacheBustedUrl(ad.creativeUrl)}
-                            alt="Ad creative"
-                            className="max-w-full max-h-full object-contain rounded-lg"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              if (!target.dataset.fallback) {
-                                target.dataset.fallback = 'true';
-                                target.src = PLACEHOLDER_IMAGE;
-                              }
-                            }}
-                          />
-                        );
-                      })()
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                        <ImageIcon className="h-12 w-12 mb-2" />
-                        <span className="text-sm font-medium">No Creative</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {slot && (
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{slot.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {slot.width} x {slot.height} pixels
-                      </p>
-                      <div className="mt-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {getPlatformName(slot.platform)}
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Serve Strategy */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Serve Strategy
-                  </h4>
-                  <Badge
-                    className={`${ad.serveStrategy === 1
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700'
-                      : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700'
-                      }`}
-                  >
-                    {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
-                  </Badge>
-                </div>
-
-                {/* Model Type */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                    <Zap className="h-4 w-4 mr-2 text-purple-500" />
-                    Model Type
-                  </h4>
-                  <Badge
-                    className={`${ad.isModelType === 1
-                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
-                      }`}
-                  >
-                    {ad.isModelType === 1 ? 'Model Type Ad' : 'Standard Ad'}
-                  </Badge>
-                </div>
-
-                {/* Test Phase */}
-                {ad.isTestPhase === 1 && (
-                  <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                    <p className="text-emerald-800 dark:text-emerald-200 font-medium">
-                      🧪 This ad is in test phase
-                    </p>
+                    );
+                  })()
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-[var(--text-3)]">
+                    <ImageIcon className="mb-2 h-10 w-10 opacity-60" />
+                    <span className="text-xs font-medium">No creative</span>
                   </div>
                 )}
               </div>
-            </Card>
-          </motion.div>
 
-          {/* Scheduling */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-green-600 to-teal-600 p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Calendar className="h-5 w-5 mr-3" />
-                  Scheduling
-                </h3>
-              </div>
-              <div className="p-4 sm:p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {formatDate(ad.startDate)}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {formatDate(ad.endDate)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                      {formatTime(ad.startTime)}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                      {formatTime(ad.endTime)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Targeting Details */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                <Target className="h-5 w-5 mr-3" />
-                Targeting & Audience
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Demographics */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    Demographics
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
-                      <p className="text-gray-900 dark:text-gray-100">{ad.gender || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Age Range</label>
-                      <p className="text-gray-900 dark:text-gray-100">{ad.ageRangeMin} - {ad.ageRangeMax} years</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Price Range */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                    <Banknote className="h-4 w-4 mr-2" />
-                    Price Range
-                  </h4>
-                  <div>
-                    <p className="text-gray-900 dark:text-gray-100">
-                      ₹{ad.priceRangeMin.toLocaleString()} - ₹{ad.priceRangeMax.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Locations */}
-                {(() => {
-                  const locations = ad.location;
-                  if (!locations || (typeof locations === 'object' && Object.keys(locations).length === 0)) return null;
-
-                  if (Array.isArray(locations)) {
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          Locations
-                        </h4>
-                        <div className="space-y-2">
-                          {locations.map((loc: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center">
-                              <span className="text-gray-900 dark:text-gray-100">
-                                {typeof loc === 'object' ? (loc.name || loc.catName || JSON.stringify(loc)) : loc}
-                              </span>
-                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Locations
-                      </h4>
-                      <div className="space-y-2">
-                        {Object.entries(locations).map(([location, priority]) => (
-                          <div key={location} className="flex justify-between items-center">
-                            <span className="text-gray-900 dark:text-gray-100">{location}</span>
-                            <Badge variant="outline" className="text-xs">
-                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Categories */}
-                {(() => {
-                  const categories = ad.categories;
-
-                  if (!categories) return null;
-
-                  const isNewFormat = typeof categories === 'object' && 'selections' in categories;
-
-                  if (isNewFormat) {
-                    const categoryPath = categories as CategoryPath;
-                    if (!categoryPath.selections || categoryPath.selections.length === 0) return null;
-
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <Tag className="h-4 w-4 mr-2" />
-                          Categories ({categoryPath.selections.length} selected)
-                        </h4>
-
-                        <div className="space-y-3">
-                          {categoryPath.selections.map((selection, index) => (
-                            <div key={`${selection.selected.catId}-${index}`} className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
-                              {/* Selected Category Badge */}
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium">
-                                  Selected: {String(selection.selected.catName)}
-                                </Badge>
-                              </div>
-
-                              {/* Full Path */}
-                              <div className="flex items-center gap-2 flex-wrap text-sm">
-                                <span className="text-gray-600 dark:text-gray-400 font-medium">Path:</span>
-                                {selection.path.map((cat, idx) => (
-                                  <React.Fragment key={`${cat.catId}-${idx}`}>
-                                    <Badge
-                                      variant="outline"
-                                      className={idx === selection.path.length - 1
-                                        ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 font-semibold"
-                                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                      }
-                                    >
-                                      {String(cat.catName)}
-                                    </Badge>
-                                    {idx < selection.path.length - 1 && (
-                                      <span className="text-gray-400">→</span>
-                                    )}
-                                  </React.Fragment>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  } else if (Array.isArray(categories)) {
-                    // Array of objects format
-                    if (categories.length === 0) return null;
-
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <Tag className="h-4 w-4 mr-2" />
-                          Categories
-                        </h4>
-
-                        <div className="flex flex-wrap gap-2">
-                          {categories.map((cat: any) => (
-                            <div
-                              key={cat.catId}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
-                            >
-                              <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
-                                {cat.catId}
-                              </Badge>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{cat.catName}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  } else if (typeof categories === 'object' && 'ln' in categories && Array.isArray((categories as any).ln)) {
-                    // { l0: [], ln: [...] } format
-                    const lnCategories = (categories as any).ln;
-                    if (lnCategories.length === 0) return null;
-
-                    // Constants for show more/less
-                    const INITIAL_DISPLAY_COUNT = 12;
-                    const hasMoreCategories = lnCategories.length > INITIAL_DISPLAY_COUNT;
-                    const displayedCategories = showAllCategories ? lnCategories : lnCategories.slice(0, INITIAL_DISPLAY_COUNT);
-
-                    return (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                            <Tag className="h-4 w-4 mr-2" />
-                            Categories
-                          </h4>
-                          <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                            {lnCategories.length} selected
-                          </Badge>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          {displayedCategories.map((cat: any, idx: number) => (
-                            <motion.div
-                              key={cat.catId}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: idx * 0.02 }}
-                            >
-                              <Badge
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 text-sm font-medium shadow-sm hover:shadow-md transition-all cursor-default"
-                              >
-                                {cat.catName}
-                              </Badge>
-                            </motion.div>
-                          ))}
-                        </div>
-
-                        {hasMoreCategories && (
-                          <div className="flex justify-center pt-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowAllCategories(!showAllCategories)}
-                              className="text-sm"
-                            >
-                              {showAllCategories ? (
-                                <>
-                                  Show Less
-                                  <ChevronRight className="h-4 w-4 ml-1 -rotate-90" />
-                                </>
-                              ) : (
-                                <>
-                                  Show {lnCategories.length - INITIAL_DISPLAY_COUNT} More
-                                  <ChevronRight className="h-4 w-4 ml-1 rotate-90" />
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  } else {
-                    // {catId: catName} format
-                    const categoryMap = categories as unknown as Record<number, string>;
-                    if (Object.keys(categoryMap).length === 0) return null;
-
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <Tag className="h-4 w-4 mr-2" />
-                          Categories
-                        </h4>
-
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(categoryMap).map(([catId, catName]) => (
-                            <div
-                              key={catId}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
-                            >
-                              <Badge variant="secondary" className="text-xs font-mono bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100">
-                                {catId}
-                              </Badge>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {typeof catName === 'object' ? JSON.stringify(catName) : catName}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                })()}
-
-                {/* Sites */}
-                {(() => {
-                  const sites = ad.sites;
-                  if (!sites || (typeof sites === 'object' && Object.keys(sites).length === 0)) return null;
-
-                  if (Array.isArray(sites)) {
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <Globe className="h-4 w-4 mr-2" />
-                          Sites
-                        </h4>
-                        <div className="space-y-2">
-                          {sites.map((site: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center">
-                              <span className="text-gray-900 dark:text-gray-100">
-                                {typeof site === 'object' ? (site.name || site.catName || JSON.stringify(site)) : site}
-                              </span>
-                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                        <Globe className="h-4 w-4 mr-2" />
-                        Sites
-                      </h4>
-                      <div className="space-y-2">
-                        {Object.entries(sites).map(([site, priority]) => (
-                          <div key={site} className="flex justify-between items-center">
-                            <span className="text-gray-900 dark:text-gray-100">{site}</span>
-                            <Badge variant="outline" className="text-xs">
-                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Brand Targets */}
-                {(() => {
-                  const brandTargets = ad.brandTargets;
-                  if (!brandTargets || (typeof brandTargets === 'object' && Object.keys(brandTargets).length === 0)) return null;
-
-                  if (Array.isArray(brandTargets)) {
-                    return (
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <Target className="h-4 w-4 mr-2" />
-                          Brand Targets
-                        </h4>
-                        <div className="space-y-2">
-                          {brandTargets.map((brand: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center">
-                              <span className="text-gray-900 dark:text-gray-100">
-                                {typeof brand === 'object' ? (brand.name || brand.brandName || brand.catName || JSON.stringify(brand)) : brand}
-                              </span>
-                              <Badge variant="outline" className="text-xs">Priority: N/A</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                        <Target className="h-4 w-4 mr-2" />
-                        Brand Targets
-                      </h4>
-                      <div className="space-y-2">
-                        {Object.entries(brandTargets).map(([brand, priority]) => (
-                          <div key={brand} className="flex justify-between items-center">
-                            <span className="text-gray-900 dark:text-gray-100">{brand}</span>
-                            <Badge variant="outline" className="text-xs">
-                              Priority: {typeof priority === 'object' ? JSON.stringify(priority) : priority}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Tracking & Pixels */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                <BarChart3 className="h-5 w-5 mr-3" />
-                Tracking & Pixels
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Impression Pixel URL</label>
-                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-900 dark:text-gray-100 break-all">
-                      {ad.impressionPixel || 'Not configured'}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Click Pixel URL</label>
-                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-900 dark:text-gray-100 break-all">
-                      {ad.clickPixel || 'Not configured'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Landing URL</label>
-                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-sm text-gray-900 dark:text-gray-100 break-all">
-                    {ad.targetUrl || 'Not configured'}
+              {slot && (
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-[var(--text-1)]">{slot.name}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-[var(--text-3)]">
+                    {slot.width} × {slot.height} px · {getPlatformName(slot.platform)}
                   </p>
                 </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="panel-inset p-3.5">
+                <div className="metric-label flex items-center gap-1.5">
+                  <Settings className="h-3 w-3" />
+                  Serve strategy
+                </div>
+                <p className="mt-1.5 text-[13px] font-medium text-[var(--text-1)]">
+                  {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
+                </p>
+              </div>
+              <div className="panel-inset p-3.5">
+                <div className="metric-label flex items-center gap-1.5">
+                  <Zap className="h-3 w-3" />
+                  Model type
+                </div>
+                <p className="mt-1.5 text-[13px] font-medium text-[var(--text-1)]">
+                  {ad.isModelType === 1 ? 'Model type ad' : 'Standard ad'}
+                </p>
               </div>
             </div>
-          </Card>
-        </motion.div>
 
-        {/* Other Details */}
-        {ad.otherDetails && Object.keys(ad.otherDetails).length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-4 sm:p-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Settings className="h-5 w-5 mr-3" />
-                  Other Details
-                </h3>
+            {ad.isTestPhase === 1 && (
+              <div className="panel-inset flex items-center gap-2 border-[var(--line-violet)] p-3.5">
+                <span className="live-dot" />
+                <p className="text-[13px] font-medium text-[var(--text-1)]">This ad is in test phase</p>
               </div>
-              <div className="p-4 sm:p-6">
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <pre className="text-sm text-gray-900 dark:text-gray-100 overflow-x-auto whitespace-pre-wrap font-mono">
-                    {JSON.stringify(ad.otherDetails, null, 2).replace(/\\\\n/g, '\\n')}
-                  </pre>
-                </div>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(ad.otherDetails).map(([key, value]) => (
-                    <div key={key} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                      <label className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
-                        {key}
-                      </label>
-                      <p className="mt-1 text-sm text-gray-800 dark:text-gray-200 break-words whitespace-pre-wrap font-medium">
-                        {typeof value === 'object' ? JSON.stringify(value, null, 2).replace(/\\\\n/g, '\\n') : String(value).replace(/\\n/g, '\n')}
-                      </p>
+            )}
+          </div>
+        </SectionPanel>
+
+        {/* Scheduling */}
+        <SectionPanel
+          icon={<Calendar className="h-3.5 w-3.5" />}
+          title="Scheduling"
+          delay={0.14}
+          className="h-fit"
+        >
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+            <Field label="Start date">{formatDate(ad.startDate)}</Field>
+            <Field label="End date">{formatDate(ad.endDate)}</Field>
+            <Field label="Start time">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                {formatTime(ad.startTime)}
+              </span>
+            </Field>
+            <Field label="End time">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                {formatTime(ad.endTime)}
+              </span>
+            </Field>
+          </div>
+        </SectionPanel>
+      </div>
+
+      {/* Targeting Details */}
+      <SectionPanel
+        icon={<Target className="h-3.5 w-3.5" />}
+        title="Targeting & audience"
+        delay={0.18}
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Demographics */}
+          <div className="space-y-4">
+            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+              <Users className="h-3.5 w-3.5 text-[var(--text-3)]" />
+              Demographics
+            </h4>
+            <div className="space-y-4">
+              <Field label="Gender">{ad.gender || 'Not specified'}</Field>
+              <Field label="Age range">{ad.ageRangeMin} – {ad.ageRangeMax} years</Field>
+            </div>
+          </div>
+
+          {/* Price Range */}
+          <div className="space-y-4">
+            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+              <Banknote className="h-3.5 w-3.5 text-[var(--text-3)]" />
+              Price range
+            </h4>
+            <p className="text-sm font-semibold tabular-nums text-[var(--text-1)]">
+              ₹{ad.priceRangeMin.toLocaleString()} – ₹{ad.priceRangeMax.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Locations */}
+          {(() => {
+            const locations = ad.location;
+            if (!locations || (typeof locations === 'object' && Object.keys(locations).length === 0)) return null;
+
+            const rows = Array.isArray(locations)
+              ? locations.map((loc: any, idx: number) => ({
+                  key: idx,
+                  name: typeof loc === 'object' ? (loc.name || loc.catName || JSON.stringify(loc)) : loc,
+                  priority: 'N/A',
+                }))
+              : Object.entries(locations).map(([location, priority]) => ({
+                  key: location,
+                  name: location,
+                  priority: typeof priority === 'object' ? JSON.stringify(priority) : String(priority),
+                }));
+
+            return (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                  <MapPin className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  Locations
+                </h4>
+                <div className="space-y-2">
+                  {rows.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </Card>
-          </motion.div>
-        )}
-      </div>
+            );
+          })()}
+
+          {/* Categories */}
+          {(() => {
+            const categories = ad.categories;
+
+            if (!categories) return null;
+
+            const isNewFormat = typeof categories === 'object' && 'selections' in categories;
+
+            if (isNewFormat) {
+              const categoryPath = categories as CategoryPath;
+              if (!categoryPath.selections || categoryPath.selections.length === 0) return null;
+
+              return (
+                <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                    Categories
+                    <span className="font-mono text-[11px] font-normal text-[var(--text-3)]">
+                      {categoryPath.selections.length} selected
+                    </span>
+                  </h4>
+
+                  <div className="space-y-2.5">
+                    {categoryPath.selections.map((selection, index) => (
+                      <div
+                        key={`${selection.selected.catId}-${index}`}
+                        className="panel-inset p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          {selection.path.map((cat, idx) => (
+                            <React.Fragment key={`${cat.catId}-${idx}`}>
+                              <span
+                                className={cn(
+                                  idx === selection.path.length - 1
+                                    ? 'rounded-md bg-[var(--bg-tint)] px-2 py-0.5 font-semibold text-[var(--indigo-400)]'
+                                    : 'text-[var(--text-2)]'
+                                )}
+                              >
+                                {String(cat.catName)}
+                              </span>
+                              {idx < selection.path.length - 1 && (
+                                <ChevronRight className="h-3 w-3 text-[var(--text-3)]" />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            } else if (Array.isArray(categories)) {
+              // Array of objects format
+              if (categories.length === 0) return null;
+
+              return (
+                <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                    Categories
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((cat: any) => (
+                      <span key={cat.catId} className={tagPill}>
+                        {cat.catName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            } else if (typeof categories === 'object' && 'ln' in categories && Array.isArray((categories as any).ln)) {
+              // { l0: [], ln: [...] } format
+              const lnCategories = (categories as any).ln;
+              if (lnCategories.length === 0) return null;
+
+              // Constants for show more/less
+              const INITIAL_DISPLAY_COUNT = 12;
+              const hasMoreCategories = lnCategories.length > INITIAL_DISPLAY_COUNT;
+              const displayedCategories = showAllCategories ? lnCategories : lnCategories.slice(0, INITIAL_DISPLAY_COUNT);
+
+              return (
+                <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                    Categories
+                    <span className="font-mono text-[11px] font-normal text-[var(--text-3)]">
+                      {lnCategories.length} selected
+                    </span>
+                  </h4>
+
+                  <div className="flex flex-wrap gap-2">
+                    {displayedCategories.map((cat: any, idx: number) => (
+                      <motion.span
+                        key={cat.catId}
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.015, ease: easeOut }}
+                        className={tagPill}
+                      >
+                        {cat.catName}
+                      </motion.span>
+                    ))}
+                  </div>
+
+                  {hasMoreCategories && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="h-7 text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
+                    >
+                      {showAllCategories ? (
+                        <>
+                          Show less
+                          <ChevronRight className="ml-1 h-3.5 w-3.5 -rotate-90" />
+                        </>
+                      ) : (
+                        <>
+                          Show {lnCategories.length - INITIAL_DISPLAY_COUNT} more
+                          <ChevronRight className="ml-1 h-3.5 w-3.5 rotate-90" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              );
+            } else {
+              // {catId: catName} format
+              const categoryMap = categories as unknown as Record<number, string>;
+              if (Object.keys(categoryMap).length === 0) return null;
+
+              return (
+                <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                    Categories
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(categoryMap).map(([catId, catName]) => (
+                      <span key={catId} className={tagPill}>
+                        {typeof catName === 'object' ? JSON.stringify(catName) : catName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+          })()}
+
+          {/* Sites */}
+          {(() => {
+            const sites = ad.sites;
+            if (!sites || (typeof sites === 'object' && Object.keys(sites).length === 0)) return null;
+
+            const rows = Array.isArray(sites)
+              ? sites.map((site: any, idx: number) => ({
+                  key: idx,
+                  name: typeof site === 'object' ? (site.name || site.catName || JSON.stringify(site)) : site,
+                  priority: 'N/A',
+                }))
+              : Object.entries(sites).map(([site, priority]) => ({
+                  key: site,
+                  name: site,
+                  priority: typeof priority === 'object' ? JSON.stringify(priority) : String(priority),
+                }));
+
+            return (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                  <Globe className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  Sites
+                </h4>
+                <div className="space-y-2">
+                  {rows.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Brand Targets */}
+          {(() => {
+            const brandTargets = ad.brandTargets;
+            if (!brandTargets || (typeof brandTargets === 'object' && Object.keys(brandTargets).length === 0)) return null;
+
+            const rows = Array.isArray(brandTargets)
+              ? brandTargets.map((brand: any, idx: number) => ({
+                  key: idx,
+                  name: typeof brand === 'object' ? (brand.name || brand.brandName || brand.catName || JSON.stringify(brand)) : brand,
+                  priority: 'N/A',
+                }))
+              : Object.entries(brandTargets).map(([brand, priority]) => ({
+                  key: brand,
+                  name: brand,
+                  priority: typeof priority === 'object' ? JSON.stringify(priority) : String(priority),
+                }));
+
+            return (
+              <div className="space-y-4">
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
+                  <Target className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  Brand targets
+                </h4>
+                <div className="space-y-2">
+                  {rows.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </SectionPanel>
+
+      {/* Tracking & Pixels */}
+      <SectionPanel
+        icon={<BarChart3 className="h-3.5 w-3.5" />}
+        title="Tracking & pixels"
+        delay={0.22}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <CodeField label="Impression pixel URL" value={ad.impressionPixel} />
+          <CodeField label="Click pixel URL" value={ad.clickPixel} />
+        </div>
+        <div className="mt-4">
+          <CodeField label="Landing URL" value={ad.targetUrl} />
+        </div>
+      </SectionPanel>
+
+      {/* Other Details */}
+      {ad.otherDetails && Object.keys(ad.otherDetails).length > 0 && (
+        <SectionPanel
+          icon={<Settings className="h-3.5 w-3.5" />}
+          title="Other details"
+          delay={0.26}
+        >
+          <div className="panel-inset relative group/json p-4">
+            <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--text-2)] pr-9">
+              {JSON.stringify(ad.otherDetails, null, 2).replace(/\\\\n/g, '\\n')}
+            </pre>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(JSON.stringify(ad.otherDetails, null, 2).replace(/\\\\n/g, '\\n'));
+                  toast.success('Copied to clipboard');
+                } catch {
+                  toast.error('Copy failed');
+                }
+              }}
+              aria-label="Copy JSON"
+              className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md
+                         text-[var(--text-3)] opacity-0 group-hover/json:opacity-100
+                         hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]
+                         transition-all duration-200"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {Object.entries(ad.otherDetails).map(([key, value]) => (
+              <div key={key} className="panel-inset p-3.5">
+                <div className="metric-label">{key}</div>
+                <p className="mt-1 whitespace-pre-wrap break-words text-[13px] font-medium text-[var(--text-1)]">
+                  {typeof value === 'object' ? JSON.stringify(value, null, 2).replace(/\\\\n/g, '\n') : String(value).replace(/\\n/g, '\n')}
+                </p>
+              </div>
+            ))}
+          </div>
+        </SectionPanel>
+      )}
     </div>
   );
-} 
+}

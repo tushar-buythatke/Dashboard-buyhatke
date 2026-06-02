@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Calendar, TrendingUp, Filter, ChevronDown, ChevronUp, BarChart3, PieChart, Table, Tag } from 'lucide-react';
+import { Download, RefreshCw, Calendar, TrendingUp, Filter, BarChart3, Tag, Plane, MapPin, Eye, DollarSign, Inbox, X, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { NoiseButton } from '@/components/ui/noise-button';
 import { Button } from '@/components/ui/button';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -12,6 +14,7 @@ import { TrendChart } from '@/components/analytics/TrendChart';
 import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
 import { ComboChart } from '@/components/analytics/ComboChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
+import { BreakdownModal } from '@/components/analytics/BreakdownModal';
 import { FilterDropdown } from '@/components/analytics/FilterDropdown';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
 import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
@@ -32,6 +35,7 @@ import { adService } from '@/services/adService';
 
 // Utils
 import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
+import { formatCompactNumber, formatSmartPercent, coerceName } from '@/lib/format';
 
 // Types
 import {
@@ -163,9 +167,20 @@ export default function Analytics() {
     location: []
   });
 
+  const [breakdownModal, setBreakdownModal] = useState<{ open: boolean; title: string; data: any[] }>({
+    open: false,
+    title: '',
+    data: []
+  });
+
   // Table data states
   const [topLocations, setTopLocations] = useState<any[]>([]);
   const [topSlotsData, setTopSlotsData] = useState<any[]>([]);
+  const [slotMetrics, setSlotMetrics] = useState<Array<{
+    slotId: number;
+    slotName: string;
+    metrics: MetricsData;
+  }>>([]);
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -551,6 +566,15 @@ export default function Analytics() {
         aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
           (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
+        // Stash per-slot metrics for the "Slot performance" section
+        setSlotMetrics(slotResults
+          .filter((r) => r.metrics)
+          .map((r) => ({
+            slotId: Number(r.slotId),
+            slotName: r.slotName,
+            metrics: r.metrics as MetricsData,
+          })));
+
       } else if (activeView === 'pos') {
         // Use centralized valid POS IDs or default to all
         const posToProcess = validPOSIdsAcrossViews || sites.map(s => s.posId);
@@ -721,6 +745,11 @@ export default function Analytics() {
       setMetricsData(aggregatedMetrics);
       setTrendData(trendSeries);
 
+      // Reset per-slot metrics unless the active view is 'slot' (handled in that branch)
+      if (activeView !== 'slot') {
+        setSlotMetrics([]);
+      }
+
       // Build landing trend directly from trend data (adTrack now included in /metrics/trend)
       try {
         const landingMap = new Map<string, number>();
@@ -872,7 +901,7 @@ export default function Analytics() {
         breakdownDataItems: Object.keys(breakdownData).length
       });
 
-      toast.success('Analytics data fetched successfully!');
+      toast.success('Analytics data fetched', { id: 'analytics-fetch', description: `${trendSeries.length} series · ${aggregatedMetrics.impressions.toLocaleString()} impressions` });
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
@@ -886,6 +915,7 @@ export default function Analytics() {
       setBreakdownData({ gender: [], age: [], platform: [], location: [] });
       setTopLocations([]);
       setTopSlotsData([]);
+      setSlotMetrics([]);
 
     } finally {
       setDataLoading(false);
@@ -947,7 +977,7 @@ export default function Analytics() {
         }
       });
 
-      toast.success('Analytics data exported successfully! 📊');
+      toast.success('Analytics data exported successfully');
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('Failed to export data. Please try again.');
@@ -965,6 +995,78 @@ export default function Analytics() {
 
     return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : 'No filters applied';
   };
+
+  // Active filter chips — each item carries a label, group, and remover callback
+  type FilterChip = { id: string; group: string; label: string; onRemove: () => void };
+  const activeFilterChips: FilterChip[] = useMemo(() => {
+    const chips: FilterChip[] = [];
+    selectedCampaigns.forEach((id) => {
+      const c = campaigns.find((x) => x.campaignId === id);
+      chips.push({
+        id: `campaign-${id}`,
+        group: 'Campaign',
+        label: c?.brandName || `Campaign ${id}`,
+        onRemove: () => setSelectedCampaigns((prev) => prev.filter((v) => v !== id)),
+      });
+    });
+    selectedPlatforms.forEach((id) => {
+      const p = PLATFORM_OPTIONS.find((x) => String(x.value) === String(id));
+      chips.push({
+        id: `platform-${id}`,
+        group: 'Platform',
+        label: p?.label || String(id),
+        onRemove: () => setSelectedPlatforms((prev) => prev.filter((v) => v !== id)),
+      });
+    });
+    selectedSlots.forEach((id) => {
+      const s = filteredSlots.find((x) => x.slotId === id) || slots.find((x) => x.slotId === id);
+      chips.push({
+        id: `slot-${id}`,
+        group: 'Slot',
+        label: s ? getSlotDisplayLabel(s) : `Slot ${id}`,
+        onRemove: () => setSelectedSlots((prev) => prev.filter((v) => v !== id)),
+      });
+    });
+    selectedPOS.forEach((id) => {
+      const s = sites.find((x) => String(x.posId) === String(id));
+      chips.push({
+        id: `pos-${id}`,
+        group: 'Marketplace',
+        label: s?.name || `POS ${id}`,
+        onRemove: () => setSelectedPOS((prev) => prev.filter((v) => v !== id)),
+      });
+    });
+    selectedExactAdNames.forEach((name) => {
+      chips.push({
+        id: `adExact-${name}`,
+        group: 'Ad',
+        label: name,
+        onRemove: () => setSelectedExactAdNames((prev) => prev.filter((v) => v !== name)),
+      });
+    });
+    selectedStartsWithAdNames.forEach((name) => {
+      chips.push({
+        id: `adStarts-${name}`,
+        group: 'Ad',
+        label: `starts: ${name}`,
+        onRemove: () => setSelectedStartsWithAdNames((prev) => prev.filter((v) => v !== name)),
+      });
+    });
+    return chips;
+  }, [
+    selectedCampaigns, selectedPlatforms, selectedSlots, selectedPOS,
+    selectedExactAdNames, selectedStartsWithAdNames,
+    campaigns, filteredSlots, slots, sites,
+  ]);
+
+  function clearAllFilters() {
+    setSelectedCampaigns([]);
+    setSelectedPlatforms([]);
+    setSelectedSlots([]);
+    setSelectedPOS([]);
+    setSelectedExactAdNames([]);
+    setSelectedStartsWithAdNames([]);
+  }
 
   // Transform age bucket data from backend to frontend format
   const transformAgeBucketData = (rawData: any[]): any[] => {
@@ -1042,195 +1144,163 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200 flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce ml-2" style={{ animationDelay: '0.2s' }}></div>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">Loading Analytics Dashboard...</p>
-        </div>
+      <div className="min-h-screen w-full bg-[var(--bg-canvas)] flex items-center justify-center">
+        <VelvetLoader size={36} label="Loading Analytics" />
       </div>
     );
   }
 
+  const filterCount =
+    selectedCampaigns.length +
+    selectedSlots.length +
+    selectedPOS.length +
+    selectedExactAdNames.length +
+    selectedStartsWithAdNames.length;
+
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 transition-all duration-500">
-      {/* Stunning Header with Glassmorphism */}
-      <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 px-4 sm:px-6 py-6 sm:py-8 shadow-lg shadow-blue-500/5">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-pulse"></div>
-
-        <div className="relative max-w-7xl mx-auto">
-          {/* Title Section */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              {/* Enhanced animated dots */}
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/30"></div>
-                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-ping opacity-20"></div>
-                </div>
-                <div className="relative">
-                  <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-pulse delay-150 shadow-lg shadow-blue-500/30"></div>
-                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-ping opacity-20 delay-150"></div>
-                </div>
-                <div className="relative">
-                  <div className="w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-pulse delay-300 shadow-lg shadow-purple-500/30"></div>
-                  <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-ping opacity-20 delay-300"></div>
-                </div>
-              </div>
-
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
-                  Advanced Analytics
-                </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-2 text-base font-medium tracking-wide">
-                  🚀 Your central hub for performance insights
-                </p>
-              </div>
-            </div>
+    <div className="w-full">
+      <div className="max-w-[1480px] mx-auto px-4 sm:px-5 py-4 sm:py-5 space-y-3.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="velvet-section-title !my-0 !before:hidden">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-3)]">Analytics</p>
+            <h1 className="page-display mt-1">
+              <span className="velvet-header-gradient">Advanced</span>{' '}
+              <span className="page-display-serif gradient-text">analytics</span>
+            </h1>
           </div>
-
-          {/* Control Panel - More Spacious */}
-          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-white/40 dark:border-gray-700/40 shadow-xl p-6 mb-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
-              {/* View Selector */}
-              <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  📊 View Type
-                </label>
-                <Select value={activeView} onValueChange={(value) => setActiveView(value as any)}>
-                  <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                    <SelectValue placeholder="Select View" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
-                    <SelectItem value="campaign" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📈 Campaign wise</SelectItem>
-                    <SelectItem value="slot" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🎯 Slots wise</SelectItem>
-                    <SelectItem value="ad" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">📝 Ads wise</SelectItem>
-                    <SelectItem value="pos" className="hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg m-1 transition-all duration-200">🏪 POS wise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Date Range Picker */}
-              <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  📅 Date Range
-                </label>
-                <div className="h-11 flex items-center px-3 text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl relative z-50">
-                  <DateRangePicker />
-                </div>
-              </div>
-
-              {/* Data Grouping */}
-              <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  ⏱️ Data Grouping
-                </label>
-                <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
-                  <SelectTrigger className="h-11 w-full text-sm font-medium border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                    <SelectValue placeholder="Select Grouping" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-900 backdrop-blur-xl border border-gray-200 dark:border-gray-700 shadow-2xl rounded-xl z-[60]">
-                    <SelectItem value="1d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📅 Daily (1d)</SelectItem>
-                    <SelectItem value="7d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📊 Weekly (7d)</SelectItem>
-                    <SelectItem value="30d" className="hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded-lg m-1 transition-all duration-200">📈 Monthly (30d)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="lg:col-span-3 xl:col-span-2 flex flex-wrap items-end gap-3">
-                {/* Main Fetch Button */}
-                <div className="flex-1 min-w-[140px]">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    🚀 Actions
-                  </label>
-                  <Button
-                    onClick={fetchAnalyticsData}
-                    disabled={dataLoading}
-                    className="h-11 w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 rounded-xl border-0 relative overflow-hidden group"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    {dataLoading ? (
-                      <>
-                        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-                        <span className="relative z-10">Fetching...</span>
-                      </>
-                    ) : (
-                      <>
-                        <TrendingUp className="h-5 w-5 mr-2" />
-                        <span className="relative z-10">🚀 Fetch Results</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Secondary Actions */}
-                <div className="flex items-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="h-11 w-11 border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-emerald-400 dark:hover:border-emerald-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
-                    <RefreshCw className={`h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} />
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExport}
-                    className="h-11 w-11 border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
-                    <Download className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:translate-y-0.5 transition-all duration-300" />
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                    className="h-11 px-4 border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-950 hover:border-purple-400 dark:hover:border-purple-500 shadow-md hover:shadow-lg transition-all duration-300 rounded-xl group"
-                  >
-                    <Filter className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 mr-2 group-hover:rotate-12 transition-all duration-300" />
-                    <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-800 dark:text-purple-200 border-0 shadow-sm">
-                      {selectedCampaigns.length + selectedSlots.length + selectedPOS.length + selectedExactAdNames.length + selectedStartsWithAdNames.length}
-                    </Badge>
-                  </Button>
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="btn-velvet-ghost h-9"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="btn-velvet-ghost h-9"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Auto-Selection Info Banner - Only show when no filters are selected */}
+        <div className="velvet-surface p-3 sm:p-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+                View type
+              </label>
+              <Select value={activeView} onValueChange={(value) => setActiveView(value as 'campaign' | 'slot' | 'ad' | 'pos')}>
+                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                  <SelectValue placeholder="Select view" />
+                </SelectTrigger>
+                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                  <SelectItem value="campaign">Campaign</SelectItem>
+                  <SelectItem value="slot">Slots</SelectItem>
+                  <SelectItem value="ad">Ads</SelectItem>
+                  <SelectItem value="pos">POS / marketplace</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+                Date range
+              </label>
+              <div className="velvet-focus relative z-50">
+                <DateRangePicker />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+                Grouping
+              </label>
+              <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
+                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                  <SelectItem value="1d">Daily (1d)</SelectItem>
+                  <SelectItem value="7d">Weekly (7d)</SelectItem>
+                  <SelectItem value="30d">Monthly (30d)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+                &nbsp;
+              </label>
+              <button
+                type="button"
+                onClick={fetchAnalyticsData}
+                disabled={dataLoading}
+                className="btn-velvet-cta w-full h-9 disabled:opacity-60"
+              >
+                {dataLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    Fetching…
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Fetch results
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2.5 pt-2.5 border-t border-[var(--line)] flex items-center justify-end gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+              className={`velvet-focus h-8 px-3 inline-flex items-center gap-1.5 rounded-md border transition-all duration-200 text-[12px] font-medium ${
+                isFilterExpanded
+                  ? 'bg-[var(--bg-tint)] border-[var(--line-violet)] text-[var(--indigo-500)]'
+                  : 'bg-[var(--bg-panel-2)] border-[var(--line)] text-[var(--text-2)] hover:text-[var(--indigo-500)] hover:border-[var(--line-violet)] hover:bg-[var(--bg-tint)]'
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Advanced Filters
+              {filterCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--violet-500)] text-white text-[10px] font-semibold">
+                  {filterCount}
+                </span>
+              )}
+              <span className={`text-[var(--text-3)] text-[10px] transition-transform duration-200 ${isFilterExpanded ? 'rotate-180' : ''}`}>▾</span>
+            </button>
+          </div>
+        </div>
+
       {(selectedCampaigns.length === 0 && selectedSlots.length === 0 && selectedPOS.length === 0 && selectedExactAdNames.length === 0 && selectedStartsWithAdNames.length === 0) && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-xl border border-blue-200 dark:border-blue-800 p-4 mx-4 sm:mx-6 mb-6"
+          className="velvet-surface-inset p-2.5 flex items-center gap-2.5"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-              <span className="font-bold">🎯 Smart Auto-Selection:</span> When no specific {
-                activeView === 'campaign' ? 'campaigns' :
-                  activeView === 'slot' ? 'slots' :
-                    activeView === 'pos' ? 'marketplaces' :
-                      'ads'
-              } are selected, we automatically fetch data for <span className="font-bold text-blue-900 dark:text-blue-100">ALL available {
-                activeView === 'campaign' ? `${campaigns.length} campaigns` :
-                  activeView === 'slot' ? `${filteredSlots.length} slots` :
-                    activeView === 'pos' ? `${sites.length} marketplaces` :
-                      'ads'
-              }</span> to give you the complete picture! 🚀
-            </p>
-          </div>
+          <span className="live-dot" />
+          <p className="text-[12px] text-[var(--text-2)]">
+            <span className="font-semibold text-[var(--text-1)]">Auto-selection:</span> When no specific {
+              activeView === 'campaign' ? 'campaigns' :
+                activeView === 'slot' ? 'slots' :
+                  activeView === 'pos' ? 'marketplaces' :
+                    'ads'
+            } are selected, we fetch data for <span className="font-semibold text-[var(--text-1)]">all available {
+              activeView === 'campaign' ? `${campaigns.length} campaigns` :
+                activeView === 'slot' ? `${filteredSlots.length} slots` :
+                  activeView === 'pos' ? `${sites.length} marketplaces` :
+                    'ads'
+            }</span>.
+          </p>
         </motion.div>
       )}
 
@@ -1242,29 +1312,26 @@ export default function Analytics() {
             animate={{ height: 'auto', opacity: 1, y: 0 }}
             exit={{ height: 0, opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
-            className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-xl z-10"
+            className="velvet-surface velvet-micro-shadow rounded-2xl"
           >
-            <div className="max-w-7xl mx-auto p-6 sm:p-8">
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                  🎯 Advanced Filters
-                  <div className="ml-4 h-0.5 flex-1 bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600"></div>
+            <div className="p-3 sm:p-3.5">
+              <div className="velvet-section-title mb-3 !my-0">
+                <h3 className="text-[12px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-3 w-3 text-[var(--indigo-500)]" />
+                  Advanced filters
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">Fine-tune your analytics with precision targeting</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-2.5">
                 {/* Campaign Filter */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    📈 Campaigns
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                    Campaigns
                     {selectedCampaigns.length === 0 && campaigns.length > 0 && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs">
-                        Auto: All {campaigns.length}
-                      </Badge>
+                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {campaigns.length}</span>
                     )}
                   </label>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-blue-300 dark:hover:border-blue-600">
+                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
                     <MultiSelectDropdown
                       label=""
                       options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
@@ -1275,72 +1342,73 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                {/* Slots Filter */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    🎯 Slots
-                    {selectedSlots.length === 0 && slots.length > 0 && (
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 text-xs">
-                        Auto: All {filteredSlots.length}
-                      </Badge>
+                {/* Platform Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                    Platform
+                    {selectedPlatforms.length === 0 && (
+                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">All</span>
                     )}
                   </label>
-                  <div className="grid grid-cols-2 gap-2 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-emerald-300 dark:hover:border-emerald-600">
-                    <div className="relative">
-                      <MultiSelectDropdown
-                        options={PLATFORM_OPTIONS}
-                        selectedValues={selectedPlatforms}
-                        onChange={setSelectedPlatforms}
-                        placeholder="Select Platform..."
-                        disabled={loading}
-                      />
-                    </div>
-                    <div className="relative">
-                      <MultiSelectDropdown
-                        options={filteredSlots.map(s => ({ value: s.slotId, label: getSlotDisplayLabel(s) }))}
-                        selectedValues={selectedSlots}
-                        onChange={setSelectedSlots}
-                        placeholder="Select slots..."
-                        disabled={loading}
-                      />
-                    </div>
+                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                    <MultiSelectDropdown
+                      options={PLATFORM_OPTIONS}
+                      selectedValues={selectedPlatforms}
+                      onChange={setSelectedPlatforms}
+                      placeholder="Select platforms..."
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                {/* Slots Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                    Slots
+                    {selectedSlots.length === 0 && slots.length > 0 && (
+                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {filteredSlots.length}</span>
+                    )}
+                  </label>
+                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                    <MultiSelectDropdown
+                      options={filteredSlots.map(s => ({ value: s.slotId, label: getSlotDisplayLabel(s) }))}
+                      selectedValues={selectedSlots}
+                      onChange={setSelectedSlots}
+                      placeholder="Select slots..."
+                      disabled={loading}
+                    />
                   </div>
                 </div>
 
                 {/* Marketplaces Filter */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    🏪 Marketplaces (POS)
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                    Marketplaces
                     {selectedPOS.length === 0 && sites.length > 0 && (
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-xs">
-                        Auto: All {sites.length}
-                      </Badge>
+                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {sites.length}</span>
                     )}
                   </label>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-purple-300 dark:hover:border-purple-600">
-                    <div className="min-w-[200px]">
-                      <MultiSelectDropdown
-                        options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
-                        selectedValues={selectedPOS}
-                        onChange={setSelectedPOS}
-                        placeholder="Select Marketplace..."
-                        disabled={loading}
-                      />
-                    </div>
+                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                    <MultiSelectDropdown
+                      options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
+                      selectedValues={selectedPOS}
+                      onChange={setSelectedPOS}
+                      placeholder="Select marketplaces..."
+                      disabled={loading}
+                    />
                   </div>
                 </div>
 
                 {/* Ad Names Filter - Show when campaigns are selected */}
                 {selectedCampaigns.length > 0 && (
-                  <div className="md:col-span-2 lg:col-span-3 space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      📝 Ad Names (Starts With / Exact)
+                  <div className="md:col-span-2 lg:col-span-4 space-y-1.5">
+                    <label className="block text-[11px] font-medium text-[var(--text-2)]">
+                      Ad names (starts with / exact)
                     </label>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 p-3 hover:border-indigo-300 dark:hover:border-indigo-600">
+                    <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
                       {adNamesLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading ad names...</span>
+                        <div className="flex items-center justify-center py-3">
+                          <VelvetLoader size={20} label="Loading ad names" />
                         </div>
                       ) : adNameOptions.length > 0 ? (
                         <AdNameFilterDropdown
@@ -1353,10 +1421,15 @@ export default function Analytics() {
                           label=""
                         />
                       ) : (
-                        <div className="text-center py-4">
-                          <div className="text-gray-500 dark:text-gray-400 text-sm">
-                            <div className="mb-2">📭 No ads found</div>
-                            <div>Create some ads in the selected campaigns to enable ad-level filtering</div>
+                        <div className="flex flex-col items-center justify-center py-4 text-center gap-1.5">
+                          <div className="h-7 w-7 rounded-lg bg-[var(--bg-panel-2)] border border-[var(--line)] flex items-center justify-center">
+                            <Inbox className="h-3.5 w-3.5 text-[var(--text-3)]" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="text-[11.5px] font-medium text-[var(--text-2)]">No ads found</p>
+                            <p className="text-[10px] text-[var(--text-3)] mt-0.5 max-w-[220px]">
+                              Create some ads in the selected campaigns to enable ad-level filtering
+                            </p>
                           </div>
                         </div>
                       )}
@@ -1365,90 +1438,103 @@ export default function Analytics() {
                 )}
               </div>
 
-              {/* Filter Summary */}
-              <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-xl border border-blue-200 dark:border-blue-800">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  📊 {getFilterSummary()}
-                </p>
+              {/* Active filter chips — dismissable, or dashed empty state */}
+              <div className="mt-4">
+                {activeFilterChips.length === 0 ? (
+                  <div className="velvet-chip-track-empty">
+                    <Sparkles className="h-3 w-3 text-[var(--indigo-500)]" />
+                    <span>No filters applied — we&apos;ll fetch data for all available {activeView === 'campaign' ? 'campaigns' : activeView === 'slot' ? 'slots' : activeView === 'pos' ? 'marketplaces' : 'ads'}.</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-[var(--line)] bg-[var(--bg-panel-2)]">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] px-1.5">Active</span>
+                    {activeFilterChips.map((chip) => (
+                      <span key={chip.id} className="velvet-filter-chip group">
+                        <span className="text-[9.5px] uppercase tracking-wider text-[var(--text-3)] font-semibold">{chip.group}</span>
+                        <span className="text-[var(--text-1)] max-w-[180px] truncate">{chip.label}</span>
+                        <button
+                          type="button"
+                          onClick={chip.onRemove}
+                          className="velvet-filter-chip-remove"
+                          aria-label={`Remove ${chip.group} filter ${chip.label}`}
+                        >
+                          <X className="h-2.5 w-2.5" strokeWidth={2.5} />
+                        </button>
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="ml-auto text-[10.5px] font-medium text-[var(--text-3)] hover:text-[var(--neg)] px-2 py-1 rounded-md hover:bg-[var(--neg-soft)] transition-colors duration-200"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-8 relative z-0">
-        <div className="space-y-8 sm:space-y-10">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-5 pt-2">
+        <div className="space-y-3">
           {/* Performance Summary */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl border-2 border-gray-200/50 dark:border-gray-700/50 shadow-xl p-6 sm:p-8 overflow-hidden"
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="velvet-surface velvet-micro-shadow p-3 sm:p-3.5"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-              <div className="flex items-center space-x-4 sm:space-x-6">
-                {/* Professional icon */}
-                <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-                  <TrendingUp className="h-6 w-6 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md flex items-center justify-center">
+                  <TrendingUp className="h-3.5 w-3.5 text-white" />
                 </div>
 
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    ✨ {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} Analytics
+                  <h3 className="text-[14px] sm:text-[15px] font-semibold text-[var(--text-1)] tracking-tight">
+                    {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} analytics
                   </h3>
-                  <div className="flex items-center space-x-3 mt-2">
-                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                      📊 {dataGrouping === '1d' ? 'Daily (1d)' : dataGrouping === '7d' ? 'Weekly (7d)' : 'Monthly (30d)'} Grouping
-                    </p>
-                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                      🔄 Real-time data
-                    </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[10.5px] text-[var(--text-3)] font-medium">
+                      {dataGrouping === '1d' ? 'Daily (1d)' : dataGrouping === '7d' ? 'Weekly (7d)' : 'Monthly (30d)'} grouping
+                    </span>
+                    <span className="text-[var(--text-3)] opacity-40">·</span>
+                    <span className="text-[10.5px] text-[var(--text-3)] font-medium">Real-time data</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                {/* Live Badge */}
-                <Badge className="bg-emerald-500 text-white border-0 shadow-md font-medium px-3 py-1 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    <span>Live Data</span>
-                  </div>
-                </Badge>
-
-                {/* View Badge */}
-                <Badge variant="outline" className="border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 font-medium px-3 py-1 rounded-lg capitalize">
-                  🎯 {activeView} View
-                </Badge>
+              <div className="flex items-center gap-1.5">
+                <span className="velvet-chip">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--pos)] animate-pulse" />
+                  Live Data
+                </span>
+                <span className="velvet-chip capitalize">
+                  {activeView} view
+                </span>
               </div>
             </div>
           </motion.div>
 
           {/* Metrics Dashboard */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+            transition={{ duration: 0.4, delay: 0.05, ease: 'easeOut' }}
+            className="velvet-surface p-3 sm:p-3.5"
           >
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <div className="flex items-center space-x-4">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <div className="velvet-section-title mb-3">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--pos)]" />
+                <h2 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider">
                   Key Metrics
                 </h2>
               </div>
-
-              <div className="hidden sm:flex items-center space-x-2">
-                <Badge variant="outline" className="text-xs font-medium">
-                  Real-time
-                </Badge>
-              </div>
+              <span className="velvet-chip text-[9.5px] py-0 px-1.5">Real-time</span>
             </div>
 
-            {/* Show metrics only after data has been fetched */}
             {metricsData ? (
               <MetricsDashboard
                 data={metricsData}
@@ -1456,29 +1542,15 @@ export default function Analytics() {
                 period={dataGrouping}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+                <div className="h-10 w-10 rounded-full bg-[var(--bg-tint)] border border-[var(--line)] flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-[var(--text-3)]" strokeWidth={1.5} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  No Data Available
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-                  Configure your filters and click "Fetch Results" to view analytics data
-                </p>
-                <div className="flex flex-col space-y-2 text-sm text-gray-400 dark:text-gray-500">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>Select view type and filters</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span>Click the "Fetch Results" button</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>View your analytics insights</span>
-                  </div>
+                <div>
+                  <p className="text-[12px] font-medium text-[var(--text-2)]">No data available</p>
+                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5 max-w-[280px]">
+                    Configure filters and click "Fetch Results" to view analytics
+                  </p>
                 </div>
               </div>
             )}
@@ -1486,65 +1558,55 @@ export default function Analytics() {
 
           {/* Analytics Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+            transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+            className="velvet-surface p-3 sm:p-3.5"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-            </div>
-
             {/* Data Grouping Info */}
-            <div className="mb-4 flex items-center gap-2">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                  📊 Data grouped by: {
-                    dataGrouping === '1d' ? 'Daily intervals' :
-                      dataGrouping === '7d' ? 'Weekly intervals' :
-                        dataGrouping === '30d' ? 'Monthly intervals' :
-                          'Custom intervals'
-                  }
+            <div className="velvet-section-title mb-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Calendar className="h-3 w-3 text-[var(--indigo-500)]" />
+                <span className="velvet-chip text-[10px] py-0 px-1.5">
+                  {dataGrouping === '1d' ? 'Daily intervals' :
+                    dataGrouping === '7d' ? 'Weekly intervals' :
+                      dataGrouping === '30d' ? 'Monthly intervals' :
+                        'Custom intervals'}
                 </span>
+                {trendData.length > 0 && (
+                  <span className="text-[10px] text-[var(--text-3)]">
+                    · {trendData.reduce((sum, series) => sum + series.data.length, 0)} pts · {trendData.length} series
+                  </span>
+                )}
               </div>
-              {trendData.length > 0 && (
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Showing {trendData.reduce((sum, series) => sum + series.data.length, 0)} data points across {trendData.length} series
-                </div>
-              )}
             </div>
 
             {dataLoading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-                <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                  Loading chart data...
-                </span>
+              <div className="flex flex-col items-center justify-center py-10">
+                <VelvetLoader size={28} label="Loading chart data" />
               </div>
             ) : (
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
                   <TrendChart
                     series={trendData}
-                    title={`📈 ${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} Performance Over Time ${dataGrouping === '1d' ? '(Daily)' :
+                    title={`${activeView === 'slot' ? 'Slot' : activeView === 'campaign' ? 'Campaign' : activeView === 'ad' ? 'Ad' : 'POS'} performance over time ${dataGrouping === '1d' ? '(daily)' :
                       dataGrouping === '7d' ? '(Weekly)' :
                         dataGrouping === '30d' ? '(Monthly)' : ''
                       }`}
                     period={dataGrouping}
                     enableSeriesFilters={activeView === 'slot'}
                     enablePlatformFilter={activeView === 'slot'}
+                    height={340}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="text-6xl mb-4">📊</div>
-                    <p className="text-gray-600 dark:text-gray-400 text-lg font-medium text-center">
+                  <div className="flex flex-col items-center justify-center py-10 gap-2">
+                    <BarChart3 className="h-8 w-8 text-[var(--text-3)]" strokeWidth={1.5} />
+                    <p className="text-[12px] font-medium text-[var(--text-2)] text-center">
                       No trend data available yet
                     </p>
-                    <p className="text-gray-500 dark:text-gray-500 text-sm text-center mt-2">
-                      Please select filters and click "🚀 Fetch Results" to view analytics
+                    <p className="text-[10.5px] text-[var(--text-3)] text-center max-w-[260px]">
+                      Select filters and click Fetch results to view analytics
                     </p>
                   </div>
                 )}
@@ -1554,119 +1616,138 @@ export default function Analytics() {
 
           {/* Clicks vs Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+            transition={{ duration: 0.4, delay: 0.15, ease: 'easeOut' }}
+            className="velvet-surface p-3 sm:p-3.5"
           >
             <TrendChart
               series={trendData}
-              title="🎯 Clicks Over Time"
+              title="Clicks over time"
               dataKey="clicks"
               yAxisLabel="Clicks"
               period={dataGrouping}
               enableSeriesFilters={activeView === 'slot'}
               enablePlatformFilter={activeView === 'slot'}
+              height={300}
             />
           </motion.div>
 
           {/* CTR vs Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+            transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
+            className="velvet-surface p-3 sm:p-3.5"
           >
             <TrendChart
               series={trendData}
-              title="📈 CTR Over Time"
+              title="CTR over time"
               dataKey="ctr"
               yAxisLabel="CTR (%)"
               period={dataGrouping}
               enableSeriesFilters={activeView === 'slot'}
               enablePlatformFilter={activeView === 'slot'}
+              height={300}
             />
           </motion.div>
 
           {/* Live Landings Over Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.45, ease: 'easeOut' }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+            transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
+            className="velvet-surface p-3 sm:p-3.5"
           >
             {landingTrendData.length > 0 && landingTrendData[0]?.data?.length > 0 ? (
               <TrendChart
                 series={landingTrendData}
-                title="🛬 Live Landings Over Time"
+                title="Live Landings Over Time"
                 dataKey="landingCount"
                 yAxisLabel="Live Landings"
                 period={dataGrouping}
+                height={300}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="text-6xl mb-4">🛬</div>
-                <p className="text-gray-600 dark:text-gray-400 text-lg font-medium text-center">
-                  No landing trend data available yet
-                </p>
-                <p className="text-gray-500 dark:text-gray-500 text-sm text-center mt-2">
-                  Please select filters and click "🚀 Fetch Results" to view landing analytics
-                </p>
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+                <div className="h-9 w-9 rounded-lg bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center">
+                  <Plane className="h-4 w-4 text-[var(--indigo-500)]" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-[var(--text-1)]">
+                    No landing trend data yet
+                  </p>
+                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5 max-w-[260px]">
+                    Select filters and click Fetch results to view landing analytics
+                  </p>
+                </div>
               </div>
             )}
           </motion.div>
 
           {/* Data Tables Section */}
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 gap-3">
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+              transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
+              className="velvet-surface p-3 sm:p-3.5"
             >
-              <div className="mb-6">
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                  🏆 Top Performing Locations
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Cities and states ranked by impression volume</p>
+              <div className="velvet-section-title mb-3">
+                <div>
+                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3 text-[var(--indigo-500)]" />
+                    Top performing locations
+                  </h3>
+                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">Cities and states ranked by impression volume</p>
+                </div>
+                {topLocations.length > 0 && (
+                  <span className="velvet-chip text-[9.5px] py-0 px-1.5">{topLocations.length} rows</span>
+                )}
               </div>
 
               <DataTable
-                title=""
+                title="Top performing locations"
                 data={
                   [...topLocations]
                     .sort((a, b) => ((b.impressions || 0) + (b.clicks || 0)) - ((a.impressions || 0) + (a.clicks || 0)))
                     .map(item => ({
-                      location: item.location || 'Unknown',
+                      location: coerceName(item.location, 'Unknown'),
                       impressions: item.impressions || 0,
                       clicks: item.clicks || 0,
                       conversions: item.conversions || 0
                     }))
                 }
                 columns={[
-                  { key: 'location', label: '📍 Location (City/State)' },
-                  { key: 'impressions', label: '👁️ Impressions', format: 'number' },
-                  { key: 'clicks', label: '🎯 Clicks', format: 'number' },
-                  { key: 'conversions', label: '💰 Conversions', format: 'number' }
+                  { key: 'location', label: 'Location (City/State)', icon: <MapPin className="h-3 w-3" /> },
+                  { key: 'impressions', label: 'Impressions', format: 'compact', icon: <Eye className="h-3 w-3" />, align: 'right' },
+                  { key: 'clicks', label: 'Clicks', format: 'compact', align: 'right' },
+                  { key: 'conversions', label: 'Conversions', format: 'compact', icon: <DollarSign className="h-3 w-3" />, align: 'right' }
                 ]}
               />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+              transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
+              className="velvet-surface p-3 sm:p-3.5"
             >
-              <div className="mb-6">
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                  🎯 Ad Slots Performance
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Slots sorted by performance metrics</p>
+              <div className="velvet-section-title mb-3">
+                <div>
+                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
+                    <Tag className="h-3 w-3 text-[var(--indigo-500)]" />
+                    Ad slots performance
+                  </h3>
+                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">Slots sorted by performance metrics</p>
+                </div>
+                {topSlotsData.length > 0 && (
+                  <span className="velvet-chip text-[9.5px] py-0 px-1.5">{topSlotsData.length} rows</span>
+                )}
               </div>
 
               <DataTable
-                title=""
+                title="Ad slots performance"
                 data={
                   [...topSlotsData]
                     .sort((a, b) => ((b.impressions || 0) + (b.clicks || 0)) - ((a.impressions || 0) + (a.clicks || 0)))
@@ -1678,27 +1759,105 @@ export default function Analytics() {
                         slotName: mappedSlot ? getSlotDisplayLabel(mappedSlot) : `Slot ${slot.slotId || 'Unknown'}`,
                         impressions,
                         clicks,
-                        conversionRate: impressions > 0 ? `${((clicks / impressions) * 100).toFixed(2)}%` : '0.00%'
+                        conversionRate: formatSmartPercent(impressions > 0 ? (clicks / impressions) * 100 : 0)
                       };
                     })
                 }
                 columns={[
-                  { key: 'slotName', label: '🎪 Slot Name' },
-                  { key: 'impressions', label: '👁️ Impressions', format: 'number' },
-                  { key: 'clicks', label: '🎯 Clicks', format: 'number' },
-                  { key: 'conversionRate', label: '📈 Conversion Rate (CR)' }
+                  { key: 'slotName', label: 'Slot Name', icon: <Tag className="h-3 w-3" /> },
+                  { key: 'impressions', label: 'Impressions', format: 'compact', icon: <Eye className="h-3 w-3" />, align: 'right' },
+                  { key: 'clicks', label: 'Clicks', format: 'compact', align: 'right' },
+                  { key: 'conversionRate', label: 'CTR (CR)', align: 'right' }
                 ]}
               />
             </motion.div>
           </div>
 
-          {/* Combo Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          {/* Slot performance overview — only when activeView === 'slot' */}
+          {activeView === 'slot' && slotMetrics.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
+              className="velvet-surface p-3 sm:p-3.5"
+            >
+              <div className="velvet-section-title mb-3">
+                <div>
+                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
+                    <Tag className="h-3 w-3 text-[var(--indigo-500)]" />
+                    Slot performance overview
+                  </h3>
+                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">
+                    Per-slot metrics for the {slotMetrics.length} {slotMetrics.length === 1 ? 'slot' : 'slots'} in the current selection
+                  </p>
+                </div>
+                <span className="velvet-chip text-[9.5px] py-0 px-1.5">{slotMetrics.length} slots</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {[...slotMetrics]
+                  .sort((a, b) => (b.metrics.impressions + b.metrics.clicks) - (a.metrics.impressions + a.metrics.clicks))
+                  .slice(0, 9)
+                  .map((s) => {
+                    const ctr = s.metrics.impressions > 0
+                      ? (s.metrics.clicks / s.metrics.impressions) * 100
+                      : 0;
+                    return (
+                      <div
+                        key={s.slotId}
+                        className="velvet-surface-inset p-2.5 hover:border-[var(--line-violet)] transition-colors group"
+                      >
+                        <div className="flex items-start gap-2 mb-1.5">
+                          <div className="h-6 w-6 rounded-md bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center flex-shrink-0">
+                            <Tag className="h-3 w-3 text-[var(--indigo-500)]" strokeWidth={1.5} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-semibold text-[var(--text-1)] truncate" title={s.slotName}>
+                              {s.slotName}
+                            </p>
+                            <p className="text-[9.5px] text-[var(--text-3)] uppercase tracking-wider">Slot #{s.slotId}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Impressions</p>
+                            <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
+                              {formatCompactNumber(s.metrics.impressions)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Clicks</p>
+                            <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
+                              {formatCompactNumber(s.metrics.clicks)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">CTR</p>
+                            <p className="text-[12.5px] font-semibold tabular-nums text-[var(--indigo-500)]">
+                              {formatSmartPercent(ctr)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Landings</p>
+                            <p className="text-[13px] font-semibold tabular-nums text-[var(--pink-500)]">
+                              {formatCompactNumber(s.metrics.landingCount)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Combo Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -10, scale: 0.98 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+              transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
+              className="velvet-surface p-3 sm:p-3.5"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ?
@@ -1709,21 +1868,21 @@ export default function Analytics() {
                   })) :
                   []
                 }
-                title="📊 Impressions vs Clicks"
+                title="Impressions vs clicks"
                 barKey="impressions"
                 lineKey="clicks"
                 barName="Impressions"
                 lineName="Clicks"
-                barColor="#059669"
-                lineColor="#DC2626"
+                barColor="var(--indigo-500)"
+                lineColor="var(--pink-500)"
               />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, x: 20, scale: 0.95 }}
+              initial={{ opacity: 0, x: 10, scale: 0.98 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.7, ease: 'easeOut' }}
-              className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-xl p-6 sm:p-8"
+              transition={{ duration: 0.4, delay: 0.35, ease: 'easeOut' }}
+              className="velvet-surface p-3 sm:p-3.5"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ?
@@ -1734,70 +1893,71 @@ export default function Analytics() {
                   })) :
                   []
                 }
-                title="🎯 Impressions vs CTR"
+                title="Impressions vs CTR"
                 barKey="impressions"
                 lineKey="ctr"
                 barName="Impressions"
                 lineName="CTR (%)"
-                barColor="#7C3AED"
-                lineColor="#DC2626"
+                barColor="var(--indigo-500)"
+                lineColor="var(--gold-500)"
               />
             </motion.div>
           </div>
 
           {/* Demographic and Platform Analytics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
-            >
-              <BreakdownPieChart data={breakdownData.gender} title="Gender Distribution" />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.9 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
-            >
-              <BreakdownPieChart data={breakdownData.age} title="Age Distribution" />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.0 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
-            >
-              <BreakdownPieChart data={breakdownData.platform} title="Platform Breakdown" />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.1 }}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[450px]"
-            >
-              <BreakdownPieChart data={breakdownData.location} title="Location Distribution" />
-            </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { data: breakdownData.gender, title: 'Gender' },
+              { data: breakdownData.age, title: 'Age' },
+              { data: breakdownData.platform, title: 'Platform' },
+              { data: breakdownData.location, title: 'Location' },
+            ].map(({ data, title }, idx) => (
+              <motion.div
+                key={title}
+                role="button"
+                tabIndex={0}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 + idx * 0.05 }}
+                onClick={() => setBreakdownModal({ open: true, title, data })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setBreakdownModal({ open: true, title, data });
+                  }
+                }}
+                className="velvet-surface velvet-micro-shadow p-3 text-left cursor-pointer transition-all duration-300 hover:shadow-[var(--shadow-velvet)] hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500"
+              >
+                <BreakdownPieChart data={data} title={title} />
+              </motion.div>
+            ))}
           </div>
 
-          {/* Age-wise Analysis */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.2 }}
-            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 p-6 backdrop-blur-sm h-[500px]"
-          >
-            <BreakdownPieChart
-              data={breakdownData.age || []}
-              title="Age-wise Performance Distribution"
-            />
-          </motion.div>
+          {/* Age-wise Analysis — DISABLED: not used, was duplicated below.
+              TODO: re-enable only if a separate "Performance by age" KPI panel is needed. */}
+          {false && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.6 }}
+              className="velvet-surface p-3"
+            >
+              <BreakdownPieChart
+                data={breakdownData.age || []}
+                title="Age-wise Performance Distribution"
+              />
+            </motion.div>
+          )}
         </div>
       </div>
+      </div>
+
+      <BreakdownModal
+        open={breakdownModal.open}
+        onOpenChange={(open: boolean) => setBreakdownModal((prev) => ({ ...prev, open }))}
+        title={breakdownModal.title}
+        data={breakdownModal.data}
+      />
     </div>
   );
 }

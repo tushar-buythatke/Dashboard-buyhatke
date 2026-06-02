@@ -35,14 +35,14 @@ export const EnvironmentToggle: React.FC = () => {
   const getWarningMessage = () => {
     if (isTest) {
       return {
-        title: "⚠️ Switch to PRODUCTION Mode?",
+        title: "Switch to PRODUCTION Mode?",
         description: "You are about to switch to PRODUCTION environment. This will connect to live servers and real data. All actions will affect the production system. Are you absolutely sure you want to continue?",
         actionText: "Yes, Switch to PRODUCTION",
         actionStyle: "bg-red-600 hover:bg-red-700 text-white"
       };
     } else {
       return {
-        title: "🧪 Switch to TEST Mode?",
+        title: "Switch to TEST Mode?",
         description: "You are about to switch to TEST environment. This will connect to test servers with sample data. This is the recommended mode for development and testing.",
         actionText: "Yes, Switch to TEST",
         actionStyle: "bg-orange-600 hover:bg-orange-700 text-white"
@@ -83,7 +83,7 @@ export const EnvironmentToggle: React.FC = () => {
               }
             }}
             disabled={!isAuthenticated}
-            title={!isAuthenticated ? "🔒 Environment switching requires authentication" : undefined}
+            title={!isAuthenticated ? "Environment switching requires authentication" : undefined}
           >
         {/* Pulsing background effect */}
         {isAuthenticated && (

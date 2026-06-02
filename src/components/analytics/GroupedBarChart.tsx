@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatChartValue } from '@/lib/format';
 
 interface GroupedBarChartProps {
   data: any[];
@@ -12,45 +13,49 @@ interface GroupedBarChartProps {
 }
 
 const COLORS = [
-  '#6366F1', '#059669', '#DC2626', '#D97706', 
-  '#7C3AED', '#0891B2', '#EA580C', '#65A30D'
+  '#7c6feb', '#c462a0', '#38bdf8', '#2dd4bf',
+  '#fbbf24', '#a99df5', '#e879a0', '#634ce6',
 ];
 
 const CustomTooltip = memo(({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-
+  const sorted = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[200px]">
-      <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)]/95 backdrop-blur-xl shadow-[var(--shadow-3)] px-2.5 py-1.5 min-w-[160px] max-w-[220px]">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-1 leading-tight">
         {label}
       </div>
-      <div className="space-y-2">
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
+      <div className="space-y-0.5">
+        {sorted.slice(0, 5).map((entry: any, i: number) => (
+          <div key={i} className="flex items-center justify-between gap-2 leading-none">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div
+                className="h-1.5 w-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {entry.dataKey}
+              <span className="text-[10.5px] text-[var(--text-2)] truncate">
+                {entry.dataKey || entry.name}
               </span>
             </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">
-              {entry.value.toLocaleString()}
+            <span className="text-[11px] font-semibold tabular-nums text-[var(--text-1)]">
+              {formatChartValue(entry.value, entry.dataKey)}
             </span>
           </div>
         ))}
+        {sorted.length > 5 && (
+          <div className="text-[9.5px] text-[var(--text-3)] text-center pt-0.5">
+            +{sorted.length - 5} more
+          </div>
+        )}
       </div>
     </div>
   );
 });
-
 CustomTooltip.displayName = 'CustomTooltip';
 
-export const GroupedBarChart = memo<GroupedBarChartProps>(({ 
-  data, 
-  title, 
+export const GroupedBarChart = memo<GroupedBarChartProps>(({
+  data,
+  title,
   xAxisKey,
   seriesKeys,
   height = 400,
@@ -58,70 +63,76 @@ export const GroupedBarChart = memo<GroupedBarChartProps>(({
   animated = true
 }) => {
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
-      <div className="h-[400px] w-full">
+    <div className="space-y-3">
+      <div className="velvet-section-title">{title}</div>
+      <div className="h-[360px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 8 }}>
             <defs>
               {seriesKeys.map((key, index) => (
                 <linearGradient key={key} id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.6}/>
+                  <stop offset="0%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.92} />
+                  <stop offset="100%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.6} />
                 </linearGradient>
               ))}
             </defs>
-            
+
             {showGrid && (
-              <CartesianGrid 
-                strokeDasharray="2 4" 
-                stroke="currentColor" 
-                strokeOpacity={0.2}
+              <CartesianGrid
+                strokeDasharray="2 4"
+                stroke="currentColor"
+                strokeOpacity={0.15}
                 vertical={false}
-                className="text-gray-300 dark:text-gray-600"
+                className="text-[var(--text-3)]"
               />
             )}
-            
-            <XAxis 
+
+            <XAxis
               dataKey={xAxisKey}
               stroke="currentColor"
-              fontSize={12}
+              fontSize={10.5}
               fontWeight={500}
               axisLine={false}
               tickLine={false}
-              dy={10}
-              className="text-gray-600 dark:text-gray-400"
+              dy={6}
+              className="text-[var(--text-3)]"
             />
-            
-            <YAxis 
+
+            <YAxis
               stroke="currentColor"
-              fontSize={12}
-              fontWeight={500}
+              fontSize={10.5}
               axisLine={false}
               tickLine={false}
-              dx={-10}
-              className="text-gray-600 dark:text-gray-400"
+              dx={-6}
+              tickFormatter={(v) => formatChartValue(v)}
+              className="text-[var(--text-3)]"
             />
-            
-            <Tooltip content={<CustomTooltip />} />
-            
-            <Legend 
+
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: 'var(--bg-tint)', opacity: 0.6 }}
+              wrapperStyle={{ outline: 'none' }}
+            />
+
+            <Legend
               wrapperStyle={{
-                paddingTop: '24px',
-                fontSize: '14px',
-                fontWeight: '600'
+                paddingTop: '12px',
+                fontSize: '10.5px',
+                fontWeight: 500,
+                color: 'var(--text-2)',
               }}
+              iconType="circle"
+              iconSize={6}
             />
 
             {seriesKeys.map((key, index) => (
-              <Bar 
+              <Bar
                 key={key}
-                dataKey={key} 
+                dataKey={key}
                 fill={`url(#gradient-${index})`}
-                animationDuration={animated ? 1500 : 0}
-                radius={[2, 2, 0, 0]}
-                stroke={COLORS[index % COLORS.length]}
-                strokeWidth={1}
+                animationDuration={animated ? 800 : 0}
+                radius={[8, 8, 0, 0]}
+                maxBarSize={28}
               />
             ))}
           </BarChart>
@@ -131,4 +142,4 @@ export const GroupedBarChart = memo<GroupedBarChartProps>(({
   );
 });
 
-GroupedBarChart.displayName = 'GroupedBarChart'; 
+GroupedBarChart.displayName = 'GroupedBarChart';

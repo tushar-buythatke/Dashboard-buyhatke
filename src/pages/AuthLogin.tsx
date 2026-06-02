@@ -3,14 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import {
-    // enableLocalAuth,
-    // isUsingLocalAuth,
-    // LOCAL_2FA_SERVER
-} from '@/config/api';
-import {
     Eye, EyeOff, LogIn, User, Lock, Shield,
     CheckCircle2, UserPlus, Clock,
-    RefreshCw, Smartphone, ArrowRight, Copy, Loader2, QrCode
+    RefreshCw, Smartphone, ArrowRight, Copy, Loader2, QrCode,
+    Sparkles, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +29,6 @@ interface UserData {
 }
 
 export default function AuthLogin() {
-    // Form state
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -41,15 +36,12 @@ export default function AuthLogin() {
     const [loading, setLoading] = useState(false);
     const [focusedField, setFocusedField] = useState<string | null>(null);
 
-    // Auth flow state
     const [flowState, setFlowState] = useState<AuthFlowState>('login');
     const [userData, setUserData] = useState<UserData | null>(null);
 
-    // 2FA state
     const [secretData, setSecretData] = useState<{ tempSecret: string; qrCode: string } | null>(null);
     const [otpCode, setOtpCode] = useState('');
 
-    // Forgot password state
     const [forgotStep, setForgotStep] = useState<ForgotPasswordStep>('email');
     const [resetEmail, setResetEmail] = useState('');
     const [resetOtp, setResetOtp] = useState('');
@@ -61,27 +53,15 @@ export default function AuthLogin() {
     const navigate = useNavigate();
     const { isAuthenticated, setUser } = useAuth();
 
-    // Enable local auth on mount for testing as requested
-    // Enable local auth removed - forcing production as requested
-    /*
-    useEffect(() => {
-        enableLocalAuth();
-        console.log('🔧 Auth mode:', isUsingLocalAuth() ? 'LOCAL' : 'PRODUCTION');
-    }, []);
-    */
-
-    // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/');
         }
     }, [isAuthenticated, navigate]);
 
-    // API base URL for auth
-    // API base URL for auth - ALWAYS use PRODUCTION
     const getAuthUrl = () => `https://search-new.bitbns.com/buyhatkeAdDashboard/auth`;
 
-    // === HANDLERS ===
+    // === HANDLERS (unchanged) ===
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -89,10 +69,8 @@ export default function AuthLogin() {
             setError('Please enter both email and password');
             return;
         }
-
         setLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/validateLogin`, {
                 method: 'POST',
@@ -103,12 +81,8 @@ export default function AuthLogin() {
                     dashboard_id: 0
                 })
             });
-
             const result = await response.json();
-            console.log('Login response:', result);
-
             if (result.status === 1) {
-                // Normalize user data
                 const normalizedUser = {
                     ...result.user,
                     id: result.user.userId || result.user.id,
@@ -116,24 +90,19 @@ export default function AuthLogin() {
                     role: result.user.type || result.user.role || 0
                 };
                 setUserData(normalizedUser);
-
                 if (result.waitingApproval) {
-                    // User registered but not approved - show waiting screen
                     setFlowState('waiting');
                     toast.info('Your account is pending admin approval');
                 } else if (result.needsSetup) {
-                    // Approved but no 2FA yet - go to setup
                     setFlowState('setup2fa');
                     await generate2FASecret(result.user);
                 } else if (result.requires2FA) {
-                    // Has 2FA, need to verify OTP
                     setFlowState('verifyotp');
                 }
             } else {
                 setError(result.message || 'Login failed');
             }
         } catch (err) {
-            console.error('Login error:', err);
             setError('Connection failed. Is the local server running?');
         } finally {
             setLoading(false);
@@ -146,22 +115,17 @@ export default function AuthLogin() {
             setError('Please enter both email and password');
             return;
         }
-
-        // Validate @buyhatke.com email
         const emailRegex = /^[a-zA-Z0-9._%+-]+@buyhatke\.com$/i;
         if (!emailRegex.test(username.trim())) {
             setError('Only @buyhatke.com email addresses are allowed');
             return;
         }
-
         if (password.length < 6) {
             setError('Password must be at least 6 characters');
             return;
         }
-
         setLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/register`, {
                 method: 'POST',
@@ -172,10 +136,7 @@ export default function AuthLogin() {
                     dashboard_id: 0
                 })
             });
-
             const result = await response.json();
-            console.log('Signup response:', result);
-
             if (result.status === 1) {
                 const user = {
                     id: result.data.userId || result.data.id,
@@ -184,15 +145,12 @@ export default function AuthLogin() {
                 };
                 setUserData(user);
                 toast.success('Account created! Now link your authenticator app.');
-
-                // Go to 2FA setup (before approval)
                 setFlowState('setup2fa');
                 await generate2FASecret(user);
             } else {
                 setError(result.message || 'Signup failed');
             }
         } catch (err) {
-            console.error('Signup error:', err);
             setError('Connection failed. Is the local server running?');
         } finally {
             setLoading(false);
@@ -207,33 +165,26 @@ export default function AuthLogin() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id, userName: user.username })
             });
-
             const result = await response.json();
-            console.log('2FA generate:', result);
-
             if (result.status === 1) {
                 setSecretData(result.data);
             } else {
                 setError(result.message || 'Failed to generate 2FA');
             }
         } catch (err) {
-            console.error('2FA generate error:', err);
             setError('Failed to generate 2FA code');
         } finally {
             setLoading(false);
         }
     };
 
-    // Link 2FA secret (save without enabling) and go to waiting screen
     const linkAuthenticator = async () => {
         if (!secretData || !userData) {
             setError('Missing data');
             return;
         }
-
         setLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/link`, {
                 method: 'POST',
@@ -243,10 +194,7 @@ export default function AuthLogin() {
                     secret: secretData.tempSecret
                 })
             });
-
             const result = await response.json();
-            console.log('Link response:', result);
-
             if (result.status === 1) {
                 toast.success('Authenticator linked! Waiting for admin approval.');
                 setFlowState('waiting');
@@ -254,7 +202,6 @@ export default function AuthLogin() {
                 setError(result.message || 'Failed to link authenticator');
             }
         } catch (err) {
-            console.error('Link error:', err);
             setError('Failed to link authenticator');
         } finally {
             setLoading(false);
@@ -263,7 +210,6 @@ export default function AuthLogin() {
 
     const checkApprovalStatus = async () => {
         if (!userData?.id) return;
-
         setLoading(true);
         try {
             const response = await fetch(`${getAuthUrl()}/checkApproval`, {
@@ -271,10 +217,7 @@ export default function AuthLogin() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: userData.id })
             });
-
             const result = await response.json();
-            console.log('Approval check:', result);
-
             if (result.status === 1 && result.data?.approved) {
                 toast.success('Account approved! Enter your OTP to login.');
                 setFlowState('verifyotp');
@@ -282,7 +225,6 @@ export default function AuthLogin() {
                 toast.info('Still waiting for approval');
             }
         } catch (err) {
-            console.error('Approval check error:', err);
             toast.error('Failed to check status');
         } finally {
             setLoading(false);
@@ -294,12 +236,9 @@ export default function AuthLogin() {
             setError('Please enter a valid 6-digit code');
             return;
         }
-
         setLoading(true);
         setError(null);
-
         try {
-            // Call verify - it will auto-enable 2FA on first successful verification
             const response = await fetch(`${getAuthUrl()}/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -308,13 +247,9 @@ export default function AuthLogin() {
                     token: otpCode
                 })
             });
-
             const result = await response.json();
-            console.log('OTP result:', result);
-
             if (result.status === 1) {
                 toast.success('Login successful!');
-                // Map backend fields (userId, userName, type) to frontend User interface (id, username, role)
                 const verifiedUser = result.user ? {
                     id: result.user.userId ?? result.user.id ?? userData?.id ?? 0,
                     username: result.user.userName ?? result.user.username ?? userData?.username ?? '',
@@ -327,73 +262,55 @@ export default function AuthLogin() {
                 setOtpCode('');
             }
         } catch (err) {
-            console.error('OTP error:', err);
             setError('Verification failed');
         } finally {
             setLoading(false);
         }
     };
 
-    // Step 1: Check if user exists
     const handleForgotEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!resetEmail.trim()) {
             setError('Please enter your username or email');
             return;
         }
-
         setResetLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/forgot/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userName: resetEmail.trim()
-                })
+                body: JSON.stringify({ userName: resetEmail.trim() })
             });
-
             const result = await response.json();
             if (result.status === 1) {
-                setResetUserData({
-                    userId: result.data.userId,
-                    userName: result.data.userName
-                });
+                setResetUserData({ userId: result.data.userId, userName: result.data.userName });
                 setForgotStep('otp');
                 toast.success('Account found! Please enter your authenticator OTP.');
             } else {
                 setError(result.message || 'Account not found or not eligible for password reset');
             }
         } catch (err) {
-            console.error('Forgot email error:', err);
             setError('Failed to verify account. Please try again.');
         } finally {
             setResetLoading(false);
         }
     };
 
-    // Step 2: Verify OTP
     const handleForgotOtpSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!resetOtp.trim() || resetOtp.length !== 6) {
             setError('Please enter a valid 6-digit OTP code');
             return;
         }
-
         setResetLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/forgot/verifyOtp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userName: resetEmail.trim(),
-                    otp: resetOtp.trim()
-                })
+                body: JSON.stringify({ userName: resetEmail.trim(), otp: resetOtp.trim() })
             });
-
             const result = await response.json();
             if (result.status === 1) {
                 setForgotStep('password');
@@ -403,48 +320,35 @@ export default function AuthLogin() {
                 setResetOtp('');
             }
         } catch (err) {
-            console.error('Forgot OTP error:', err);
             setError('OTP verification failed. Please try again.');
         } finally {
             setResetLoading(false);
         }
     };
 
-    // Step 3: Reset password
     const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!resetPassword.trim() || !resetConfirmPassword.trim()) {
             setError('Please fill all password fields');
             return;
         }
-
         if (resetPassword !== resetConfirmPassword) {
             setError('Passwords do not match');
             return;
         }
-
         if (resetPassword.length < 6) {
             setError('Password must be at least 6 characters');
             return;
         }
-
         setResetLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${getAuthUrl()}/forgotPassword`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userName: resetEmail.trim(),
-                    newPassword: resetPassword.trim()
-                })
+                body: JSON.stringify({ userName: resetEmail.trim(), newPassword: resetPassword.trim() })
             });
-
             const result = await response.json();
-            console.log('Forgot password:', result);
-
             if (result.status === 1) {
                 toast.success('Password updated successfully! Please sign in with your new password.');
                 setUsername(resetEmail.trim());
@@ -459,7 +363,6 @@ export default function AuthLogin() {
                 setError(result.message || 'Password reset failed');
             }
         } catch (err) {
-            console.error('Forgot password error:', err);
             setError('Password reset failed. Please try again.');
         } finally {
             setResetLoading(false);
@@ -488,22 +391,46 @@ export default function AuthLogin() {
         setResetUserData(null);
     };
 
-    // === RENDER COMPONENTS ===
+    // === STYLES (velvet) ===
 
+    const velvetInput =
+        'w-full h-11 px-3.5 pl-11 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-[13px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--violet-500)] focus:bg-[var(--bg-panel)] transition-all duration-200';
+
+    const velvetLabel = 'block text-[11px] font-semibold text-[var(--text-2)] mb-1.5 tracking-wide uppercase';
+
+    // === AMBIENT BACKGROUND ===
     const renderBackground = () => (
         <>
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.15),rgba(255,255,255,0))]"></div>
+            <div
+                className="absolute inset-0"
+                style={{
+                    background: `radial-gradient(ellipse 90% 60% at 50% 0%, rgba(124, 111, 235, 0.22), transparent 60%),
+                                radial-gradient(ellipse 60% 50% at 100% 100%, rgba(168, 90, 138, 0.12), transparent 60%),
+                                radial-gradient(ellipse 50% 40% at 0% 100%, rgba(90, 169, 244, 0.08), transparent 60%),
+                                var(--bg-canvas)`,
+                }}
+            />
+            {/* Soft drifting orbs */}
             <motion.div
-                className="absolute top-20 left-20 w-96 h-96 bg-purple-300/40 rounded-full blur-3xl"
-                animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-                transition={{ duration: 8, repeat: Infinity }}
+                className="absolute -top-32 -left-32 w-[28rem] h-[28rem] rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(124, 111, 235, 0.45), transparent 70%)' }}
+                animate={{ scale: [1, 1.15, 1], x: [0, 30, 0], y: [0, 20, 0] }}
+                transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
             />
             <motion.div
-                className="absolute bottom-20 right-20 w-[500px] h-[500px] bg-pink-300/30 rounded-full blur-3xl"
-                animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.5, 0.2] }}
-                transition={{ duration: 10, repeat: Infinity }}
+                className="absolute -bottom-32 -right-32 w-[32rem] h-[32rem] rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(168, 90, 138, 0.32), transparent 70%)' }}
+                animate={{ scale: [1.1, 0.95, 1.1], x: [0, -20, 0], y: [0, -15, 0] }}
+                transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
             />
+            <motion.div
+                className="absolute top-1/3 right-1/4 w-96 h-96 rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(90, 169, 244, 0.18), transparent 70%)' }}
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Fine grain */}
+            <div className="velvet-grain absolute inset-0 opacity-[0.03] pointer-events-none" />
         </>
     );
 
@@ -511,13 +438,13 @@ export default function AuthLogin() {
         <AnimatePresence>
             {error && (
                 <motion.div
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-6"
+                    exit={{ opacity: 0, y: -8 }}
+                    className="mb-5"
                 >
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl">
-                        <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
+                    <div className="px-4 py-3 bg-[var(--neg-soft)] border border-[var(--neg)]/20 rounded-xl">
+                        <p className="text-[12.5px] font-medium text-[var(--neg)]">{error}</p>
                     </div>
                 </motion.div>
             )}
@@ -535,71 +462,71 @@ export default function AuthLogin() {
         setFlowState('forgot');
     };
 
+    // === FORM RENDERERS ===
+
     const renderLoginForm = () => (
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-4">
             <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Username</label>
+                <label className={velvetLabel}>Username</label>
                 <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className={`h-5 w-5 transition-colors ${focusedField === 'username' ? 'text-purple-500' : 'text-gray-400'}`} />
-                    </div>
+                    <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${focusedField === 'username' ? 'text-[var(--violet-500)]' : 'text-[var(--text-3)]'}`} />
                     <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         onFocus={() => setFocusedField('username')}
                         onBlur={() => setFocusedField(null)}
-                        className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all"
+                        className={velvetInput}
                         placeholder="yourname@buyhatke.com"
                         disabled={loading}
                     />
                 </div>
-                <p className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 ml-1 italic">
+                <p className="mt-1.5 text-[10.5px] text-[var(--text-3)] italic">
                     Use your official @buyhatke.com email
                 </p>
             </div>
 
             <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Password</label>
+                <label className={velvetLabel}>Password</label>
                 <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Lock className={`h-5 w-5 transition-colors ${focusedField === 'password' ? 'text-purple-500' : 'text-gray-400'}`} />
-                    </div>
+                    <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${focusedField === 'password' ? 'text-[var(--violet-500)]' : 'text-[var(--text-3)]'}`} />
                     <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => setFocusedField(null)}
-                        className="block w-full pl-12 pr-14 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all"
+                        className={velvetInput + ' pr-11'}
                         placeholder="Enter your password"
                         disabled={loading}
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-purple-500 transition-colors">
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--violet-500)] transition-colors"
+                    >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
             </div>
 
-            <motion.button
+            <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 px-6 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
+                className="btn-velvet w-full h-11 text-[13px] mt-2"
             >
                 {loading ? (
-                    <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Signing In...</span>
+                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Signing in…</span>
                 ) : (
-                    <span className="flex items-center justify-center gap-2"><LogIn className="h-5 w-5" />Sign In</span>
+                    <span className="inline-flex items-center gap-2"><LogIn className="h-4 w-4" />Sign in</span>
                 )}
-            </motion.button>
+            </button>
 
-            <div className="text-center">
+            <div className="text-center pt-1">
                 <button
                     type="button"
                     onClick={openForgotPassword}
-                    className="text-sm text-purple-600 dark:text-purple-300 hover:underline font-medium"
+                    className="text-[12px] text-[var(--violet-500)] hover:text-[var(--violet-400)] font-medium transition-colors"
                     disabled={loading}
                 >
                     Forgot your password?
@@ -609,93 +536,74 @@ export default function AuthLogin() {
     );
 
     const renderForgotPassword = () => {
-        // Step 1: Enter Email
         if (forgotStep === 'email') {
             return (
-                <form onSubmit={handleForgotEmailSubmit} className="space-y-6">
-                    <div className="text-center space-y-2">
-                        <div className="w-16 h-16 mx-auto bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                            <User className="h-8 w-8 text-purple-600 dark:text-purple-300" />
+                <form onSubmit={handleForgotEmailSubmit} className="space-y-4">
+                    <div className="text-center mb-2">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
+                            <User className="h-5 w-5 text-[var(--indigo-500)]" />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Enter your username or email to verify your account</p>
+                        <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Reset password</h3>
+                        <p className="text-[12px] text-[var(--text-3)] mt-1">Enter your username to verify your account</p>
                     </div>
-
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Username or Email</label>
+                        <label className={velvetLabel}>Username or Email</label>
                         <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <User className="h-5 w-5 text-gray-400" />
-                            </div>
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
                             <input
                                 type="text"
                                 value={resetEmail}
                                 onChange={(e) => setResetEmail(e.target.value)}
-                                className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all"
+                                className={velvetInput}
                                 placeholder="Enter username or email"
                                 disabled={resetLoading}
                                 autoFocus
                             />
                         </div>
                     </div>
-
-                    <motion.button
-                        type="submit"
-                        disabled={resetLoading}
-                        className="w-full py-4 px-6 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                        whileHover={{ scale: resetLoading ? 1 : 1.02 }}
-                        whileTap={{ scale: resetLoading ? 1 : 0.98 }}
-                    >
+                    <button type="submit" disabled={resetLoading} className="btn-velvet w-full h-11 text-[13px]">
                         {resetLoading ? (
-                            <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Checking...</span>
+                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking…</span>
                         ) : (
-                            <span className="flex items-center justify-center gap-2"><ArrowRight className="h-5 w-5" />Continue</span>
+                            <span className="inline-flex items-center gap-2"><ArrowRight className="h-4 w-4" />Continue</span>
                         )}
-                    </motion.button>
-
+                    </button>
                     <div className="text-center">
-                        <button
-                            type="button"
-                            onClick={resetToLogin}
-                            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                        >
-                            ← Back to login
+                        <button type="button" onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+                            ← Back to sign in
                         </button>
                     </div>
                 </form>
             );
         }
 
-        // Step 2: Enter OTP
         if (forgotStep === 'otp') {
             return (
-                <form onSubmit={handleForgotOtpSubmit} className="space-y-6">
-                    <div className="text-center space-y-2">
-                        <div className="w-16 h-16 mx-auto bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                            <Smartphone className="h-8 w-8 text-purple-600 dark:text-purple-300" />
+                <form onSubmit={handleForgotOtpSubmit} className="space-y-4">
+                    <div className="text-center mb-2">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
+                            <Smartphone className="h-5 w-5 text-[var(--indigo-500)]" />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Enter OTP</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Enter the 6-digit code from your authenticator app</p>
+                        <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Enter OTP</h3>
+                        <p className="text-[12px] text-[var(--text-3)] mt-1">
+                            6-digit code from your authenticator
+                        </p>
                         {resetUserData && (
-                            <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg mt-2">
-                                <p className="text-xs text-gray-600 dark:text-gray-400">
-                                    Account: <span className="font-semibold text-gray-900 dark:text-white">{resetUserData.userName}</span>
-                                </p>
+                            <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                                <span className="text-[10.5px] text-[var(--text-3)]">Account:</span>
+                                <span className="text-[11px] font-semibold text-[var(--text-1)]">{resetUserData.userName}</span>
                             </div>
                         )}
                     </div>
-
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Authenticator OTP</label>
+                        <label className={velvetLabel}>Authenticator OTP</label>
                         <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Smartphone className="h-5 w-5 text-gray-400" />
-                            </div>
+                            <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
                             <input
                                 type="text"
                                 value={resetOtp}
                                 onChange={(e) => setResetOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                                className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-center text-3xl tracking-widest font-mono"
+                                className={velvetInput + ' text-center text-[20px] tracking-[0.4em] font-mono pl-3.5 pr-3.5'}
                                 placeholder="000000"
                                 maxLength={6}
                                 disabled={resetLoading}
@@ -703,117 +611,55 @@ export default function AuthLogin() {
                             />
                         </div>
                     </div>
-
-                    <motion.button
-                        type="submit"
-                        disabled={resetLoading || resetOtp.length !== 6}
-                        className="w-full py-4 px-6 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                        whileHover={{ scale: resetLoading ? 1 : 1.02 }}
-                        whileTap={{ scale: resetLoading ? 1 : 0.98 }}
-                    >
+                    <button type="submit" disabled={resetLoading || resetOtp.length !== 6} className="btn-velvet w-full h-11 text-[13px]">
                         {resetLoading ? (
-                            <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Verifying...</span>
+                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Verifying…</span>
                         ) : (
-                            <span className="flex items-center justify-center gap-2"><Shield className="h-5 w-5" />Verify OTP</span>
+                            <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Verify OTP</span>
                         )}
-                    </motion.button>
-
+                    </button>
                     <div className="text-center">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setForgotStep('email');
-                                setResetOtp('');
-                                setError(null);
-                            }}
-                            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                        >
-                            ← Back to email
+                        <button type="button" onClick={() => { setForgotStep('email'); setResetOtp(''); setError(null); }} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+                            ← Back
                         </button>
                     </div>
                 </form>
             );
         }
 
-        // Step 3: Set New Password
         return (
-            <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
-                <div className="text-center space-y-2">
-                    <div className="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                        <Shield className="h-8 w-8 text-emerald-600 dark:text-emerald-300" />
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                <div className="text-center mb-2">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--pos-soft)] border border-[var(--pos)]/20 mb-3">
+                        <Shield className="h-5 w-5 text-[var(--pos)]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Set New Password</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Create a new password for your account</p>
-                    {resetUserData && (
-                        <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg mt-2">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                Account: <span className="font-semibold text-gray-900 dark:text-white">{resetUserData.userName}</span>
-                            </p>
-                        </div>
-                    )}
+                    <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Set new password</h3>
+                    <p className="text-[12px] text-[var(--text-3)] mt-1">Create a new password for your account</p>
                 </div>
-
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">New Password</label>
+                    <label className={velvetLabel}>New Password</label>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                            type="password"
-                            value={resetPassword}
-                            onChange={(e) => setResetPassword(e.target.value)}
-                            className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all"
-                            placeholder="Minimum 6 characters"
-                            disabled={resetLoading}
-                            autoFocus
-                        />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                        <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className={velvetInput} placeholder="Minimum 6 characters" disabled={resetLoading} autoFocus />
                     </div>
                 </div>
-
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Confirm Password</label>
+                    <label className={velvetLabel}>Confirm Password</label>
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                            type="password"
-                            value={resetConfirmPassword}
-                            onChange={(e) => setResetConfirmPassword(e.target.value)}
-                            className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all"
-                            placeholder="Re-enter password"
-                            disabled={resetLoading}
-                        />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                        <input type="password" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} className={velvetInput} placeholder="Re-enter password" disabled={resetLoading} />
                     </div>
                 </div>
-
-                <motion.button
-                    type="submit"
-                    disabled={resetLoading || !resetPassword || !resetConfirmPassword}
-                    className="w-full py-4 px-6 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                    whileHover={{ scale: resetLoading ? 1 : 1.02 }}
-                    whileTap={{ scale: resetLoading ? 1 : 0.98 }}
-                >
+                <button type="submit" disabled={resetLoading || !resetPassword || !resetConfirmPassword} className="btn-velvet w-full h-11 text-[13px]">
                     {resetLoading ? (
-                        <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Updating...</span>
+                        <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Updating…</span>
                     ) : (
-                        <span className="flex items-center justify-center gap-2"><Shield className="h-5 w-5" />Reset Password</span>
+                        <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Reset password</span>
                     )}
-                </motion.button>
-
+                </button>
                 <div className="text-center">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setForgotStep('otp');
-                            setResetPassword('');
-                            setResetConfirmPassword('');
-                            setError(null);
-                        }}
-                        className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    >
-                        ← Back to OTP
+                    <button type="button" onClick={() => { setForgotStep('otp'); setResetPassword(''); setResetConfirmPassword(''); setError(null); }} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+                        ← Back
                     </button>
                 </div>
             </form>
@@ -821,201 +667,215 @@ export default function AuthLogin() {
     };
 
     const renderSignupForm = () => (
-        <form onSubmit={handleSignup} className="space-y-6">
+        <form onSubmit={handleSignup} className="space-y-4">
             <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Choose Username</label>
+                <label className={velvetLabel}>Username</label>
                 <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="block w-full pl-12 pr-4 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" placeholder="yourname@buyhatke.com" disabled={loading} />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                    <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        onFocus={() => setFocusedField('username')}
+                        onBlur={() => setFocusedField(null)}
+                        className={velvetInput}
+                        placeholder="yourname@buyhatke.com"
+                        disabled={loading}
+                    />
                 </div>
-                <p className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 ml-1 italic">
+                <p className="mt-1.5 text-[10.5px] text-[var(--text-3)] italic">
                     Registration requires a @buyhatke.com email
                 </p>
             </div>
-
             <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Create Password</label>
+                <label className={velvetLabel}>Create Password</label>
                 <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full pl-12 pr-14 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" placeholder="Minimum 6 characters" disabled={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-purple-500 transition-colors">
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => setFocusedField(null)}
+                        className={velvetInput + ' pr-11'}
+                        placeholder="Minimum 6 characters"
+                        disabled={loading}
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--violet-500)] transition-colors">
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
             </div>
-
-            <motion.button type="submit" disabled={loading} className="w-full py-4 px-6 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50" whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
+            <button type="submit" disabled={loading} className="btn-velvet w-full h-11 text-[13px] mt-2">
                 {loading ? (
-                    <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Creating Account...</span>
+                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating account…</span>
                 ) : (
-                    <span className="flex items-center justify-center gap-2"><UserPlus className="h-5 w-5" />Create Account</span>
+                    <span className="inline-flex items-center gap-2"><UserPlus className="h-4 w-4" />Create account</span>
                 )}
-            </motion.button>
+            </button>
         </form>
     );
 
     const render2FASetup = () => (
-        <div className="space-y-6">
+        <div className="space-y-5">
             <div className="text-center">
-                <div className="w-20 h-20 mx-auto bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
-                    <QrCode className="w-10 h-10 text-purple-600 dark:text-purple-400" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
+                    <QrCode className="h-6 w-6 text-[var(--indigo-500)]" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Link Authenticator App</h3>
-
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl inline-block mx-auto mb-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Account: <span className="font-semibold text-gray-900 dark:text-white">{userData?.username}</span>
-                    </p>
+                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Link authenticator</h3>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                    <span className="text-[10.5px] text-[var(--text-3)]">Account:</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
                 </div>
-
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    Scan this QR code with Google Authenticator or Authy
+                <p className="text-[12px] text-[var(--text-3)] mt-2">
+                    Scan with Google Authenticator or Authy
                 </p>
             </div>
 
             {secretData && (
                 <>
-                    <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-200 mx-auto w-fit">
-                        <img src={secretData.qrCode} alt="2FA QR Code" className="w-48 h-48 block mx-auto" />
+                    <div className="flex justify-center">
+                        <div className="p-3 rounded-2xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                            <img src={secretData.qrCode} alt="2FA QR Code" className="w-44 h-44 block rounded-lg" />
+                        </div>
                     </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg flex items-center justify-between border border-gray-100 dark:border-gray-700">
-                        <div className="text-xs text-gray-500 font-mono">
-                            Key: <span className="font-bold text-gray-700 dark:text-gray-300">{secretData.tempSecret}</span>
+                    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                        <div className="text-[11px] text-[var(--text-3)] font-mono truncate">
+                            Key: <span className="font-semibold text-[var(--text-1)]">{secretData.tempSecret}</span>
                         </div>
-                        <button onClick={copySecret} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                            <Copy className="w-4 h-4 text-gray-500" />
+                        <button onClick={copySecret} className="p-1.5 rounded-lg text-[var(--text-3)] hover:text-[var(--violet-500)] hover:bg-[var(--bg-panel)] transition-colors">
+                            <Copy className="h-3.5 w-3.5" />
                         </button>
                     </div>
 
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800/50">
-                        <p className="text-blue-700 dark:text-blue-300 text-sm">
-                            <strong>Important:</strong> After scanning, click the button below. You'll enter the OTP code after admin approves your account.
+                    <div className="px-3.5 py-3 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)]">
+                        <p className="text-[12px] text-[var(--text-2)]">
+                            <span className="font-semibold text-[var(--indigo-500)]">Important:</span> After scanning, click below. You'll enter the OTP after admin approval.
                         </p>
                     </div>
 
-                    <motion.button
-                        onClick={linkAuthenticator}
-                        disabled={loading}
-                        className="w-full py-4 px-6 rounded-2xl text-white font-semibold bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 transition-all shadow-lg disabled:opacity-50"
-                        whileHover={{ scale: loading ? 1 : 1.02 }}
-                        whileTap={{ scale: loading ? 1 : 0.98 }}
-                    >
+                    <button onClick={linkAuthenticator} disabled={loading} className="btn-velvet w-full h-11 text-[13px]">
                         {loading ? (
-                            <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Linking...</span>
+                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Linking…</span>
                         ) : (
-                            <span className="flex items-center justify-center gap-2"><CheckCircle2 className="h-5 w-5" />I've Scanned the QR Code</span>
+                            <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />I've scanned the QR code</span>
                         )}
-                    </motion.button>
+                    </button>
                 </>
             )}
         </div>
     );
 
     const renderWaitingApproval = () => (
-        <div className="text-center space-y-6">
-            <motion.div className="w-24 h-24 mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                <Clock className="w-12 h-12 text-amber-600 dark:text-amber-400" />
+        <div className="text-center space-y-5">
+            <motion.div
+                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)]"
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+                <Clock className="h-7 w-7 text-[var(--gold-500)]" />
             </motion.div>
 
             <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Waiting for Approval</h3>
-                <p className="text-gray-500 dark:text-gray-400">
+                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Waiting for approval</h3>
+                <p className="text-[12.5px] text-[var(--text-3)] mt-1.5 leading-relaxed">
                     Your account is pending admin approval.<br />
-                    Once approved, you can log in with your OTP.
+                    Once approved, you can sign in with your OTP.
                 </p>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Username: <span className="font-semibold">{userData?.username}</span>
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 flex items-center justify-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> Authenticator linked
-                </p>
+            <div className="px-4 py-3 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-left space-y-1.5">
+                <div className="flex items-center justify-between">
+                    <span className="text-[10.5px] text-[var(--text-3)]">Username</span>
+                    <span className="text-[12px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-[10.5px] text-[var(--text-3)]">Authenticator</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--pos)]">
+                        <CheckCircle2 className="h-3 w-3" /> Linked
+                    </span>
+                </div>
             </div>
 
-            <motion.button
-                onClick={checkApprovalStatus}
-                disabled={loading}
-                className="w-full py-4 px-6 rounded-2xl text-white font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg disabled:opacity-50"
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-            >
+            <button onClick={checkApprovalStatus} disabled={loading} className="btn-velvet w-full h-11 text-[13px]">
                 {loading ? (
-                    <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Checking...</span>
+                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking…</span>
                 ) : (
-                    <span className="flex items-center justify-center gap-2"><RefreshCw className="h-5 w-5" />Check Approval Status</span>
+                    <span className="inline-flex items-center gap-2"><RefreshCw className="h-4 w-4" />Check approval status</span>
                 )}
-            </motion.button>
+            </button>
 
-            <button onClick={resetToLogin} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                ← Back to Login
+            <button onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+                ← Back to sign in
             </button>
         </div>
     );
 
     const renderOTPVerification = () => (
-        <div className="space-y-6 text-center">
-            <div className="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                <Smartphone className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+        <div className="space-y-5 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--pos-soft)] border border-[var(--pos)]/20">
+                <ShieldCheck className="h-6 w-6 text-[var(--pos)]" />
             </div>
-
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl inline-block mx-auto mb-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Verifying: <span className="font-semibold text-gray-900 dark:text-white">{userData?.username}</span>
-                </p>
-            </div>
-
             <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Enter Verification Code</h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                    Enter the 6-digit code from your authenticator app
+                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Enter verification code</h3>
+                <p className="text-[12.5px] text-[var(--text-3)] mt-1">
+                    6-digit code from your authenticator
                 </p>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                    <span className="text-[10.5px] text-[var(--text-3)]">Verifying:</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
+                </div>
             </div>
 
             <input
                 type="text"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                className="block w-full py-4 px-6 text-center text-3xl tracking-[0.5em] font-mono font-bold border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 transition-all"
+                className="w-full h-14 px-4 text-center text-[24px] tracking-[0.4em] font-mono font-semibold rounded-2xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-[var(--text-1)] focus:outline-none focus:border-[var(--pos)] focus:bg-[var(--bg-panel)] transition-all"
                 placeholder="000000"
                 maxLength={6}
                 autoFocus
                 disabled={loading}
             />
 
-            <motion.button
-                onClick={verifyOTPAndEnable}
-                disabled={loading || otpCode.length !== 6}
-                className="w-full py-4 px-6 rounded-2xl text-white font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg disabled:opacity-50"
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-            >
+            <button onClick={verifyOTPAndEnable} disabled={loading || otpCode.length !== 6} className="btn-velvet w-full h-11 text-[13px]">
                 {loading ? (
-                    <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Verifying...</span>
+                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Verifying…</span>
                 ) : (
-                    <span className="flex items-center justify-center gap-2"><ArrowRight className="h-5 w-5" />Verify & Login</span>
+                    <span className="inline-flex items-center gap-2"><ArrowRight className="h-4 w-4" />Verify & sign in</span>
                 )}
-            </motion.button>
+            </button>
 
-            <button onClick={resetToLogin} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                ← Back to Login
+            <button onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+                ← Back to sign in
             </button>
         </div>
     );
 
     const renderTabs = () => (
-        <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 mb-8">
-            <button onClick={() => { setFlowState('login'); setUsername(''); setPassword(''); setError(null); }} className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${flowState === 'login' ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
-                <span className="flex items-center justify-center gap-2"><LogIn className="w-4 h-4" />Sign In</span>
+        <div className="flex p-1 mb-6 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
+            <button
+                onClick={() => { setFlowState('login'); setUsername(''); setPassword(''); setError(null); }}
+                className={`flex-1 h-9 rounded-lg text-[12.5px] font-medium transition-all flex items-center justify-center gap-1.5 ${
+                    flowState === 'login'
+                        ? 'bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)]'
+                        : 'text-[var(--text-3)] hover:text-[var(--text-1)]'
+                }`}
+            >
+                <LogIn className="h-3.5 w-3.5" />
+                Sign in
             </button>
-            <button onClick={() => { setFlowState('signup'); setUsername(''); setPassword(''); setError(null); }} className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${flowState === 'signup' ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
-                <span className="flex items-center justify-center gap-2"><UserPlus className="w-4 h-4" />Sign Up</span>
+            <button
+                onClick={() => { setFlowState('signup'); setUsername(''); setPassword(''); setError(null); }}
+                className={`flex-1 h-9 rounded-lg text-[12.5px] font-medium transition-all flex items-center justify-center gap-1.5 ${
+                    flowState === 'signup'
+                        ? 'bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)]'
+                        : 'text-[var(--text-3)] hover:text-[var(--text-1)]'
+                }`}
+            >
+                <UserPlus className="h-3.5 w-3.5" />
+                Sign up
             </button>
         </div>
     );
@@ -1027,30 +887,50 @@ export default function AuthLogin() {
             {renderBackground()}
 
             <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-10 rounded-3xl w-full max-w-md"
-                style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)' }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="relative w-full max-w-md rounded-3xl border border-[var(--line)] bg-[var(--bg-panel)]/85 backdrop-blur-2xl p-8"
+                style={{ boxShadow: 'var(--shadow-velvet)' }}
             >
-                {/* Header - only show for login/signup/forgot */}
+                {/* Brand mark */}
                 {(flowState === 'login' || flowState === 'signup' || flowState === 'forgot') && (
                     <div className="text-center mb-6">
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative w-20 h-20 mx-auto mb-4">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-pink-500 rounded-3xl blur-2xl opacity-50"></div>
-                            <div className="relative w-20 h-20 bg-gradient-to-br from-purple-500 via-violet-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl">
-                                <img src="/logo_512x512.png" alt="Logo" className="w-12 h-12 object-contain" />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.1, duration: 0.4 }}
+                            className="relative inline-block"
+                        >
+                            <div
+                                className="absolute inset-0 rounded-2xl blur-2xl"
+                                style={{ background: 'var(--g-brand-soft)' }}
+                            />
+                            <div className="relative w-14 h-14 rounded-2xl bg-[var(--bg-panel)] border border-[var(--line)] flex items-center justify-center">
+                                <img src="/logo_512x512.png" alt="Logo" className="w-8 h-8 object-contain" />
                             </div>
                         </motion.div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-purple-900 to-pink-900 dark:from-white dark:via-purple-200 dark:to-pink-200 bg-clip-text text-transparent">
-                            BuyHatke Ads Dashboard
+                        <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-[var(--text-1)]">
+                            <span>BuyHatke</span>{' '}
+                            <span className="font-serif italic font-normal gradient-text">Ads Dashboard</span>
                         </h1>
+                        <p className="mt-1 text-[11.5px] text-[var(--text-3)] flex items-center justify-center gap-1">
+                            <Sparkles className="h-3 w-3 text-[var(--gold-500)]" />
+                            Marketing intelligence platform
+                        </p>
                     </div>
                 )}
 
                 {renderError()}
 
                 <AnimatePresence mode="wait">
-                    <motion.div key={flowState} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+                    <motion.div
+                        key={flowState}
+                        initial={{ opacity: 0, x: 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -12 }}
+                        transition={{ duration: 0.25 }}
+                    >
                         {(flowState === 'login' || flowState === 'signup') && renderTabs()}
                         {flowState === 'login' && renderLoginForm()}
                         {flowState === 'forgot' && renderForgotPassword()}
@@ -1061,8 +941,8 @@ export default function AuthLogin() {
                     </motion.div>
                 </AnimatePresence>
 
-                <div className="mt-8 text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 BuyHatke. All rights reserved.</p>
+                <div className="mt-7 text-center">
+                    <p className="text-[10.5px] text-[var(--text-3)]">© 2025 BuyHatke. All rights reserved.</p>
                 </div>
             </motion.div>
         </div>

@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/config/api';
+import { coerceName } from '@/lib/format';
 
 export interface MetricsPayload {
   from: string;
@@ -681,15 +682,17 @@ class AnalyticsService {
 
     if (Array.isArray(rawData)) {
       rawData.forEach((row: any) => {
-        // Determine the grouping key based on the breakdown type
-        let key = 'Unknown';
+        // Determine the grouping key based on the breakdown type.
+        // coerceName ensures object payloads like { city, state } or { name, label }
+        // never collapse to "[object Object]" when used as a map key.
+        let key = 'Unspecified';
 
         if (groupBy === 'gender' && row.gender !== undefined) {
-          key = row.gender;
+          key = coerceName(row.gender, 'Unspecified');
         } else if (groupBy === 'platform' && row.platform !== undefined) {
-          key = row.platform;
+          key = coerceName(row.platform, 'Unspecified');
         } else if (groupBy === 'location' && row.location !== undefined) {
-          key = row.location;
+          key = coerceName(row.location, 'Unspecified');
         } else if (groupBy === 'age') {
           // Handle age buckets
           const ageBuckets = [

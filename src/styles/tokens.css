@@ -1,0 +1,1405 @@
+/* Hatke — Velvet Design System
+   2026. Deep, dramatic, sophisticated. Plum + violet + champagne.
+   Real depth through layered surfaces, restrained gradients, fine grain. */
+
+/* =========================
+   LIGHT MODE
+   ========================= */
+:root {
+  /* Canvas — warm cream, never stark */
+  --bg-void: #ecebf1;
+  --bg-canvas: #f5f4f8;
+  --bg-canvas-2: #faf9fc;
+
+  /* Surfaces — paper-like with subtle warmth */
+  --bg-panel: #ffffff;
+  --bg-panel-2: #f7f6fa;
+  --bg-panel-3: #eeedf3;
+  --bg-tint: rgba(99, 76, 230, 0.05);
+  --bg-tint-2: rgba(195, 110, 175, 0.04);
+
+  /* Borders — whisper-thin */
+  --line: rgba(15, 12, 40, 0.06);
+  --line-strong: rgba(15, 12, 40, 0.11);
+  --line-violet: rgba(99, 76, 230, 0.18);
+
+  /* Text */
+  --text-1: #0a0a16;
+  --text-2: #4f4e5e;
+  --text-3: #8c8b9a;
+  --text-inv: #ffffff;
+
+  /* Brand — saturated velvet */
+  --violet-300: #b9aef5;
+  --violet-400: #9b8af0;
+  --violet-500: #7c6feb;
+  --violet-600: #634ce6;
+  --violet-700: #4f3dd4;
+  --violet-800: #3d2fb0;
+
+  --plum-300: #e8b3d0;
+  --plum-400: #d685b8;
+  --plum-500: #c462a0;
+  --plum-600: #a84986;
+
+  --indigo-400: #8470ec;
+  --indigo-500: #634ce6;
+  --indigo-600: #4f3dd4;
+
+  --blue-400: #5aa9f4;
+  --blue-500: #2f7fe6;
+
+  --pink-400: #e89bc0;
+  --pink-500: #d94684;
+
+  --gold-400: #e6a548;
+  --gold-500: #c98a1f;
+
+  --pos: #0a8a5c;
+  --pos-soft: rgba(10, 138, 92, 0.1);
+  --neg: #c9302c;
+  --neg-soft: rgba(201, 48, 44, 0.1);
+  --warn: #b6670a;
+  --info: #1872b3;
+
+  /* Gradients — restrained, never rainbow */
+  --g-brand: linear-gradient(135deg, #634ce6 0%, #4f3dd4 100%);
+  --g-brand-soft: linear-gradient(135deg, rgba(99, 76, 230, 0.08) 0%, rgba(79, 61, 212, 0.08) 100%);
+  --g-accent: linear-gradient(135deg, #7c6feb 0%, #d94684 100%);
+  --g-text: linear-gradient(100deg, #c98a1f 0%, #c462a0 45%, #634ce6 100%);
+  --g-button: linear-gradient(180deg, #8470ec 0%, #634ce6 100%);
+  --g-button-hover: linear-gradient(180deg, #9b8af0 0%, #7c6feb 100%);
+  --g-aurora: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 76, 230, 0.18) 0%, transparent 60%),
+               radial-gradient(ellipse 50% 40% at 100% 30%, rgba(196, 98, 160, 0.1) 0%, transparent 60%);
+  --g-glow: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99, 76, 230, 0.2) 0%, transparent 70%);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Elevation — refined, layered */
+  --shadow-1: 0 1px 2px rgba(15, 12, 40, 0.04);
+  --shadow-2: 0 4px 16px rgba(15, 12, 40, 0.05), 0 1px 2px rgba(15, 12, 40, 0.03);
+  --shadow-3: 0 10px 32px -8px rgba(15, 12, 40, 0.09), 0 2px 6px rgba(15, 12, 40, 0.04);
+  --shadow-velvet: 0 24px 48px -16px rgba(79, 61, 212, 0.16), 0 2px 6px rgba(15, 12, 40, 0.04);
+  --shadow-velvet-lg: 0 32px 64px -20px rgba(79, 61, 212, 0.22), 0 4px 12px rgba(15, 12, 40, 0.05);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-ring: 0 0 0 3px rgba(99, 76, 230, 0.14);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+
+  /* Layout */
+  --header-h: 3.75rem;
+  --sidebar-w: 15rem;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+/* =========================
+   DARK MODE — true velvet
+   ========================= */
+.dark {
+  /* Canvas — layered midnight */
+  --bg-void: #03030a;
+  --bg-canvas: #08080f;
+  --bg-canvas-2: #0c0c16;
+
+  /* Surfaces — rich velvet, never flat black */
+  --bg-panel: #11111c;
+  --bg-panel-2: #181826;
+  --bg-panel-3: #20202f;
+  --bg-tint: rgba(124, 111, 235, 0.08);
+  --bg-tint-2: rgba(214, 128, 179, 0.06);
+
+  /* Borders — barely-there, never noisy */
+  --line: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.1);
+  --line-violet: rgba(124, 111, 235, 0.32);
+
+  /* Text */
+  --text-1: #f6f6fb;
+  --text-2: #a5a5b9;
+  --text-3: #6a6a80;
+  --text-inv: #08080f;
+
+  /* Brand — luminous */
+  --violet-300: #c8bdf7;
+  --violet-400: #a99df5;
+  --violet-500: #8e7ef0;
+  --violet-600: #7c6feb;
+  --violet-700: #634ce6;
+  --violet-800: #4f3dd4;
+
+  --plum-300: #f0b8d6;
+  --plum-400: #e8a5cc;
+  --plum-500: #d680b3;
+  --plum-600: #c46ba3;
+
+  --indigo-400: #a99df5;
+  --indigo-500: #8e7ef0;
+  --indigo-600: #7c6feb;
+
+  --blue-400: #82c8f7;
+  --blue-500: #5aa9f4;
+
+  --pink-400: #f0a8cd;
+  --pink-500: #e879a0;
+
+  --gold-400: #f5cc6e;
+  --gold-500: #e6a548;
+
+  --pos: #5dd6a4;
+  --pos-soft: rgba(93, 214, 164, 0.16);
+  --neg: #f4837f;
+  --neg-soft: rgba(244, 131, 127, 0.16);
+  --warn: #f0bd5e;
+  --info: #6cb6e8;
+
+  --g-brand: linear-gradient(135deg, #7c6feb 0%, #634ce6 100%);
+  --g-brand-soft: linear-gradient(135deg, rgba(124, 111, 235, 0.12) 0%, rgba(99, 76, 230, 0.12) 100%);
+  --g-accent: linear-gradient(135deg, #8e7ef0 0%, #d680b3 100%);
+  --g-text: linear-gradient(100deg, #f5cc6e 0%, #d680b3 45%, #82c8f7 100%);
+  --g-button: linear-gradient(180deg, #8e7ef0 0%, #634ce6 100%);
+  --g-button-hover: linear-gradient(180deg, #a99df5 0%, #8470ec 100%);
+  --g-aurora: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 76, 230, 0.32) 0%, transparent 60%),
+               radial-gradient(ellipse 50% 40% at 100% 30%, rgba(196, 98, 160, 0.18) 0%, transparent 60%);
+  --g-glow: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99, 76, 230, 0.35) 0%, transparent 70%);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-3: 0 10px 32px -8px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-velvet: 0 24px 60px -20px rgba(99, 76, 230, 0.32), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-velvet-lg: 0 32px 80px -20px rgba(99, 76, 230, 0.42), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-ring: 0 0 0 3px rgba(124, 111, 235, 0.2);
+}
+
+/* =========================
+   THEME TRANSITION
+   ========================= */
+html,
+html * {
+  transition-property: background-color, border-color, color, box-shadow, fill, stroke;
+  transition-duration: 0.18s;
+  transition-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  html * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* =========================
+   TYPOGRAPHY
+   ========================= */
+.page-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.page-display {
+  font-family: var(--font-sans);
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--text-1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.page-display-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.875rem;
+  letter-spacing: -0.02em;
+}
+
+.page-subhead {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-top: 0.4rem;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.gradient-text {
+  background: var(--g-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-text-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* =========================
+   SURFACES
+   ========================= */
+.app-canvas {
+  background: var(--bg-canvas);
+  color: var(--text-1);
+  min-height: 100vh;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  position: relative;
+}
+
+.panel-subtle {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.panel-inset {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+/* =========================
+   VELVET METRIC CARDS
+   ========================= */
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out);
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--line-violet) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--line-strong);
+}
+
+.metric-card:hover::before {
+  opacity: 1;
+}
+
+.metric-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.25rem;
+  line-height: 1.1;
+}
+
+.num-delta {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-delta.up {
+  color: var(--pos);
+}
+
+.num-delta.down {
+  color: var(--neg);
+}
+
+.metric-icon-tone {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  opacity: 0.95;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.metric-card:hover .metric-icon-tone {
+  transform: scale(1.05);
+}
+
+.metric-icon-tone--accent {
+  background: rgba(99, 76, 230, 0.1);
+  color: var(--indigo-500);
+}
+
+.metric-icon-tone--teal {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+
+.metric-icon-tone--sky {
+  background: rgba(90, 169, 244, 0.12);
+  color: var(--blue-500);
+}
+
+.metric-icon-tone--pink {
+  background: rgba(217, 70, 132, 0.1);
+  color: var(--pink-500);
+}
+
+.metric-icon-tone--amber {
+  background: rgba(201, 138, 31, 0.12);
+  color: var(--gold-500);
+}
+
+.metric-icon-tone--plum {
+  background: rgba(196, 98, 160, 0.1);
+  color: var(--plum-500);
+}
+
+.metric-icon-tone--violet {
+  background: rgba(99, 76, 230, 0.1);
+  color: var(--violet-600);
+}
+
+/* =========================
+   CONTROLS
+   ========================= */
+.control-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.control-field {
+  height: 2.25rem;
+  font-size: 13px;
+}
+
+/* =========================
+   LIVE INDICATOR
+   ========================= */
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pos);
+  box-shadow: 0 0 0 3px var(--pos-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .live-dot {
+    animation: live-pulse 1.8s ease-out infinite;
+  }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.92); }
+}
+
+/* =========================
+   VELVET — signature surfaces
+   ========================= */
+.velvet-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.velvet-panel {
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-velvet);
+  position: relative;
+}
+
+.velvet-panel::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin: -1px -1px 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(90deg, transparent 0%, var(--line-violet) 50%, transparent 100%);
+  opacity: 0.7;
+}
+
+/* Velvet button — primary */
+.btn-velvet {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 10px;
+  background: var(--g-button);
+  color: white;
+  font-weight: 500;
+  font-size: 12.5px;
+  letter-spacing: -0.005em;
+  border: 1px solid color-mix(in srgb, var(--violet-800) 50%, transparent);
+  box-shadow: 0 4px 14px rgba(79, 61, 212, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.btn-velvet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 50%);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.btn-velvet:hover {
+  background: var(--g-button-hover);
+  box-shadow: 0 6px 20px rgba(79, 61, 212, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.btn-velvet:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(79, 61, 212, 0.28);
+}
+
+.btn-velvet:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Velvet ghost button */
+.btn-velvet-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  background: var(--bg-panel);
+  color: var(--text-1);
+  font-weight: 500;
+  font-size: 12.5px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-velvet-ghost:hover {
+  border-color: var(--line-violet);
+  background: var(--bg-panel-2);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+
+.btn-velvet-ghost:active {
+  transform: translateY(0);
+}
+
+/* Velvet chip */
+.velvet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 500;
+  background: var(--bg-tint);
+  color: var(--indigo-500);
+  border: 1px solid var(--line-violet);
+}
+
+.velvet-chip-muted {
+  background: var(--bg-panel-2);
+  color: var(--text-2);
+  border-color: var(--line);
+}
+
+/* Velvet surface (elevated card) */
+.velvet-surface {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+
+.velvet-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--line-violet) 50%, transparent 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.velvet-surface-inset {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+/* Velvet nav item */
+.velvet-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.velvet-nav-item:hover {
+  color: var(--text-1);
+  background: var(--bg-panel-2);
+}
+
+.velvet-nav-item.is-active {
+  color: var(--indigo-500);
+  background: var(--bg-tint);
+  font-weight: 600;
+}
+
+.velvet-nav-item.is-active::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--violet-500);
+  box-shadow: 0 0 8px var(--violet-500);
+}
+
+/* Velvet header bar — faint lavender wash, premium subtle */
+.velvet-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: var(--header-h);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--violet-200) 55%, var(--bg-panel)) 0%,
+      color-mix(in srgb, var(--violet-100) 40%, var(--bg-panel)) 100%);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid color-mix(in srgb, var(--violet-300) 55%, var(--line));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 4px 16px -4px color-mix(in srgb, var(--violet-400) 30%, transparent);
+}
+
+.dark .velvet-header {
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--violet-800) 35%, var(--bg-panel)) 0%,
+      color-mix(in srgb, var(--violet-900) 20%, var(--bg-panel)) 100%);
+  border-bottom: 1px solid color-mix(in srgb, var(--violet-600) 40%, var(--line));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--violet-400) 16%, transparent) inset,
+    0 6px 20px -4px rgba(0, 0, 0, 0.5);
+}
+
+.velvet-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--line-violet) 50%, transparent 100%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Purple haze — the aurora bleeding through the top of the page */
+.velvet-haze {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 140%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 80% at 18% 20%, color-mix(in srgb, var(--violet-500) 38%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 70% at 78% 10%, color-mix(in srgb, var(--plum-500) 28%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 60%, color-mix(in srgb, var(--indigo-500) 18%, transparent) 0%, transparent 60%);
+  mix-blend-mode: screen;
+  filter: blur(12px);
+  opacity: 0.85;
+  animation: velvet-haze-drift 22s ease-in-out infinite;
+}
+
+.dark .velvet-haze {
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+@keyframes velvet-haze-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(2%, -1.5%, 0) scale(1.04);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .velvet-haze {
+    animation: none;
+  }
+}
+
+/* Velvet back button — the sexiest, tiniest, most refined way to go back */
+.velvet-back {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.velvet-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--violet-500) 16%, transparent), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  z-index: -1;
+}
+
+.velvet-back:hover {
+  color: var(--text-1);
+  border-color: var(--line-violet);
+  box-shadow: var(--shadow-2);
+  transform: translateX(-2px);
+}
+
+.velvet-back:hover::before {
+  opacity: 1;
+}
+
+.velvet-back:active {
+  transform: translateX(-1px) scale(0.98);
+}
+
+.velvet-back-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--bg-tint);
+  color: var(--indigo-500);
+  border: 1px solid var(--line-violet);
+  transition: transform var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out);
+}
+
+.velvet-back:hover .velvet-back-icon {
+  transform: translateX(-2px);
+  background: color-mix(in srgb, var(--violet-500) 16%, var(--bg-tint));
+}
+
+.velvet-back-label {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.1;
+}
+
+.velvet-back-label-text {
+  display: inline-block;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.velvet-back:hover .velvet-back-label-text {
+  transform: translateX(-1px);
+}
+
+/* Velvet input */
+.velvet-input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  color: var(--text-1);
+  font-size: 13px;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+  outline: none;
+}
+
+.velvet-input:focus {
+  border-color: var(--violet-500);
+  box-shadow: var(--shadow-ring);
+}
+
+.velvet-input::placeholder {
+  color: var(--text-3);
+}
+
+/* Dividers */
+.velvet-divider {
+  height: 1px;
+  width: 100%;
+  background: var(--line);
+}
+
+.velvet-divider-gradient {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, var(--line-violet) 50%, transparent 100%);
+  opacity: 0.6;
+}
+
+/* Shimmer */
+@keyframes velvet-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.velvet-shimmer {
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--violet-500) 12%, transparent) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: velvet-shimmer 2.4s var(--ease-in-out) infinite;
+}
+
+/* Loader — velvet spinner */
+@keyframes velvet-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes velvet-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .velvet-shimmer,
+  [style*="velvet-spin"] {
+    animation-duration: 4s !important;
+  }
+}
+
+/* =========================
+   AMBIENT BACKGROUND
+   ========================= */
+.velvet-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.velvet-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.velvet-orb--violet { background: radial-gradient(circle, var(--violet-500), transparent 70%); }
+.velvet-orb--plum { background: radial-gradient(circle, var(--plum-500), transparent 70%); }
+.velvet-orb--blue { background: radial-gradient(circle, var(--blue-500), transparent 70%); }
+
+/* Section header */
+.velvet-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.velvet-section-title::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--line-violet);
+}
+
+/* Velvet tab */
+.velvet-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.velvet-tab:hover {
+  color: var(--text-1);
+  background: var(--bg-panel-2);
+}
+
+.velvet-tab.is-active {
+  color: var(--text-1);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-1);
+  border: 1px solid var(--line);
+}
+
+/* =========================
+   AURORA — the dramatic backdrop
+   ========================= */
+.aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--g-aurora);
+}
+
+/* =========================
+   VELVET HEADER GRADIENT
+   "Sleek, low-contrast, multi-stop linear or mesh gradient.
+   Deep plum/midnight violet → deep royal indigo → muted raspberry."
+   Used on hero page titles and high-emotion surfaces.
+   ========================= */
+.velvet-header-gradient {
+  background: linear-gradient(
+    135deg,
+    #1e0b36 0%,
+    #2a0e4a 18%,
+    #3b136b 38%,
+    #4f3dd4 58%,
+    #634ce6 72%,
+    #8a2d6b 88%,
+    #c462a0 100%
+  );
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  position: relative;
+  display: inline-block;
+  animation: velvet-gradient-drift 18s ease-in-out infinite;
+}
+
+@keyframes velvet-gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .velvet-header-gradient {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}
+
+/* Solid version of the velvet header — for actual fill, not just text.
+   Use on hero banners / page-level panels. */
+.velvet-header-fill {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(196, 98, 160, 0.32) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 70%, rgba(99, 76, 230, 0.45) 0%, transparent 55%),
+    linear-gradient(135deg, #1e0b36 0%, #2a0e4a 30%, #3b136b 60%, #220646 100%);
+  color: #f6f6fb;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.velvet-header-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.12) 0%, transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(217, 70, 132, 0.18) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.velvet-header-fill > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Velvet page shell — applies the full depth treatment to a page. */
+.velvet-page-shell {
+  position: relative;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, color-mix(in srgb, var(--violet-500) 14%, var(--bg-canvas)) 0%, var(--bg-canvas) 60%),
+    var(--bg-canvas);
+}
+
+/* =========================
+   INPUT / SELECT ENHANCEMENT
+   Standardized purple focus treatment for native inputs
+   ========================= */
+.velvet-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--bg-panel-2);
+  border-radius: 10px;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.velvet-input-shell:hover {
+  border-color: var(--line-strong);
+}
+
+.velvet-input-shell:focus-within {
+  border-color: var(--violet-500);
+  background: var(--bg-panel);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--violet-500) 20%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--violet-500) 8%, transparent);
+}
+
+/* =========================
+   ACTIVE FILTER CHIP — dismissable, lavender-tinted
+   ========================= */
+.velvet-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--violet-500) 10%, var(--bg-panel));
+  color: var(--indigo-500);
+  border: 1px solid var(--line-violet);
+  transition: all var(--dur-fast) var(--ease-out);
+  cursor: default;
+}
+
+.velvet-filter-chip:hover {
+  background: color-mix(in srgb, var(--violet-500) 14%, var(--bg-panel));
+  border-color: var(--violet-500);
+}
+
+.velvet-filter-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--violet-500) 18%, transparent);
+  color: var(--indigo-600);
+  transition: all var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.velvet-filter-chip-remove:hover {
+  background: var(--violet-500);
+  color: white;
+  transform: scale(1.08);
+}
+
+/* =========================
+   VELVET CTA — horizontal deep-plum → indigo gradient
+   The premium "Fetch Results" / primary hero-action button.
+   Deeper, more dramatic than .btn-velvet's vertical gradient.
+   ========================= */
+.btn-velvet-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b136b 0%, #220646 50%, #4f3dd4 100%);
+  color: white;
+  font-weight: 500;
+  font-size: 12.5px;
+  letter-spacing: -0.005em;
+  border: 1px solid color-mix(in srgb, var(--violet-800) 50%, transparent);
+  box-shadow:
+    0 8px 24px -8px rgba(99, 76, 230, 0.5),
+    0 2px 6px rgba(15, 12, 40, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-velvet-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.btn-velvet-cta::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(196, 98, 160, 0.4), transparent 60%);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  filter: blur(6px);
+}
+
+.btn-velvet-cta:hover {
+  background: linear-gradient(135deg, #4f1c8a 0%, #2a0a55 50%, #634ce6 100%);
+  box-shadow:
+    0 12px 32px -8px rgba(99, 76, 230, 0.6),
+    0 2px 6px rgba(15, 12, 40, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-velvet-cta:hover::before {
+  opacity: 0.6;
+}
+
+.btn-velvet-cta:active {
+  transform: translateY(0);
+  box-shadow:
+    0 4px 12px -4px rgba(99, 76, 230, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.btn-velvet-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-velvet-cta > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Dashed empty-state track for the active-filter chip area
+   "No filters applied" affordance */
+.velvet-chip-track-empty {
+  border: 1px dashed color-mix(in srgb, var(--violet-500) 28%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--violet-500) 3%, var(--bg-panel-2));
+  padding: 0.6rem 0.85rem;
+  font-size: 11.5px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.velvet-chip-track-empty:hover {
+  border-color: color-mix(in srgb, var(--violet-500) 40%, var(--line));
+  background: color-mix(in srgb, var(--violet-500) 5%, var(--bg-panel-2));
+}
+
+/* =========================
+   MICRO-SHADOW LAYER
+   The signature purple-tinted depth for primary dashboard cards.
+   Use on hero / dashboard-level containers for premium lift.
+   ========================= */
+.velvet-micro-shadow {
+  box-shadow: 0 4px 30px rgba(30, 11, 54, 0.04),
+              0 1px 2px rgba(15, 12, 40, 0.03);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+
+.velvet-micro-shadow:hover {
+  box-shadow: 0 6px 36px rgba(30, 11, 54, 0.07),
+              0 1px 2px rgba(15, 12, 40, 0.04);
+}
+
+.dark .velvet-micro-shadow {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3),
+              0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.dark .velvet-micro-shadow:hover {
+  box-shadow: 0 6px 36px rgba(0, 0, 0, 0.4),
+              0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Row hover — smooth, low-saturation, low-friction.
+   Apply to data rows in tables / lists for tactile feedback. */
+.velvet-row-hover {
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.velvet-row-hover:hover {
+  background-color: color-mix(in srgb, var(--violet-500) 4%, var(--bg-panel-2));
+}
+
+.dark .velvet-row-hover:hover {
+  background-color: color-mix(in srgb, var(--violet-500) 8%, var(--bg-panel));
+}
+
+/* =========================
+   GLASSMORPHISM TOAST
+   Sonner .velvet-toast — frosted glass with purple-tinted gradient.
+   Slim, modern, premium notification treatment.
+   ========================= */
+.velvet-toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 360px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1a1530;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 8px 32px rgba(76, 29, 149, 0.10),
+    0 2px 6px rgba(15, 12, 40, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  animation: velvet-toast-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes velvet-toast-slide-in {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+[data-swipe="end"].velvet-toast {
+  animation: velvet-toast-slide-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes velvet-toast-slide-out {
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.velvet-toast::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.06) 0%,
+    rgba(236, 72, 153, 0.04) 50%,
+    rgba(99, 102, 241, 0.06) 100%);
+  pointer-events: none;
+}
+
+.dark .velvet-toast {
+  color: #f1eef9;
+  background: rgba(26, 21, 48, 0.72);
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(167, 139, 250, 0.08);
+}
+
+.dark .velvet-toast::before {
+  background: linear-gradient(135deg,
+    rgba(167, 139, 250, 0.10) 0%,
+    rgba(236, 72, 153, 0.05) 50%,
+    rgba(99, 102, 241, 0.10) 100%);
+}
+
+.velvet-toast-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: -0.005em;
+  color: #2a1f4a;
+}
+
+.dark .velvet-toast-title {
+  color: #f4f0ff;
+}
+
+.velvet-toast-desc {
+  font-size: 12.5px;
+  color: #5b5275;
+  margin-top: 2px;
+}
+
+.dark .velvet-toast-desc {
+  color: #b8b0d4;
+}
+
+.velvet-toast--success {
+  border-left: 3px solid #10b981;
+}
+.velvet-toast--error {
+  border-left: 3px solid #ef4444;
+}
+.velvet-toast--info {
+  border-left: 3px solid #8b5cf6;
+}
+.velvet-toast--warning {
+  border-left: 3px solid #f59e0b;
+}
+
+.velvet-toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.velvet-toast--success .velvet-toast-icon {
+  color: #10b981;
+  background: color-mix(in srgb, #10b981 16%, transparent);
+}
+
+.velvet-toast--error .velvet-toast-icon {
+  color: #ef4444;
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+}
+
+.velvet-toast--info .velvet-toast-icon {
+  color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 16%, transparent);
+}
+
+.velvet-toast--warning .velvet-toast-icon {
+  color: #f59e0b;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+}

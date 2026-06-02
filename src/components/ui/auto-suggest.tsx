@@ -3,6 +3,7 @@ import { Check, ChevronDown, X, MapPin, Tag, Sparkles, Package } from 'lucide-re
 import { cn } from '@/lib/utils';
 import { adService, CategoryDetail, CategoryDetails, LocationDetails } from '@/services/adService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VelvetLoader } from '@/components/ui/velvet-loader';
 
 interface LocationSuggestProps {
   value: { [key: string]: number };
@@ -129,9 +130,8 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
             }}
           >
             {loading ? (
-              <div className="p-6 text-center text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2">
-                <Sparkles className="h-5 w-5 animate-spin" />
-                <span className="text-gray-800 dark:text-gray-200 font-medium">Loading locations...</span>
+              <div className="p-6 flex items-center justify-center">
+                <VelvetLoader size={22} label="Loading locations" />
               </div>
             ) : filteredSuggestions.length > 0 ? (
               <div className="py-2 max-h-[350px] overflow-y-auto">
@@ -365,9 +365,8 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
             }}
           >
             {loading ? (
-              <div className="p-6 text-center text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2">
-                <Sparkles className="h-5 w-5 animate-spin" />
-                <span className="text-gray-800 dark:text-gray-200 font-medium">Searching categories...</span>
+              <div className="p-6 flex items-center justify-center">
+                <VelvetLoader size={22} label="Searching categories" />
               </div>
             ) : Object.keys(suggestions).length > 0 ? (
               <div className="py-2 max-h-[350px] overflow-y-auto">

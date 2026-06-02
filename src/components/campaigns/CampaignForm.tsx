@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -135,14 +136,10 @@ export function CampaignForm() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
       <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg p-4 sm:p-6 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50">
-          <Button
-            variant="outline"
+          <VelvetBackButton
+            label="Back"
             onClick={() => navigate(-1)}
-            className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
-          >
-            <ArrowLeft className="h-4 w-4 text-gray-700 dark:text-gray-200 mr-1.5" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Back</span>
-          </Button>
+          />
           <div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white tracking-tight bg-gradient-to-r from-blue-700 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
               {isEditMode ? 'Edit Campaign' : 'Create New Campaign'}
