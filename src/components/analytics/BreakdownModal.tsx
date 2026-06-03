@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { X, TrendingUp, Users, Monitor, MapPin, Calendar, Plane } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { coerceName, formatCompactNumber, isUnspecified } from '@/lib/format';
+import { coerceName, formatCount, isUnspecified } from '@/lib/format';
 import { getPlatformName } from '@/utils/platform';
 
 interface BreakdownModalProps {
@@ -48,7 +48,7 @@ const CustomTooltip = memo(({ active, payload }: any) => {
       </div>
       <div className="flex items-baseline gap-1.5">
         <p className="text-[12.5px] font-semibold tabular-nums text-[var(--text-1)]">
-          {formatCompactNumber(value)}
+          {formatCount(value)}
         </p>
         <p className="text-[10px] font-semibold tabular-nums" style={{ color: fillColor }}>
           {formatPercentage(percentage)}%
@@ -129,7 +129,7 @@ export const BreakdownModal = memo<BreakdownModalProps>(({ open, onOpenChange, t
                   <span className="font-mono">{enriched.length} categories</span>
                   <span className="text-[var(--text-3)]">·</span>
                   <span className="font-semibold tabular-nums text-[var(--text-1)]">
-                    {formatCompactNumber(totalValue)} total
+                    {formatCount(totalValue)} total
                   </span>
                 </div>
               )}
@@ -236,7 +236,7 @@ export const BreakdownModal = memo<BreakdownModalProps>(({ open, onOpenChange, t
                             {item.name}
                           </p>
                           <p className="font-mono text-[10.5px] text-[var(--text-3)] mt-0.5">
-                            {formatCompactNumber(item.value)} volume
+                            {formatCount(item.value)} volume
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">

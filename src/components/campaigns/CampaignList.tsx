@@ -17,6 +17,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { usePermissions } from '@/context/PermissionsContext';
+import { formatCount } from '@/lib/format';
 
 const ZOOM_REMINDER_KEY = 'campaign_zoom_reminder_shown';
 const REMINDER_COOLDOWN = 24 * 60 * 60 * 1000;
@@ -240,14 +241,14 @@ export function CampaignList() {
   const summaryCards = [
     { label: 'Active', value: activeCampaigns, icon: Play, tone: 'pos' as const },
     { label: 'Budget', value: `₹${totalBudget.toLocaleString()}`, icon: DollarSign, tone: 'sky' as const },
-    { label: 'Impressions', value: totalImpressions.toLocaleString(), icon: Eye, tone: 'violet' as const },
-    { label: 'Live Landings', value: totalLandingCount.toLocaleString(), icon: Zap, tone: 'amber' as const },
+    { label: 'Impressions', value: formatCount(totalImpressions), icon: Eye, tone: 'violet' as const },
+    { label: 'Live Landings', value: formatCount(totalLandingCount), icon: Zap, tone: 'amber' as const },
   ];
 
   // Render a numeric table cell with semantic weight:
   // zeros / missing values fall back to 0 and render in a lighter weight
   // so the table never carries em-dashes.
-  const numCell = (v: number | string | null | undefined, formatter: (n: number) => string = (n) => n.toLocaleString()) => {
+  const numCell = (v: number | string | null | undefined, formatter: (n: number) => string = formatCount) => {
     const n = Number(v);
     const display = Number.isFinite(n) ? formatter(n) : '0';
     const isZero = !Number.isFinite(n) || n === 0;
@@ -474,7 +475,7 @@ export function CampaignList() {
                           {formatDate(campaign.createdAt)}
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right">
-                          {campaign.impressionTarget.toLocaleString()}
+                          {formatCount(campaign.impressionTarget)}
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">
                           {numCell(m?.impressions)}
@@ -489,7 +490,7 @@ export function CampaignList() {
                           {numCell(m?.landingCount)}
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right">
-                          ₹{(parseFloat(campaign.totalBudget) / 1000).toFixed(0)}K
+                          ₹{parseFloat(campaign.totalBudget).toLocaleString('en-IN')}
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>

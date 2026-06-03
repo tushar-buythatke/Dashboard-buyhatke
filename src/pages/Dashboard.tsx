@@ -11,7 +11,7 @@ import { CometCard } from '@/components/ui/comet-card';
 import { analyticsService, MetricsPayload } from '@/services/analyticsService';
 import { MetricsData, BreakdownData, TrendChartSeries, Campaign } from '@/types';
 import { toast } from 'sonner';
-import { coerceName, formatCompactNumber, formatSmartPercent } from '@/lib/format';
+import { coerceName, formatSmartPercent } from '@/lib/format';
 
 // Utils
 import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
@@ -252,6 +252,7 @@ export function Dashboard() {
             aggregatedMetrics.impressions += result.metrics.impressions || 0;
             aggregatedMetrics.clicks += result.metrics.clicks || 0;
             aggregatedMetrics.conversions += result.metrics.conversions || 0;
+            aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
           }
 
           // Aggregate trend data by date
@@ -478,6 +479,7 @@ export function Dashboard() {
             aggregatedComparison.impressions += metrics.impressions || 0;
             aggregatedComparison.clicks += metrics.clicks || 0;
             aggregatedComparison.conversions += metrics.conversions || 0;
+            aggregatedComparison.landingCount += metrics.landingCount || 0;
           }
         });
 

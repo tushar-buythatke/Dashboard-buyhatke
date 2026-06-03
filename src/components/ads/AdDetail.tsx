@@ -17,6 +17,7 @@ import { usePermissions } from '@/context/PermissionsContext';
 import { PageHeader } from '@/components/ui/page-header';
 import { MetricCard } from '@/components/ui/metric-card';
 import { cn } from '@/lib/utils';
+import { formatCount } from '@/lib/format';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -523,10 +524,10 @@ export function AdDetail() {
       >
         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
           <Field label="Impressions">
-            <span className="text-lg tabular-nums">{liveMetrics?.impressions?.toLocaleString() ?? '0'}</span>
+            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.impressions)}</span>
           </Field>
           <Field label="Clicks">
-            <span className="text-lg tabular-nums">{liveMetrics?.clicks?.toLocaleString() ?? '0'}</span>
+            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.clicks)}</span>
           </Field>
           <Field label="CTR">
             <span className="text-lg tabular-nums">
@@ -536,7 +537,7 @@ export function AdDetail() {
             </span>
           </Field>
           <Field label="Landing">
-            <span className="text-lg tabular-nums">{liveMetrics?.landingCount?.toLocaleString() ?? '0'}</span>
+            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.landingCount)}</span>
           </Field>
         </div>
       </SectionPanel>

@@ -1,6 +1,6 @@
 import { memo, ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { formatCompactNumber, formatSmartPercent } from '@/lib/format';
+import { formatCount, formatSmartPercent } from '@/lib/format';
 
 interface TableColumn {
   key: string;
@@ -32,7 +32,7 @@ export const DataTable = memo<DataTableProps>(({
       return '—';
     }
     if (format === 'number' || format === 'compact') {
-      return formatCompactNumber(value);
+      return formatCount(value);
     }
     if (format === 'percentage') {
       return formatSmartPercent(value, percentDecimals ?? 4);

@@ -1,28 +1,19 @@
 /**
- * Smart number formatting — picks the right unit (K / M / B / T)
- * so values never get absurdly long (no "9886.6K", instead "9.9M").
+ * Full integer count formatting (comma-separated, no K/M/B/T abbreviations).
+ * Use for impressions, clicks, landings, conversions, targets, etc.
  */
-export function formatCompactNumber(
+export function formatCount(
   value: number | string | null | undefined,
-  opts: { decimals?: number; fallback?: string } = {}
+  opts: { fallback?: string } = {}
 ): string {
-  const { decimals = 1, fallback = '0' } = opts;
+  const { fallback = '0' } = opts;
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
-
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000_000_000) return `${(n / 1_000_000_000_000).toFixed(decimals)}T`;
-  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(decimals)}B`;
-  if (abs >= 1_000_000) {
-    const v = n / 1_000_000;
-    return `${v >= 100 ? Math.round(v) : v.toFixed(decimals)}M`;
-  }
-  if (abs >= 1_000) {
-    const v = n / 1_000;
-    return `${v >= 100 ? Math.round(v) : v.toFixed(decimals)}K`;
-  }
   return Math.round(n).toLocaleString('en-US');
 }
+
+/** @deprecated Use formatCount — kept for existing imports */
+export const formatCompactNumber = formatCount;
 
 /**
  * Smart percentage formatter — up to 4 decimal places, no trailing zeros.
@@ -112,7 +103,7 @@ export function isUnspecified(value: unknown): boolean {
  * Strict rules:
  *   - Percentages → exactly 2 decimal places (0.485698... → "0.49")
  *   - CTR / rate  → 2 decimal places
- *   - Counts      → compact with up to 1 decimal (1.2K, 4.5M)
+ *   - Counts      → full comma-separated integers
  *   - null/undef  → "0"
  *
  * Pass `dataKey` (e.g. 'ctr', 'impressions', 'clicks', 'landingCount',
@@ -128,7 +119,5 @@ export function formatChartValue(
   if (key === 'ctr' || key.includes('rate') || key.includes('percent')) {
     return `${n.toFixed(2)}%`;
   }
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
+  return formatCount(n);
 }

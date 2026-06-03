@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatCount } from '@/lib/format';
 
 export type MetricTone = 'accent' | 'violet' | 'plum' | 'teal' | 'pink' | 'sky' | 'amber';
 
@@ -29,12 +30,7 @@ interface MetricCardProps {
   animateValue?: boolean;
 }
 
-const defaultFormatter = (n: number) =>
-  Math.abs(n) >= 1_000_000
-    ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 1 : 2)}M`
-    : Math.abs(n) >= 1_000
-    ? n.toLocaleString('en-US')
-    : n.toLocaleString('en-US');
+const defaultFormatter = formatCount;
 
 function AnimatedNumber({
   to,

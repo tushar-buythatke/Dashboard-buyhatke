@@ -18,6 +18,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
+import { formatCount } from '@/lib/format';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
@@ -620,13 +621,13 @@ export function AdList() {
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {ad.impressionTarget.toLocaleString()}
+                  {formatCount(ad.impressionTarget)}
                 </div>
               </div>
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {ad.clickTarget.toLocaleString()}
+                  {formatCount(ad.clickTarget)}
                 </div>
               </div>
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -646,13 +647,13 @@ export function AdList() {
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
+                  {formatCount(adMetrics[ad.adId]?.impressions)}
                 </div>
               </div>
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
+                  {formatCount(adMetrics[ad.adId]?.clicks)}
                 </div>
               </div>
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -666,7 +667,7 @@ export function AdList() {
               <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Landing</div>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {adMetrics[ad.adId]?.landingCount?.toLocaleString() ?? '0'}
+                  {formatCount(adMetrics[ad.adId]?.landingCount)}
                 </div>
               </div>
             </div>
@@ -802,13 +803,13 @@ export function AdList() {
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
                 <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {totalTargetImpressions.toLocaleString()}
+                  {formatCount(totalTargetImpressions)}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
                 <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {totalLiveImpressions.toLocaleString()}
+                  {formatCount(totalLiveImpressions)}
                 </span>
               </div>
             </div>
@@ -824,13 +825,13 @@ export function AdList() {
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
                 <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {totalTargetClicks.toLocaleString()}
+                  {formatCount(totalTargetClicks)}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
                 <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {totalLiveClicks.toLocaleString()}
+                  {formatCount(totalLiveClicks)}
                 </span>
               </div>
             </div>
@@ -1088,10 +1089,10 @@ export function AdList() {
                             )}
                           </TableCell>
                           <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
-                            {ad.impressionTarget.toLocaleString()}
+                            {formatCount(ad.impressionTarget)}
                           </TableCell>
                           <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
-                            {ad.clickTarget.toLocaleString()}
+                            {formatCount(ad.clickTarget)}
                           </TableCell>
                           <TableCell className="text-center p-3">
                             <motion.div
@@ -1104,10 +1105,10 @@ export function AdList() {
                             </motion.div>
                           </TableCell>
                           <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
-                            {adMetrics[ad.adId]?.impressions?.toLocaleString() ?? '0'}
+                            {formatCount(adMetrics[ad.adId]?.impressions)}
                           </TableCell>
                           <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
-                            {adMetrics[ad.adId]?.clicks?.toLocaleString() ?? '0'}
+                            {formatCount(adMetrics[ad.adId]?.clicks)}
                           </TableCell>
                           <TableCell className="text-center p-3">
                             <motion.div
@@ -1122,7 +1123,7 @@ export function AdList() {
                             </motion.div>
                           </TableCell>
                           <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
-                            {adMetrics[ad.adId]?.landingCount?.toLocaleString() ?? '0'}
+                            {formatCount(adMetrics[ad.adId]?.landingCount)}
                           </TableCell>
                           <TableCell className="text-center p-3">
                             <DropdownMenu>

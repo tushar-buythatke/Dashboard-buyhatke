@@ -35,7 +35,7 @@ import { adService } from '@/services/adService';
 
 // Utils
 import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
-import { formatCompactNumber, formatSmartPercent, coerceName } from '@/lib/format';
+import { formatCount, formatSmartPercent, coerceName } from '@/lib/format';
 
 // Types
 import {
@@ -901,7 +901,7 @@ export default function Analytics() {
         breakdownDataItems: Object.keys(breakdownData).length
       });
 
-      toast.success('Analytics data fetched', { id: 'analytics-fetch', description: `${trendSeries.length} series · ${aggregatedMetrics.impressions.toLocaleString()} impressions` });
+      toast.success('Analytics data fetched', { id: 'analytics-fetch', description: `${trendSeries.length} series · ${formatCount(aggregatedMetrics.impressions)} impressions` });
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
@@ -1721,9 +1721,9 @@ export default function Analytics() {
                 }
                 columns={[
                   { key: 'location', label: 'Location (City/State)', icon: <MapPin className="h-3 w-3" /> },
-                  { key: 'impressions', label: 'Impressions', format: 'compact', icon: <Eye className="h-3 w-3" />, align: 'right' },
-                  { key: 'clicks', label: 'Clicks', format: 'compact', align: 'right' },
-                  { key: 'conversions', label: 'Conversions', format: 'compact', icon: <DollarSign className="h-3 w-3" />, align: 'right' }
+                  { key: 'impressions', label: 'Impressions', format: 'number', icon: <Eye className="h-3 w-3" />, align: 'right' },
+                  { key: 'clicks', label: 'Clicks', format: 'number', align: 'right' },
+                  { key: 'conversions', label: 'Conversions', format: 'number', icon: <DollarSign className="h-3 w-3" />, align: 'right' }
                 ]}
               />
             </motion.div>
@@ -1766,8 +1766,8 @@ export default function Analytics() {
                 }
                 columns={[
                   { key: 'slotName', label: 'Slot Name', icon: <Tag className="h-3 w-3" /> },
-                  { key: 'impressions', label: 'Impressions', format: 'compact', icon: <Eye className="h-3 w-3" />, align: 'right' },
-                  { key: 'clicks', label: 'Clicks', format: 'compact', align: 'right' },
+                  { key: 'impressions', label: 'Impressions', format: 'number', icon: <Eye className="h-3 w-3" />, align: 'right' },
+                  { key: 'clicks', label: 'Clicks', format: 'number', align: 'right' },
                   { key: 'conversionRate', label: 'CTR (CR)', align: 'right' }
                 ]}
               />
@@ -1823,13 +1823,13 @@ export default function Analytics() {
                           <div>
                             <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Impressions</p>
                             <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
-                              {formatCompactNumber(s.metrics.impressions)}
+                              {formatCount(s.metrics.impressions)}
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Clicks</p>
                             <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
-                              {formatCompactNumber(s.metrics.clicks)}
+                              {formatCount(s.metrics.clicks)}
                             </p>
                           </div>
                           <div>
@@ -1841,7 +1841,7 @@ export default function Analytics() {
                           <div>
                             <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Landings</p>
                             <p className="text-[13px] font-semibold tabular-nums text-[var(--pink-500)]">
-                              {formatCompactNumber(s.metrics.landingCount)}
+                              {formatCount(s.metrics.landingCount)}
                             </p>
                           </div>
                         </div>

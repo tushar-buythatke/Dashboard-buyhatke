@@ -3,7 +3,7 @@ import { Eye, MousePointerClick, TrendingUp, Target, ArrowDownToLine } from 'luc
 import { MetricsData } from '@/types';
 import { CometCard } from '@/components/ui/comet-card';
 import { MetricCard, MetricTone } from '@/components/ui/metric-card';
-import { formatCompactNumber, formatSmartPercent } from '@/lib/format';
+import { formatCount, formatSmartPercent } from '@/lib/format';
 
 interface MetricsDashboardProps {
   data: MetricsData;
@@ -36,12 +36,13 @@ export const MetricsDashboard = memo(function MetricsDashboard({
     key: keyof MetricsData;
     icon: typeof Eye;
     tone: MetricTone;
+    isPercent?: boolean;
   }> = [
-    { label: 'Impressions', value: formatCompactNumber(data.impressions), raw: data.impressions, key: 'impressions', icon: Eye, tone: 'violet' },
-    { label: 'Clicks', value: formatCompactNumber(data.clicks), raw: data.clicks, key: 'clicks', icon: MousePointerClick, tone: 'accent' },
-    { label: 'CTR', value: formatSmartPercent(data.ctr), raw: data.ctr, key: 'ctr', icon: TrendingUp, tone: 'plum' }, // unit omitted — formatSmartPercent already includes %
-    { label: 'Live Landings', value: formatCompactNumber(data.landingCount), raw: data.landingCount, key: 'landingCount', icon: ArrowDownToLine, tone: 'accent' },
-    { label: 'Conversions', value: formatCompactNumber(data.conversions), raw: data.conversions, key: 'conversions', icon: Target, tone: 'violet' },
+    { label: 'Impressions', value: data.impressions, raw: data.impressions, key: 'impressions', icon: Eye, tone: 'violet' },
+    { label: 'Clicks', value: data.clicks, raw: data.clicks, key: 'clicks', icon: MousePointerClick, tone: 'accent' },
+    { label: 'CTR', value: formatSmartPercent(data.ctr), raw: data.ctr, key: 'ctr', icon: TrendingUp, tone: 'plum', isPercent: true },
+    { label: 'Live Landings', value: data.landingCount, raw: data.landingCount, key: 'landingCount', icon: ArrowDownToLine, tone: 'accent' },
+    { label: 'Conversions', value: data.conversions, raw: data.conversions, key: 'conversions', icon: Target, tone: 'violet' },
   ];
 
   return (
@@ -61,6 +62,8 @@ export const MetricsDashboard = memo(function MetricsDashboard({
               unit={item.unit}
               tone={item.tone}
               icon={<Icon className="h-3.5 w-3.5" />}
+              formatter={item.isPercent ? undefined : formatCount}
+              animateValue={!item.isPercent}
               delta={change?.delta}
               deltaDirection={change ? (change.up ? 'up' : 'down') : undefined}
             />

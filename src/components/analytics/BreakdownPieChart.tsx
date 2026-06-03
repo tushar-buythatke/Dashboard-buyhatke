@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { VelvetEmptyState } from '@/components/ui/velvet-empty-state';
-import { coerceName, isUnspecified, formatCompactNumber } from '@/lib/format';
+import { coerceName, isUnspecified, formatCount } from '@/lib/format';
 
 interface BreakdownPieChartProps {
   data: Array<{ name: unknown; value: number; percentage?: number }>;
@@ -81,7 +81,7 @@ const CustomTooltip = memo(({ active, payload, title }: any) => {
       </div>
       <div className="flex items-baseline gap-1.5">
         <p className="text-[12.5px] font-semibold tabular-nums text-[var(--text-1)]">
-          {formatCompactNumber(value)}
+          {formatCount(value)}
         </p>
         <p className="text-[10px] font-semibold tabular-nums" style={{ color: fillColor }}>
           {formatPercentage(percentage)}%

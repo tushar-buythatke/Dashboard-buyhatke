@@ -2,6 +2,7 @@ import { memo, useMemo, useState, useEffect, Fragment } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart } from 'recharts';
 import { Plane, TrendingUp } from 'lucide-react';
 import { TrendDataPoint, TrendChartSeries } from '@/types';
+import { formatChartValue } from '@/lib/format';
 
 interface TrendChartProps {
   series: TrendChartSeries[];
@@ -29,16 +30,6 @@ const formatDate = (dateStr: string) => {
   }
 };
 
-const formatMetricValue = (value: number, dataKey: 'impressions' | 'clicks' | 'ctr' | 'landingCount') => {
-  if (dataKey === 'ctr') {
-    return `${(value || 0).toFixed(2)}%`;
-  }
-  const n = Math.round(Number(value || 0));
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
-};
-
 const CustomTooltip = memo(({ active, payload, label, dataKey }: any) => {
   if (!active || !payload?.length) return null;
   const sorted = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
@@ -63,7 +54,7 @@ const CustomTooltip = memo(({ active, payload, label, dataKey }: any) => {
               </span>
             </div>
             <span className="text-[11px] font-semibold tabular-nums text-[var(--text-1)]">
-              {formatMetricValue(entry.value, dataKey)}
+              {formatChartValue(entry.value, dataKey)}
             </span>
           </div>
         ))}
@@ -201,7 +192,7 @@ export const TrendChart = memo<TrendChartProps>(({
                 fontSize={10.5}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => formatMetricValue(v, dataKey)}
+                tickFormatter={(v) => formatChartValue(v, dataKey)}
                 className="text-[var(--text-3)]"
               />
               <Tooltip content={<CustomTooltip dataKey={dataKey} />} cursor={{ stroke: 'var(--line-violet)', strokeWidth: 1 }} />
@@ -241,7 +232,7 @@ export const TrendChart = memo<TrendChartProps>(({
                 fontSize={10.5}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => formatMetricValue(v, dataKey)}
+                tickFormatter={(v) => formatChartValue(v, dataKey)}
                 className="text-[var(--text-3)]"
               />
               <Tooltip content={<CustomTooltip dataKey={dataKey} />} cursor={{ stroke: 'var(--line-violet)', strokeWidth: 1 }} />
