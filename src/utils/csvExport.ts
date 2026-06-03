@@ -121,6 +121,14 @@ export function formatMetricsForCSV(metricsData: any, breakdownData: any, trendD
       export_date: exportDate
     });
 
+    exportData.push({
+      sheet_section: 'OVERALL_METRICS',
+      metric_name: 'Live Landings',
+      value: metricsData.landingCount || 0,
+      description: 'Total number of live landings (ad track events)',
+      export_date: exportDate
+    });
+
     // Calculate and add derived metrics
     const conversionRate = (metricsData.clicks > 0) ? ((metricsData.conversions || 0) / metricsData.clicks * 100) : 0;
     exportData.push({
@@ -206,7 +214,10 @@ export function formatMetricsForCSV(metricsData: any, breakdownData: any, trendD
       const dataPoints: any[] = Array.isArray(series.data) ? series.data : [];
 
       dataPoints
-        .filter((point: any) => point.date && (point.impressions > 0 || point.clicks > 0 || point.conversions > 0))
+        .filter((point: any) =>
+          point.date &&
+          (point.impressions > 0 || point.clicks > 0 || point.conversions > 0 || (point.landingCount || 0) > 0)
+        )
         .forEach((point: any) => {
           exportData.push({
             sheet_section: 'TREND_DATA',
@@ -215,6 +226,7 @@ export function formatMetricsForCSV(metricsData: any, breakdownData: any, trendD
             impressions: point.impressions || 0,
             clicks: point.clicks || 0,
             conversions: point.conversions || 0,
+            live_landings: point.landingCount || 0,
             ctr_percent: point.impressions > 0 ? ((point.clicks / point.impressions) * 100).toFixed(2) : '0.00',
             export_date: exportDate
           });

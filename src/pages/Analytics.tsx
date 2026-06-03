@@ -937,7 +937,7 @@ export default function Analytics() {
       const csvData = formatMetricsForCSV(
         metricsData,
         breakdownData,
-        trendData,
+        [...trendData, ...landingTrendData],
         topLocations,
         topSlotsData
       );
@@ -967,6 +967,7 @@ export default function Analytics() {
           impressions: 'Impressions',
           clicks: 'Clicks',
           conversions: 'Conversions',
+          live_landings: 'Live Landings',
           ctr_percent: 'CTR %',
           series_name: 'Campaign / Slot / Ad',
           date: 'Date',
