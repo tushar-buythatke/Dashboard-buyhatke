@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FilterSidebar } from '@/components/analytics/FilterSidebar';
-import { TrendChart } from '@/components/analytics/TrendChart';
+import { TrendChart, type ChartType } from '@/components/analytics/TrendChart';
 import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
 import { ComboChart } from '@/components/analytics/ComboChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
@@ -132,6 +132,7 @@ export default function Analytics() {
   const [dataGrouping, setDataGrouping] = useState<'1d' | '7d' | '30d'>('7d'); // For data aggregation
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [activeView, setActiveView] = useState<'campaign' | 'slot' | 'ad' | 'pos'>('campaign');
+  const [chartType, setChartType] = useState<ChartType>('line');
 
   // Filter states
   const [selectedCampaigns, setSelectedCampaigns] = useState<(string | number)[]>([]);
@@ -750,29 +751,30 @@ export default function Analytics() {
         setSlotMetrics([]);
       }
 
-      // Build landing trend directly from trend data (adTrack now included in /metrics/trend)
+      // Build landing trend — per-series breakdown (not aggregated)
       try {
-        const landingMap = new Map<string, number>();
+        const landingSeries: TrendChartSeries[] = [];
         trendSeries.forEach((series) => {
-          series.data.forEach((point: TrendDataPoint) => {
-            landingMap.set(point.date, (landingMap.get(point.date) || 0) + (point.landingCount || 0));
-          });
+          const landingPoints = series.data
+            .filter((point: TrendDataPoint) => (point.landingCount || 0) > 0)
+            .map((point: TrendDataPoint) => ({
+              date: point.date,
+              impressions: 0,
+              clicks: 0,
+              conversions: 0,
+              ctr: 0,
+              conversionRate: 0,
+              landingCount: point.landingCount || 0,
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          if (landingPoints.length > 0) {
+            landingSeries.push({ name: series.name, data: landingPoints });
+          }
         });
 
-        const landingPoints: TrendDataPoint[] = Array.from(landingMap.entries())
-          .map(([date, landingCount]) => ({
-            date,
-            impressions: 0,
-            clicks: 0,
-            conversions: 0,
-            ctr: 0,
-            conversionRate: 0,
-            landingCount
-          }))
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        setLandingTrendData([{ name: 'Live Landings', data: landingPoints }]);
-        console.log('Landing trend data built from trend API:', landingPoints);
+        setLandingTrendData(landingSeries);
+        console.log('Landing trend data built per-series:', landingSeries.length, 'series');
       } catch (error) {
         console.error('Error building landing trend data:', error);
         setLandingTrendData([]);
@@ -1191,7 +1193,7 @@ export default function Analytics() {
         </div>
 
         <div className="velvet-surface p-3 sm:p-3.5">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5 items-end">
             <div className="space-y-1">
               <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
                 View type
@@ -1236,24 +1238,45 @@ export default function Analytics() {
 
             <div className="space-y-1">
               <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+                Chart type
+              </label>
+              <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
+                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                  <SelectItem value="line">Line</SelectItem>
+                  <SelectItem value="bar">Bar</SelectItem>
+                  <SelectItem value="area">Area</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
                 &nbsp;
               </label>
               <button
                 type="button"
                 onClick={fetchAnalyticsData}
                 disabled={dataLoading}
-                className="btn-velvet-cta w-full h-9 disabled:opacity-60"
+                className="w-full h-9 rounded-[10px] font-medium text-[12.5px] text-white inline-flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: 'linear-gradient(135deg, #634ce6 0%, #7c6feb 50%, #9b8af0 100%)',
+                  boxShadow: '0 6px 20px -6px rgba(99, 76, 230, 0.45), 0 2px 6px rgba(15, 12, 40, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18)',
+                  border: '1px solid rgba(99, 76, 230, 0.3)',
+                }}
               >
                 {dataLoading ? (
-                  <span className="inline-flex items-center gap-2">
+                  <>
                     <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                     Fetching…
-                  </span>
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-2">
+                  <>
                     <Sparkles className="h-3.5 w-3.5" />
                     Fetch results
-                  </span>
+                  </>
                 )}
               </button>
             </div>
@@ -1598,7 +1621,8 @@ export default function Analytics() {
                     period={dataGrouping}
                     enableSeriesFilters={activeView === 'slot'}
                     enablePlatformFilter={activeView === 'slot'}
-                    height={340}
+                    height={400}
+                    chartType={chartType}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -1630,7 +1654,8 @@ export default function Analytics() {
               period={dataGrouping}
               enableSeriesFilters={activeView === 'slot'}
               enablePlatformFilter={activeView === 'slot'}
-              height={300}
+              height={380}
+              chartType={chartType}
             />
           </motion.div>
 
@@ -1649,7 +1674,8 @@ export default function Analytics() {
               period={dataGrouping}
               enableSeriesFilters={activeView === 'slot'}
               enablePlatformFilter={activeView === 'slot'}
-              height={300}
+              height={380}
+              chartType={chartType}
             />
           </motion.div>
 
@@ -1667,7 +1693,8 @@ export default function Analytics() {
                 dataKey="landingCount"
                 yAxisLabel="Live Landings"
                 period={dataGrouping}
-                height={300}
+                height={380}
+                chartType={chartType}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
@@ -1874,8 +1901,8 @@ export default function Analytics() {
                 lineKey="clicks"
                 barName="Impressions"
                 lineName="Clicks"
-                barColor="var(--indigo-500)"
-                lineColor="var(--pink-500)"
+                barColor="#634ce6"
+                lineColor="#d94684"
               />
             </motion.div>
 
@@ -1899,8 +1926,8 @@ export default function Analytics() {
                 lineKey="ctr"
                 barName="Impressions"
                 lineName="CTR (%)"
-                barColor="var(--indigo-500)"
-                lineColor="var(--gold-500)"
+                barColor="#634ce6"
+                lineColor="#fbbf24"
               />
             </motion.div>
           </div>

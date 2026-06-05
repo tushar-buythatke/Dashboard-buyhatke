@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { usePermissions } from '@/context/PermissionsContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -121,8 +120,8 @@ function DateTimePicker({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-        {label} {required && <span className="text-red-400">*</span>}
+      <Label className="text-xs font-medium text-[var(--text-3)] uppercase tracking-wider">
+        {label} {required && <span className="text-[var(--neg)]">*</span>}
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -130,38 +129,38 @@ function DateTimePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              'w-full justify-start text-left h-11 font-normal border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-colors',
-              !date && 'text-muted-foreground'
+              'w-full justify-start text-left h-9 font-normal border-[var(--line)] hover:border-[var(--violet-400)] transition-colors',
+              !date && 'text-[var(--text-3)]'
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4 text-purple-500" />
+            <CalendarIcon className="mr-2 h-4 w-4 text-[var(--violet-500)]" />
             {date ? format(date, 'MMM d, yyyy  HH:mm') : 'Select date & time...'}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 shadow-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-[60]" align="start">
+        <PopoverContent className="w-auto p-0 shadow-xl border-[var(--line)] bg-[var(--bg-panel)] z-[60]" align="start">
           <Calendar mode="single" selected={date} onSelect={handleDaySelect} initialFocus />
           <Separator />
-          <div className="px-4 py-3 flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-md">
-            <Clock className="h-4 w-4 text-purple-500" />
+          <div className="px-4 py-3 flex items-center gap-3 bg-[var(--bg-panel-2)] rounded-b-md">
+            <Clock className="h-4 w-4 text-[var(--violet-500)]" />
             <div className="flex items-center gap-1">
               <Input
                 type="number" min={0} max={23} value={hours}
                 onChange={(e) => handleTimeChange('h', e.target.value)}
                 className="w-14 text-center h-8 text-sm"
               />
-              <span className="text-lg font-bold text-gray-400">:</span>
+              <span className="text-lg font-bold text-[var(--text-3)]">:</span>
               <Input
                 type="number" min={0} max={59} value={minutes}
                 onChange={(e) => handleTimeChange('m', e.target.value)}
                 className="w-14 text-center h-8 text-sm"
               />
             </div>
-            <span className="text-xs text-muted-foreground ml-auto">24h format</span>
+            <span className="text-xs text-[var(--text-3)] ml-auto">24h format</span>
           </div>
         </PopoverContent>
       </Popover>
       {epoch && (
-        <p className="text-[10px] text-purple-500/70 font-mono">epoch: {epoch}</p>
+        <p className="text-[10px] text-[var(--violet-400)] font-mono">epoch: {epoch}</p>
       )}
     </div>
   );
@@ -170,13 +169,13 @@ function DateTimePicker({
 // --- Section header ---
 function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle?: string }) {
   return (
-    <div className="flex items-center gap-2.5 pb-1">
-      <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-        <Icon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+    <div className="flex items-center gap-2.5 pb-1 relative pl-3 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:rounded-full before:bg-gradient-to-b before:from-[var(--violet-500)] before:to-[var(--plum-500)]">
+      <div className="p-1.5 rounded-lg bg-[var(--bg-tint)] border border-[var(--line-violet)]">
+        <Icon className="h-3.5 w-3.5 text-[var(--violet-500)]" />
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{title}</h3>
-        {subtitle && <p className="text-[11px] text-gray-400">{subtitle}</p>}
+        <h3 className="text-[13px] font-bold text-[var(--text-1)] tracking-wide uppercase">{title}</h3>
+        {subtitle && <p className="text-[10px] text-[var(--text-3)] mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
@@ -185,10 +184,10 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementTyp
 // --- Field label ---
 function FieldLabel({ children, required, hint }: { children: React.ReactNode; required?: boolean; hint?: string }) {
   return (
-    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+    <Label className="text-xs font-medium text-[var(--text-3)] uppercase tracking-wider flex items-center gap-1.5">
       {children}
-      {required && <span className="text-red-400">*</span>}
-      {hint && <span className="normal-case tracking-normal font-normal text-gray-400">({hint})</span>}
+      {required && <span className="text-[var(--neg)]">*</span>}
+      {hint && <span className="normal-case tracking-normal font-normal text-[var(--text-3)]">({hint})</span>}
     </Label>
   );
 }
@@ -539,72 +538,75 @@ export default function OffersConfig() {
   const expiredCount = rows.filter((r) => isExpired(r.offer.end)).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-purple-950/20 p-4 md:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
 
         {/* ── Header ── */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-6 shadow-xl">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Offers Config</h1>
-                <p className="text-purple-200 text-sm mt-1">Manage extension offer overlays</p>
-                {filePath && <p className="text-purple-300/60 text-[10px] mt-2 font-mono break-all">{filePath}</p>}
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex gap-2">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
-                    <p className="text-xl font-bold text-white">{rows.length}</p>
-                    <p className="text-[10px] text-purple-200 uppercase tracking-wider">Total</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
-                    <p className="text-xl font-bold text-emerald-300">{activeCount}</p>
-                    <p className="text-[10px] text-purple-200 uppercase tracking-wider">Active</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
-                    <p className="text-xl font-bold text-red-300">{expiredCount}</p>
-                    <p className="text-[10px] text-purple-200 uppercase tracking-wider">Expired</p>
-                  </div>
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <p className="page-eyebrow">Configuration</p>
+              <h1 className="page-display">
+                <span className="velvet-header-gradient">Offers</span>
+                <span className="page-display-serif gradient-text">Config</span>
+              </h1>
+              <p className="page-subhead">Manage extension offer overlays</p>
+              {filePath && <p className="text-[10px] text-[var(--text-3)] mt-1.5 font-mono break-all">{filePath}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-3 mr-2">
+                <div className="text-center">
+                  <p className="text-[18px] font-bold tabular-nums text-[var(--text-1)]">{rows.length}</p>
+                  <p className="text-[10px] text-[var(--text-3)] uppercase tracking-wider">Total</p>
                 </div>
-                <Button
-                  onClick={loadConfig} disabled={loading}
-                  className="bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-sm"
-                >
-                  <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
-                  Refresh
-                </Button>
+                <span className="text-[var(--text-3)] text-[10px]">·</span>
+                <div className="text-center">
+                  <p className="text-[18px] font-bold tabular-nums text-[var(--pos)]">{activeCount}</p>
+                  <p className="text-[10px] text-[var(--text-3)] uppercase tracking-wider">Active</p>
+                </div>
+                <span className="text-[var(--text-3)] text-[10px]">·</span>
+                <div className="text-center">
+                  <p className="text-[18px] font-bold tabular-nums text-rose-500">{expiredCount}</p>
+                  <p className="text-[10px] text-[var(--text-3)] uppercase tracking-wider">Expired</p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadConfig}
+                disabled={loading}
+                className="h-8 gap-1.5 text-[12px] text-[var(--text-2)]"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+                Refresh
+              </Button>
             </div>
           </div>
         </motion.div>
 
         {/* ── Form ── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-b border-purple-100 dark:border-purple-800/30 pb-4">
-              <CardTitle className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-purple-600 text-white shadow-lg shadow-purple-600/30">
-                  {editingOfferId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                </div>
-                <div>
-                  <span className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                    {editingOfferId ? 'Edit Offer' : 'Create New Offer'}
-                  </span>
-                  {editingOfferId && (
-                    <p className="text-xs text-purple-600 dark:text-purple-400 font-mono mt-0.5">{editingOfferId}</p>
-                  )}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
+          <div className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--line)] flex items-center gap-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tint)] border border-[var(--line-violet)]">
+                {editingOfferId ? <Pencil className="h-3.5 w-3.5 text-[var(--violet-500)]" /> : <Plus className="h-3.5 w-3.5 text-[var(--violet-500)]" />}
+              </span>
+              <div>
+                <span className="text-[13px] font-semibold text-[var(--text-1)]">
+                  {editingOfferId ? 'Edit Offer' : 'Create New Offer'}
+                </span>
+                {editingOfferId && (
+                  <p className="text-[10px] text-[var(--indigo-500)] font-mono mt-0.5">{editingOfferId}</p>
+                )}
+              </div>
+            </div>
+            <div className="p-5 space-y-5">
 
               {/* ─ POS ─ */}
               <div className="space-y-3">
                 <SectionHeader icon={Hash} title="Position (POS)" subtitle="Which slot positions to show this offer on" />
                 <div className="flex gap-2">
                   <Select onValueChange={addPos}>
-                    <SelectTrigger className="flex-1 h-11 border-gray-200 dark:border-gray-700">
+                      <SelectTrigger className="flex-1 h-9 border-[var(--line)]">
                       <SelectValue placeholder="Select existing POS..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -619,9 +621,9 @@ export default function OffersConfig() {
                       onChange={(e) => setNewPosInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPos(newPosInput); setNewPosInput(''); } }}
                       placeholder="Custom"
-                      className="w-24 h-11"
+                      className="w-24 h-9"
                     />
-                    <Button variant="outline" className="h-11 px-3" onClick={() => { addPos(newPosInput); setNewPosInput(''); }}>
+                    <Button variant="outline" className="h-9 px-3 border-[var(--line-violet)] text-[var(--violet-600)] hover:bg-[var(--bg-tint)] hover:border-[var(--violet-400)] text-xs font-semibold" onClick={() => { addPos(newPosInput); setNewPosInput(''); }}>
                       <Plus className="h-4 w-4 mr-1" /> Add
                     </Button>
                   </div>
@@ -635,11 +637,11 @@ export default function OffersConfig() {
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0.8, opacity: 0 }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-tint)] text-[var(--violet-600)] border border-[var(--line-violet)]"
                         >
                           <Hash className="h-3 w-3" />
                           {pos}
-                          <button onClick={() => removePos(pos)} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                          <button onClick={() => removePos(pos)} className="ml-0.5 hover:text-[var(--neg)] transition-colors"><X className="h-3 w-3" /></button>
                         </motion.span>
                       ))}
                     </motion.div>
@@ -647,7 +649,7 @@ export default function OffersConfig() {
                 </AnimatePresence>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Identity ─ */}
               <div className="space-y-3">
@@ -655,16 +657,16 @@ export default function OffersConfig() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <FieldLabel required>Offer ID</FieldLabel>
-                    <Input value={form.offer_id} onChange={(e) => setFormValue('offer_id', e.target.value)} disabled={!canEdit} placeholder="e.g. Amaz_MTLoanApple" className="h-11" />
+                    <Input value={form.offer_id} onChange={(e) => setFormValue('offer_id', e.target.value)} disabled={!canEdit} placeholder="e.g. Amaz_MTLoanApple" className="h-9" />
                   </div>
                   <div className="space-y-1.5">
                     <FieldLabel>Domain</FieldLabel>
-                    <Input value={form.domain} onChange={(e) => setFormValue('domain', e.target.value)} disabled={!canEdit} placeholder="e.g. amazon.in" className="h-11" />
+                    <Input value={form.domain} onChange={(e) => setFormValue('domain', e.target.value)} disabled={!canEdit} placeholder="e.g. amazon.in" className="h-9" />
                   </div>
                 </div>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Schedule ─ */}
               <div className="space-y-3">
@@ -675,7 +677,7 @@ export default function OffersConfig() {
                 </div>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Creative ─ */}
               <div className="space-y-3">
@@ -686,8 +688,8 @@ export default function OffersConfig() {
                     className={cn(
                       'relative border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer',
                       dragActive
-                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 scale-[1.01]'
-                        : 'border-purple-200 hover:border-purple-400 bg-purple-50/30 hover:bg-purple-50/60 dark:border-purple-700/50 dark:hover:border-purple-500 dark:bg-purple-900/10',
+                        ? 'border-[var(--violet-500)] bg-[var(--bg-tint)] scale-[1.01]'
+                        : 'border-[var(--line-violet)] hover:border-[var(--violet-400)] bg-[var(--bg-tint)] hover:bg-[rgba(99,76,230,0.08)]',
                       uploading && 'pointer-events-none opacity-60'
                     )}
                     onDragEnter={handleDrag}
@@ -695,11 +697,11 @@ export default function OffersConfig() {
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
                   >
-                    <Upload className={cn('mx-auto h-10 w-10 mb-3', dragActive ? 'text-purple-500' : 'text-purple-300')} />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <Upload className={cn('mx-auto h-10 w-10 mb-3', dragActive ? 'text-[var(--violet-500)]' : 'text-[var(--violet-300)]')} />
+                    <p className="text-sm text-[var(--text-2)] mb-1">
                       {uploading ? 'Uploading to server...' : 'Drag & drop your image here, or click to browse'}
                     </p>
-                    <p className="text-[10px] text-gray-400">100x100 to 300x300 px</p>
+                    <p className="text-[10px] text-[var(--text-3)]">100x100 to 300x300 px</p>
                     <input
                       type="file"
                       accept="image/*"
@@ -712,10 +714,10 @@ export default function OffersConfig() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800"
+                    className="rounded-xl border border-[var(--line)] overflow-hidden bg-[var(--bg-panel-2)]"
                   >
                     <div className="relative p-4">
-                      <img src={imagePreview} alt="Preview" className="mx-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm max-h-40 object-contain" />
+                      <img src={imagePreview} alt="Preview" className="mx-auto rounded-lg border border-[var(--line)] shadow-sm max-h-40 object-contain" />
                       {uploading && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
                           <div className="text-white flex items-center gap-2 text-sm">
@@ -724,8 +726,8 @@ export default function OffersConfig() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-                      <div className="text-xs text-gray-500 font-mono">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-panel)] border-t border-[var(--line)]">
+                      <div className="text-xs text-[var(--text-3)] font-mono">
                         {form.image_size_width && form.image_size_height
                           ? `${form.image_size_width} x ${form.image_size_height} px`
                           : 'Detecting...'}
@@ -733,7 +735,7 @@ export default function OffersConfig() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs text-gray-500 hover:text-red-500"
+                        className="h-7 text-xs text-[var(--text-3)] hover:text-[var(--neg)]"
                         onClick={clearImage}
                         disabled={uploading}
                       >
@@ -744,18 +746,18 @@ export default function OffersConfig() {
                 )}
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ URL & Destination ─ */}
               <div className="space-y-3">
                 <SectionHeader icon={Link} title="Destination" />
                 <div className="space-y-1.5">
                   <FieldLabel required>Click URL</FieldLabel>
-                  <Input value={form.url} onChange={(e) => setFormValue('url', e.target.value)} disabled={!canEdit} placeholder="https://..." className="h-11 font-mono text-sm" />
+                  <Input value={form.url} onChange={(e) => setFormValue('url', e.target.value)} disabled={!canEdit} placeholder="https://..." className="h-9 font-mono text-sm" />
                 </div>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Tracking (campaign + ad on fixed slot 84) ─ */}
               <div className="space-y-3">
@@ -775,7 +777,7 @@ export default function OffersConfig() {
                       }}
                       disabled={!canEdit}
                     >
-                      <SelectTrigger className="h-11 border-gray-200 dark:border-gray-700">
+                      <SelectTrigger className="h-9 border-[var(--line)]">
                         <SelectValue placeholder="Select campaign..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -785,7 +787,7 @@ export default function OffersConfig() {
                           const label = (c as any).brandName || (c as any).name || `Campaign ${cid}`;
                           return (
                             <SelectItem key={cid} value={cid}>
-                              {label} <span className="text-gray-400 ml-1">#{cid}</span>
+                              {label} <span className="text-[var(--text-3)] ml-1">#{cid}</span>
                             </SelectItem>
                           );
                         })}
@@ -799,7 +801,7 @@ export default function OffersConfig() {
                       onValueChange={(v) => setFormValue('ad_id', v)}
                       disabled={!canEdit || !form.campaign_id || loadingAds}
                     >
-                      <SelectTrigger className="h-11 border-gray-200 dark:border-gray-700">
+                      <SelectTrigger className="h-9 border-[var(--line)]">
                         <SelectValue
                           placeholder={
                             !form.campaign_id
@@ -813,7 +815,7 @@ export default function OffersConfig() {
                       <SelectContent>
                         {ads.map((a) => (
                           <SelectItem key={a.adId} value={String(a.adId)}>
-                            {a.label || a.name} <span className="text-gray-400 ml-1">#{a.adId}</span>
+                            {a.label || a.name} <span className="text-[var(--text-3)] ml-1">#{a.adId}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -821,13 +823,13 @@ export default function OffersConfig() {
                   </div>
                 </div>
                 {form.campaign_id && form.ad_id && (
-                  <p className="text-[11px] text-purple-600/70 font-mono">
+                  <p className="text-[11px] text-[var(--violet-500)] font-mono">
                     Will fire: campaignId={form.campaign_id} · slotId={OC_TRACKING_SLOT_ID} · adId={form.ad_id}
                   </p>
                 )}
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Config ─ */}
               <div className="space-y-3">
@@ -836,17 +838,17 @@ export default function OffersConfig() {
                   <div className="space-y-1.5">
                     <FieldLabel>Auto Close</FieldLabel>
                     <div className="relative">
-                      <Input type="number" min={1} max={20} value={form.auto_close_time} onChange={(e) => setFormValue('auto_close_time', e.target.value)} disabled={!canEdit} className="h-11 pr-8" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">sec</span>
+                      <Input type="number" min={1} max={20} value={form.auto_close_time} onChange={(e) => setFormValue('auto_close_time', e.target.value)} disabled={!canEdit} className="h-9 pr-8" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-3)]">sec</span>
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <FieldLabel>Price Min</FieldLabel>
-                    <Input type="number" value={form.price_min} onChange={(e) => setFormValue('price_min', e.target.value)} disabled={!canEdit} className="h-11" />
+                    <Input type="number" value={form.price_min} onChange={(e) => setFormValue('price_min', e.target.value)} disabled={!canEdit} className="h-9" />
                   </div>
                   <div className="space-y-1.5">
                     <FieldLabel>Price Max</FieldLabel>
-                    <Input type="number" value={form.price_max} onChange={(e) => setFormValue('price_max', e.target.value)} disabled={!canEdit} className="h-11" />
+                    <Input type="number" value={form.price_max} onChange={(e) => setFormValue('price_max', e.target.value)} disabled={!canEdit} className="h-9" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-60">
@@ -857,7 +859,7 @@ export default function OffersConfig() {
                       onChange={(e) => setFormValue('pixel_show', e.target.value)}
                       disabled={!canEdit}
                       placeholder="External pixel URL (optional — ad-backend tracking is above)"
-                      className="h-11 text-sm bg-gray-50 dark:bg-gray-800/40"
+                      className="h-9 text-sm bg-[var(--bg-panel-2)]"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -867,13 +869,13 @@ export default function OffersConfig() {
                       onChange={(e) => setFormValue('pixel_click', e.target.value)}
                       disabled={!canEdit}
                       placeholder="External pixel URL (optional — ad-backend tracking is above)"
-                      className="h-11 text-sm bg-gray-50 dark:bg-gray-800/40"
+                      className="h-9 text-sm bg-[var(--bg-panel-2)]"
                     />
                   </div>
                 </div>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ URL Regex ─ */}
               <div className="space-y-3">
@@ -884,16 +886,16 @@ export default function OffersConfig() {
                     onChange={(e) => setRegexInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addRegex(); } }}
                     placeholder="^https://in\.puma\.com"
-                    className="flex-1 h-11 font-mono text-sm"
+                    className="flex-1 h-9 font-mono text-sm"
                     disabled={!canEdit}
                   />
-                  <Button onClick={addRegex} disabled={!canEdit} className="h-11 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button onClick={addRegex} disabled={!canEdit} className="h-9 px-4 bg-[var(--g-button)] hover:bg-[var(--g-button-hover)] text-[var(--text-inv)] shadow-sm shadow-[rgba(99,76,230,0.2)] text-xs font-semibold">
                     <Plus className="h-4 w-4 mr-1" /> Add
                   </Button>
                 </div>
                 <AnimatePresence>
                   {regexList.length > 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-xl border border-[var(--line)] overflow-hidden">
                       {regexList.map((r, i) => (
                         <motion.div
                           key={i}
@@ -902,14 +904,14 @@ export default function OffersConfig() {
                           exit={{ opacity: 0, x: 10 }}
                           className={cn(
                             'flex items-center justify-between gap-3 px-4 py-2.5 font-mono text-sm',
-                            i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-800'
+                            i % 2 === 0 ? 'bg-[var(--bg-panel-2)]' : 'bg-[var(--bg-panel)]'
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] text-gray-400 font-sans w-4 text-right">{i + 1}</span>
-                            <span className="truncate text-gray-700 dark:text-gray-300">{r}</span>
+                            <span className="text-[10px] text-[var(--text-3)] font-sans w-4 text-right">{i + 1}</span>
+                            <span className="truncate text-[var(--text-2)]">{r}</span>
                           </div>
-                          <button onClick={() => removeRegex(i)} className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                          <button onClick={() => removeRegex(i)} className="text-[var(--text-3)] hover:text-[var(--neg)] transition-colors flex-shrink-0">
                             <X className="h-4 w-4" />
                           </button>
                         </motion.div>
@@ -919,7 +921,7 @@ export default function OffersConfig() {
                 </AnimatePresence>
               </div>
 
-              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+              <div className="relative py-1"><div className="h-px bg-gradient-to-r from-transparent via-[var(--line-violet)] to-transparent" /></div>
 
               {/* ─ Breadcrumbs ─ */}
               <div className="space-y-3">
@@ -930,16 +932,16 @@ export default function OffersConfig() {
                     onChange={(e) => setBreadInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBread(); } }}
                     placeholder="Computers & Accessories*~Laptops*~Traditional Laptops"
-                    className="flex-1 h-11 text-sm"
+                    className="flex-1 h-9 text-sm"
                     disabled={!canEdit}
                   />
-                  <Button onClick={addBread} disabled={!canEdit} variant="outline" className="h-11">
+                  <Button onClick={addBread} disabled={!canEdit} variant="outline" className="h-9">
                     <Plus className="h-4 w-4 mr-1" /> Add
                   </Button>
                 </div>
                 <AnimatePresence>
                   {breadList.length > 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-xl border border-[var(--line)] overflow-hidden">
                       {breadList.map((b, i) => (
                         <motion.div
                           key={i}
@@ -948,14 +950,14 @@ export default function OffersConfig() {
                           exit={{ opacity: 0, x: 10 }}
                           className={cn(
                             'flex items-center justify-between gap-3 px-4 py-2.5 text-sm',
-                            i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-800'
+                            i % 2 === 0 ? 'bg-[var(--bg-panel-2)]' : 'bg-[var(--bg-panel)]'
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] text-gray-400 w-4 text-right">{i + 1}</span>
-                            <span className="truncate text-gray-700 dark:text-gray-300">{b}</span>
+                            <span className="text-[10px] text-[var(--text-3)] w-4 text-right">{i + 1}</span>
+                            <span className="truncate text-[var(--text-2)]">{b}</span>
                           </div>
-                          <button onClick={() => removeBread(i)} className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                          <button onClick={() => removeBread(i)} className="text-[var(--text-3)] hover:text-[var(--neg)] transition-colors flex-shrink-0">
                             <X className="h-4 w-4" />
                           </button>
                         </motion.div>
@@ -970,47 +972,45 @@ export default function OffersConfig() {
                 <Button
                   onClick={handleSave}
                   disabled={!canEdit || saving}
-                  className="h-11 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-600/25 transition-all"
+                  className="h-9 px-6 bg-[var(--g-button)] hover:bg-[var(--g-button-hover)] text-[var(--text-inv)] shadow-lg shadow-[rgba(99,76,230,0.25)] transition-all"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? 'Saving...' : editingOfferId ? 'Update Offer' : 'Create Offer'}
                 </Button>
-                <Button variant="ghost" onClick={resetForm} disabled={saving} className="h-11 text-gray-500 hover:text-gray-700">
+                <Button variant="ghost" onClick={resetForm} disabled={saving} className="h-9 text-[var(--text-3)] hover:text-[var(--text-1)]">
                   Clear
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         {/* ── Existing Offers ── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden">
-            <CardHeader className="border-b border-gray-100 dark:border-gray-700/50 pb-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <CardTitle className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
-                    <Eye className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="text-lg font-bold text-gray-800 dark:text-gray-100">Existing Offers</span>
-                    <p className="text-xs text-gray-400 mt-0.5">{rows.length} offer{rows.length !== 1 ? 's' : ''}</p>
-                  </div>
-                </CardTitle>
-                <Select value={selectedPosFilter} onValueChange={setSelectedPosFilter}>
-                  <SelectTrigger className="w-36 h-9 text-sm">
-                    <SelectValue placeholder="Filter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All POS</SelectItem>
-                    {posOptions.map((pos) => (
-                      <SelectItem key={pos} value={pos}>POS {pos}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--line)] flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tint)] border border-[var(--line-violet)]">
+                  <Eye className="h-3.5 w-3.5 text-[var(--violet-500)]" />
+                </span>
+                <div>
+                  <span className="text-[13px] font-semibold text-[var(--text-1)]">Existing Offers</span>
+                  <p className="text-[10px] text-[var(--text-3)] mt-0.5">{rows.length} offer{rows.length !== 1 ? 's' : ''}</p>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
+              <Select value={selectedPosFilter} onValueChange={setSelectedPosFilter}>
+                <SelectTrigger className="w-36 h-9 text-sm border-[var(--line)]">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All POS</SelectItem>
+                  {posOptions.map((pos) => (
+                    <SelectItem key={pos} value={pos}>POS {pos}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-4 space-y-3">
               <AnimatePresence>
                 {rows.map((row, idx) => {
                   const expired = isExpired(row.offer.end);
@@ -1024,41 +1024,45 @@ export default function OffersConfig() {
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ delay: idx * 0.03 }}
                       className={cn(
-                        'rounded-xl border overflow-hidden transition-all',
-                        expired ? 'border-red-200/60 dark:border-red-800/30' : active ? 'border-emerald-200/60 dark:border-emerald-800/30' : 'border-gray-200 dark:border-gray-700'
+                        'rounded-xl border overflow-hidden transition-all hover:shadow-[0_2px_12px_-4px_rgba(99,76,230,0.15)]',
+                        expired ? 'border-[var(--neg-soft)]' : active ? 'border-[var(--pos-soft)]' : 'border-[var(--line)] hover:border-[var(--line-violet)]'
                       )}
                     >
                       {/* Main row */}
                       <div
                         className={cn(
-                          'flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors',
-                          expired && 'bg-red-50/30 dark:bg-red-900/5',
-                          active && 'bg-emerald-50/30 dark:bg-emerald-900/5'
+                          'flex items-center gap-4 p-3.5 cursor-pointer hover:bg-[var(--bg-tint)] transition-all group/row',
+                          expired && 'bg-[var(--neg-soft)]',
+                          active && 'bg-[var(--pos-soft)]'
                         )}
                         onClick={() => setExpandedOfferId(expanded ? null : row.offer.offer_id)}
                       >
                         {row.offer.image_url && (
-                          <img src={row.offer.image_url} alt="" className="h-12 w-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0" />
+                          <img src={row.offer.image_url} alt="" className="h-12 w-20 object-cover rounded-lg border border-[var(--line)] flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">{row.offer.offer_id}</span>
+                            <span className="font-semibold text-sm text-[var(--text-1)]">{row.offer.offer_id}</span>
                             {expired && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Expired</Badge>}
-                            {active && <Badge className="text-[10px] px-1.5 py-0 h-5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-100">Active</Badge>}
+                            {active && <Badge className="text-[10px] px-1.5 py-0 h-5 bg-[var(--pos-soft)] text-[var(--pos)] hover:bg-[var(--pos-soft)]">Active</Badge>}
                             {!expired && !active && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">Scheduled</Badge>}
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-[var(--text-3)] mt-0.5">
                             POS: {row.posList.join(', ')} &middot; {formatEpochDisplay(row.offer.start)} → {formatEpochDisplay(row.offer.end)}
                           </p>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-3)] font-mono">
+                            {row.offer.campaignId && <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tint)] text-[var(--violet-500)]">c{row.offer.campaignId}</span>}
+                            {row.offer.adId && <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tint)] text-[var(--violet-500)]">ad{row.offer.adId}</span>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-purple-600" onClick={(e) => { e.stopPropagation(); editRow(row); }}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[var(--text-3)] hover:text-[var(--violet-600)]" onClick={(e) => { e.stopPropagation(); editRow(row); }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-600" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(row.offer.offer_id); }} disabled={!canEdit || saving}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[var(--text-3)] hover:text-[var(--neg)]" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(row.offer.offer_id); }} disabled={!canEdit || saving}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                          {expanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                          {expanded ? <ChevronUp className="h-4 w-4 text-[var(--text-3)]" /> : <ChevronDown className="h-4 w-4 text-[var(--text-3)]" />}
                         </div>
                       </div>
 
@@ -1072,55 +1076,71 @@ export default function OffersConfig() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-700/50 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div className="px-4 pb-4 pt-1 border-t border-[var(--line)] grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                              {row.offer.campaignId && (
+                                <div>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Campaign ID</span>
+                                  <p className="text-[var(--violet-500)] font-mono font-semibold mt-0.5">{row.offer.campaignId}</p>
+                                </div>
+                              )}
+                              {row.offer.adId && (
+                                <div>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Ad ID</span>
+                                  <p className="text-[var(--violet-500)] font-mono font-semibold mt-0.5">{row.offer.adId}</p>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Slot ID</span>
+                                <p className="text-[var(--violet-500)] font-mono font-semibold mt-0.5">{row.offer.slotId ?? 84}</p>
+                              </div>
                               {row.offer.domain && (
                                 <div>
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Domain</span>
-                                  <p className="text-gray-700 dark:text-gray-300 mt-0.5">{row.offer.domain}</p>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Domain</span>
+                                  <p className="text-[var(--text-2)] mt-0.5">{row.offer.domain}</p>
                                 </div>
                               )}
                               {row.offer.imageSize && (
                                 <div>
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Image Size</span>
-                                  <p className="text-gray-700 dark:text-gray-300 mt-0.5">{row.offer.imageSize.width}x{row.offer.imageSize.height}</p>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Image Size</span>
+                                  <p className="text-[var(--text-2)] mt-0.5">{row.offer.imageSize.width}x{row.offer.imageSize.height}</p>
                                 </div>
                               )}
                               {row.offer.bannerSize && (
                                 <div>
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Banner Size</span>
-                                  <p className="text-gray-700 dark:text-gray-300 mt-0.5">{row.offer.bannerSize.width}x{row.offer.bannerSize.height}</p>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Banner Size</span>
+                                  <p className="text-[var(--text-2)] mt-0.5">{row.offer.bannerSize.width}x{row.offer.bannerSize.height}</p>
                                 </div>
                               )}
                               <div>
-                                <span className="text-gray-400 uppercase tracking-wider text-[10px]">Auto Close</span>
-                                <p className="text-gray-700 dark:text-gray-300 mt-0.5">{row.offer.auto_close_time}s</p>
+                                <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Auto Close</span>
+                                <p className="text-[var(--text-2)] mt-0.5">{row.offer.auto_close_time}s</p>
                               </div>
                               {row.offer.price_range && (
                                 <div>
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Price Range</span>
-                                  <p className="text-gray-700 dark:text-gray-300 mt-0.5">{row.offer.price_range.min.toLocaleString()} - {row.offer.price_range.max.toLocaleString()}</p>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Price Range</span>
+                                  <p className="text-[var(--text-2)] mt-0.5">{row.offer.price_range.min.toLocaleString()} - {row.offer.price_range.max.toLocaleString()}</p>
                                 </div>
                               )}
                               <div className="col-span-2 md:col-span-4">
-                                <span className="text-gray-400 uppercase tracking-wider text-[10px]">URL</span>
-                                <p className="text-gray-700 dark:text-gray-300 mt-0.5 truncate font-mono">{row.offer.url}</p>
+                                <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">URL</span>
+                                <p className="text-[var(--text-2)] mt-0.5 truncate font-mono">{row.offer.url}</p>
                               </div>
                               {(row.offer.url_reg_arr?.length ?? 0) > 0 && (
                                 <div className="col-span-2 md:col-span-4">
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Regex ({row.offer.url_reg_arr.length})</span>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Regex ({row.offer.url_reg_arr.length})</span>
                                   <div className="mt-1 space-y-1">
                                     {row.offer.url_reg_arr.map((r, i) => (
-                                      <p key={i} className="font-mono text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-0.5">{r}</p>
+                                      <p key={i} className="font-mono text-[var(--text-2)] bg-[var(--bg-panel-2)] rounded px-2 py-0.5">{r}</p>
                                     ))}
                                   </div>
                                 </div>
                               )}
                               {(row.offer.bread_arr?.length ?? 0) > 0 && (
                                 <div className="col-span-2 md:col-span-4">
-                                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">Breadcrumbs ({row.offer.bread_arr!.length})</span>
+                                  <span className="text-[var(--text-3)] uppercase tracking-wider text-[10px]">Breadcrumbs ({row.offer.bread_arr!.length})</span>
                                   <div className="mt-1 space-y-1">
                                     {row.offer.bread_arr!.map((b, i) => (
-                                      <p key={i} className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-0.5">{b}</p>
+                                      <p key={i} className="text-[var(--text-2)] bg-[var(--bg-panel-2)] rounded px-2 py-0.5">{b}</p>
                                     ))}
                                   </div>
                                 </div>
@@ -1135,34 +1155,33 @@ export default function OffersConfig() {
               </AnimatePresence>
               {!rows.length && (
                 <div className="text-center py-12">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
-                    <ImagePlus className="h-5 w-5 text-gray-400" />
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--bg-panel-2)] mb-3">
+                    <ImagePlus className="h-5 w-5 text-[var(--text-3)]" />
                   </div>
-                  <p className="text-sm text-gray-400">No offers found</p>
+                  <p className="text-sm text-[var(--text-3)]">No offers found</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
-      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
-        <AlertDialogContent className="rounded-2xl border-red-200 dark:border-red-800/50 bg-white dark:bg-gray-900 shadow-2xl">
+        <AlertDialogContent className="rounded-2xl border-[var(--neg)]/20 bg-[var(--bg-panel)] shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex items-center gap-2 text-[var(--neg)]">
               <Trash2 className="h-5 w-5" />
               Delete Offer
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete <span className="font-semibold text-gray-800 dark:text-gray-200">{deleteConfirmId}</span>? This will remove it from all POS positions. This action cannot be undone.
+            <AlertDialogDescription className="text-[var(--text-2)]">
+              Are you sure you want to delete <span className="font-semibold text-[var(--text-1)]">{deleteConfirmId}</span>? This will remove it from all POS positions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-              className="rounded-lg bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-lg bg-[var(--neg)] hover:bg-[var(--neg)] text-[var(--text-inv)]"
             >
               Delete
             </AlertDialogAction>

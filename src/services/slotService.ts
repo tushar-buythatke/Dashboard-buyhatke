@@ -15,8 +15,8 @@ export interface Slot {
 export interface CreateSlotPayload {
   name: string;
   platform: number;
-  width: number;
-  height: number;
+  width: number | '';
+  height: number | '';
 }
 
 export interface UpdateSlotPayload {

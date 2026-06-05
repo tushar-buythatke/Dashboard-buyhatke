@@ -708,179 +708,160 @@ export function AdList() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2 space-y-6 relative z-10">
         {/* Enhanced Header Section */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-3"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-blue-600/5 to-pink-600/5"></div>
-          <div className="relative z-10">
-            <div className="flex flex-col space-y-6 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <button
-                  type="button"
-                  onClick={() => navigate('/campaigns')}
-                  aria-label="Back to campaigns"
-                  className="group flex items-center justify-center h-9 w-9 rounded-full text-[var(--text-2)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-tint)] transition-all duration-200"
+          <button
+            type="button"
+            onClick={() => navigate('/campaigns')}
+            aria-label="Back to campaigns"
+            className="group inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-3)] hover:text-[var(--indigo-500)] transition-colors duration-200"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            Campaigns
+          </button>
+
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <h1 className="page-display">
+                <span className="velvet-header-gradient">{campaign?.brandName || 'Campaign'}</span>
+              </h1>
+              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">
+                <span className="font-semibold tabular-nums">{totalAds}</span> total
+                <span className="mx-1.5 text-[var(--text-3)]">·</span>
+                <span className="font-semibold tabular-nums text-emerald-600">{activeAds}</span> live
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchAds}
+                className="h-8 gap-1.5 text-[12px] text-[var(--text-2)]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExport}
+                className="h-8 gap-1.5 text-[12px] text-[var(--text-2)]"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
+                  className="btn-velvet h-8 gap-1.5 px-3 text-[12px]"
                 >
-                  <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-200 group-hover:-translate-x-0.5" />
-                </button>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-700 via-gray-800 to-slate-900 dark:from-slate-100 dark:via-gray-200 dark:to-slate-100 bg-clip-text text-transparent">
-                    {campaign?.brandName || 'Campaign'} Ads
-                  </h1>
-                  <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-3)]">
-                    {totalAds} Total Ads
-                    <span className="mx-1.5 text-[var(--text-3)]/40">•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      {activeAds} Live
-                    </span>
-                  </p>
+                  <Plus className="h-3.5 w-3.5" />
+                  Create Ad
+                </Button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Performance overview */}
+        <div className="space-y-3">
+          <h2 className="velvet-section-title">Performance overview</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <MetricCard
+              label="Total Ads"
+              value={totalAds}
+              tone="violet"
+              icon={<TrendingUp className="h-4 w-4" />}
+            />
+            <MetricCard
+              label="Active Ads"
+              value={activeAds}
+              tone="accent"
+              icon={<Play className="h-4 w-4" />}
+            />
+            <div className="metric-card relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-pink-500 to-rose-500" />
+              <div className="relative z-[1]">
+                <div className="metric-label flex items-center gap-1.5">
+                  <Eye className="h-3 w-3 text-pink-500" />
+                  Impressions
+                </div>
+                <div className="space-y-1 mt-1.5">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{formatCount(totalTargetImpressions)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-emerald-600">{formatCount(totalLiveImpressions)}</span>
+                  </div>
                 </div>
               </div>
-
-              {/* Enhanced Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={fetchAds}
-                  className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 h-10 px-4"
-                >
-                  <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Refresh</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleExport}
-                  className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 h-10 px-4"
-                >
-                  <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Export</span>
-                </Button>
-                <Button
-                  onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold h-10 px-6 transition-all duration-200"
-                  disabled={!canEdit}
-                  style={!canEdit ? { display: 'none' } : {}}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="ml-2 text-sm">Create Ad</span>
-                </Button>
+            </div>
+            <div className="metric-card relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 to-purple-500" />
+              <div className="relative z-[1]">
+                <div className="metric-label flex items-center gap-1.5">
+                  <MousePointerClick className="h-3 w-3 text-violet-500" />
+                  Clicks
+                </div>
+                <div className="space-y-1 mt-1.5">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{formatCount(totalTargetClicks)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-emerald-600">{formatCount(totalLiveClicks)}</span>
+                  </div>
+                </div>
               </div>
             </div>
+            <div className="metric-card relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500 to-orange-500" />
+              <div className="relative z-[1]">
+                <div className="metric-label flex items-center gap-1.5">
+                  <TrendingUp className="h-3 w-3 text-amber-500" />
+                  CTR
+                </div>
+                <div className="space-y-1 mt-1.5">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{targetCTR.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
+                    <span className={`text-[13px] font-semibold tabular-nums ${liveCTR >= targetCTR ? 'text-emerald-600' : 'text-amber-600'}`}>{liveCTR.toFixed(2)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <MetricCard
+              label="Landing"
+              value={totalLiveLandingCount}
+              tone="plum"
+              icon={<Zap className="h-4 w-4" />}
+            />
           </div>
-        </motion.div>
+        </div>
 
-        {/* Enhanced Summary Stats — Velvet aesthetic */}
+        {/* Search + filters */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4"
-        >
-          <MetricCard
-            label="Total Ads"
-            value={totalAds}
-            tone="violet"
-            icon={<TrendingUp className="h-4 w-4" />}
-            className="!p-4 sm:!p-5"
-          />
-          <MetricCard
-            label="Active Ads"
-            value={activeAds}
-            tone="accent"
-            icon={<Play className="h-4 w-4" />}
-            className="!p-4 sm:!p-5"
-          />
-          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
-            <div className="metric-label flex items-center justify-between pr-9">
-              <span>Impressions</span>
-              <div className="metric-icon-tone metric-icon-tone--plum !static !w-6 !h-6">
-                <Eye className="h-3.5 w-3.5" />
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-2">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {formatCount(totalTargetImpressions)}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {formatCount(totalLiveImpressions)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
-            <div className="metric-label flex items-center justify-between pr-9">
-              <span>Clicks</span>
-              <div className="metric-icon-tone metric-icon-tone--violet !static !w-6 !h-6">
-                <MousePointerClick className="h-3.5 w-3.5" />
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-2">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {formatCount(totalTargetClicks)}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {formatCount(totalLiveClicks)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="metric-card !p-4 sm:!p-5 flex flex-col justify-between">
-            <div className="metric-label flex items-center justify-between pr-9">
-              <span>CTR</span>
-              <div className="metric-icon-tone metric-icon-tone--accent !static !w-6 !h-6">
-                <TrendingUp className="h-3.5 w-3.5" />
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-2">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Target</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {targetCTR.toFixed(2)}%
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-3)]">Live</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[var(--text-1)]">
-                  {liveCTR.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </div>
-          <MetricCard
-            label="Landing"
-            value={totalLiveLandingCount}
-            tone="plum"
-            icon={<Zap className="h-4 w-4" />}
-            className="!p-4 sm:!p-5"
-          />
-        </motion.div>
-
-        {/* Inline control bar — flat, low-profile, beneath KPI cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col sm:flex-row sm:items-center gap-3"
         >
           <div className="relative flex-1 sm:max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-[var(--text-3)]" />
-            </div>
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-3)]" />
             <Input
               placeholder="Search ads by name..."
-              className="pl-10 pr-10 h-10 bg-white/70 dark:bg-[var(--bg-panel-2)]/70 border-slate-200/80 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-[var(--text-1)] placeholder:text-[var(--text-3)] rounded-xl transition-all duration-200 backdrop-blur-sm"
+              className="pl-8 h-9 border-[var(--line)] bg-[var(--bg-panel)] text-[12.5px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

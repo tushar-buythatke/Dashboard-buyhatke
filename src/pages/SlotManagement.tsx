@@ -58,8 +58,8 @@ export function SlotManagement() {
   const [createForm, setCreateForm] = useState<CreateSlotPayload>({
     name: '',
     platform: 0,
-    width: 0,
-    height: 0
+    width: '',
+    height: ''
   });
 
   const [updateForm, setUpdateForm] = useState<UpdateSlotPayload>({
@@ -104,16 +104,22 @@ export function SlotManagement() {
       toast.error('Slot name is required');
       return;
     }
-    if (createForm.width <= 0 || createForm.height <= 0) {
+    const w = Number(createForm.width);
+    const h = Number(createForm.height);
+    if (!w || w <= 0 || !h || h <= 0) {
       toast.error('Width and height must be greater than 0');
       return;
     }
     try {
-      const response = await slotService.createSlot(createForm);
+      const response = await slotService.createSlot({
+        ...createForm,
+        width: Number(createForm.width),
+        height: Number(createForm.height),
+      });
       if (response.success) {
         toast.success('Slot created successfully!');
         setCreateDialogOpen(false);
-        setCreateForm({ name: '', platform: 0, width: 0, height: 0 });
+        setCreateForm({ name: '', platform: 0, width: '', height: '' });
         fetchSlots();
       } else {
         toast.error(response.message || 'Failed to create slot');
@@ -287,7 +293,7 @@ export function SlotManagement() {
                 className="group relative"
               >
                 <div
-                  className="relative overflow-hidden rounded-2xl p-4 h-full flex flex-col gap-3
+                  className="relative rounded-2xl h-full flex flex-col overflow-visible
                              bg-gradient-to-br from-[#fdfcff] to-[#f6f3fc]
                              dark:from-[#1a1530] dark:to-[#13102a]
                              border border-[var(--line)] hover:border-[var(--line-violet)]
@@ -295,61 +301,65 @@ export function SlotManagement() {
                              hover:shadow-[0_12px_30px_rgba(43,19,94,0.10)]
                              transition-all duration-300 ease-out"
                 >
-                  {/* Soft corner glow on hover */}
-                  <div className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-[var(--violet-500)]/0 group-hover:bg-[var(--violet-500)]/10 blur-2xl transition-all duration-500" />
+                  {/* Glow halo behind the number */}
+                  <div className="pointer-events-none absolute top-0 left-0 h-28 w-36 opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500"
+                       style={{ background: 'radial-gradient(circle at 30% 40%, rgba(99,76,230,0.18) 0%, rgba(217,70,132,0.08) 50%, transparent 70%)' }} />
 
-                  {/* Header row: name + status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-3)]">
-                          Slot
-                        </p>
-                        <span className="font-mono text-[11px] font-semibold tabular-nums text-[var(--indigo-500)] bg-[var(--bg-tint)] border border-[var(--line-violet)] rounded px-1.5 py-px leading-none">
-                          #{slot.slotId}
-                        </span>
+                  {/* Card body */}
+                  <div className="relative p-5 pt-5 pb-4 flex flex-col gap-2.5">
+
+                    {/* Slot number + status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="leading-none tracking-tight"
+                        style={{
+                          fontFamily: "'Instrument Serif', Georgia, serif",
+                          fontSize: '2.25rem',
+                          lineHeight: 1,
+                          background: 'linear-gradient(135deg, #634ce6 0%, #d94684 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          filter: 'drop-shadow(0 2px 6px rgba(99,76,230,0.18))',
+                        }}
+                      >
+                        {String(slot.slotId).padStart(2, '0')}
+                      </span>
+                      <div className="flex-shrink-0">
+                        <StatusPill
+                          status={slot.isActive ? 'live' : 'paused'}
+                          label={slot.isActive ? 'Active' : 'Inactive'}
+                          size="sm"
+                        />
                       </div>
-                      <h3 className="mt-0.5 text-[14.5px] font-semibold tracking-tight text-[var(--text-1)] truncate">
-                        {slot.name}
-                      </h3>
                     </div>
-                    <StatusPill
-                      status={slot.isActive ? 'live' : 'paused'}
-                      label={slot.isActive ? 'Active' : 'Inactive'}
-                      size="sm"
-                    />
+
+                    {/* Slot name */}
+                    <h3 className="text-[14px] font-semibold tracking-tight text-[var(--text-1)] truncate">
+                      {slot.name}
+                    </h3>
+
+                    {/* Meta row: platform + dimensions */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-2)]">
+                        <PlatformIcon platformId={slot.platform} className="h-3 w-3" />
+                        {slotService.getPlatformName(slot.platform)}
+                      </span>
+                      <span className="text-[var(--text-3)] text-[10px]">|</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-2)] tabular-nums">
+                        <Maximize2 className="h-3 w-3 text-[var(--text-3)]" />
+                        {parseFloat(slot.width.toString()).toFixed(0)}×{parseFloat(slot.height.toString()).toFixed(0)}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Platform capsule badge */}
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full
-                                 border border-[var(--line-violet)]
-                                 bg-[var(--bg-tint)]
-                                 px-2.5 py-1 text-[11px] font-medium text-[var(--indigo-500)]"
-                    >
-                      <PlatformIcon platformId={slot.platform} className="h-3 w-3" />
-                      {slotService.getPlatformName(slot.platform)}
-                    </span>
-                  </div>
-
-                  {/* Dimensions metadata */}
-                  <div className="mt-1 flex items-center gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--bg-panel)]/60 px-2.5 py-1.5">
-                    <Maximize2 className="h-3 w-3 text-[var(--text-3)]" />
-                    <span className="font-mono text-[11.5px] font-semibold tabular-nums text-[var(--text-1)]">
-                      {parseFloat(slot.width.toString()).toFixed(0)} × {parseFloat(slot.height.toString()).toFixed(0)}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-3)]">px</span>
-                  </div>
-
-                  {/* Edit button (slide-up on hover) */}
+                  {/* Edit — revealed on hover */}
                   {canEdit && (
-                    <div className="mt-auto flex items-center justify-end gap-1.5 pt-1">
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-end px-4 pb-3 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => openUpdateDialog(slot)}
-                        className="h-7 gap-1 px-2.5 text-[11.5px] text-[var(--text-2)] opacity-70 hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] group-hover:opacity-100 transition-all"
+                        className="h-7 gap-1 px-3 text-[11px] font-medium text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]"
                       >
                         <Edit className="h-3 w-3" />
                         Edit
@@ -422,11 +432,16 @@ export function SlotManagement() {
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)]">
+        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)] rounded-2xl overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-[var(--text-1)]">Create new slot</DialogTitle>
+            <DialogTitle className="text-[var(--text-1)] text-base font-semibold flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
+                <Plus className="h-4 w-4 text-white" />
+              </span>
+              Create new slot
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-1">
             <div>
               <Label htmlFor="name" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Slot name</Label>
               <Input
@@ -465,26 +480,36 @@ export function SlotManagement() {
                 <Label htmlFor="width" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Width (px)</Label>
                 <Input
                   id="width"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={createForm.width}
-                  onChange={(e) => setCreateForm({ ...createForm, width: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    setCreateForm({ ...createForm, width: v === '' ? '' : Number(v) });
+                  }}
                   placeholder="728"
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
                 />
               </div>
               <div>
                 <Label htmlFor="height" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Height (px)</Label>
                 <Input
                   id="height"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={createForm.height}
-                  onChange={(e) => setCreateForm({ ...createForm, height: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    setCreateForm({ ...createForm, height: v === '' ? '' : Number(v) });
+                  }}
                   placeholder="90"
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
               <Button
                 variant="ghost"
                 onClick={() => setCreateDialogOpen(false)}
@@ -505,11 +530,16 @@ export function SlotManagement() {
 
       {/* Update Dialog */}
       <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)]">
+        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)] rounded-2xl overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-[var(--text-1)]">Update slot</DialogTitle>
+            <DialogTitle className="text-[var(--text-1)] text-base font-semibold flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
+                <Edit className="h-4 w-4 text-white" />
+              </span>
+              Update slot
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-1">
             <div>
               <Label htmlFor="update-name" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Slot name</Label>
               <Input
@@ -548,20 +578,30 @@ export function SlotManagement() {
                 <Label htmlFor="update-width" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Width (px)</Label>
                 <Input
                   id="update-width"
-                  type="number"
-                  value={updateForm.width ?? 0}
-                  onChange={(e) => setUpdateForm({ ...updateForm, width: parseFloat(e.target.value) || 0 })}
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={updateForm.width ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    setUpdateForm({ ...updateForm, width: v === '' ? undefined : Number(v) });
+                  }}
+                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
                 />
               </div>
               <div>
                 <Label htmlFor="update-height" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Height (px)</Label>
                 <Input
                   id="update-height"
-                  type="number"
-                  value={updateForm.height ?? 0}
-                  onChange={(e) => setUpdateForm({ ...updateForm, height: parseFloat(e.target.value) || 0 })}
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={updateForm.height ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '');
+                    setUpdateForm({ ...updateForm, height: v === '' ? undefined : Number(v) });
+                  }}
+                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
                 />
               </div>
             </div>
@@ -592,7 +632,7 @@ export function SlotManagement() {
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
               <Button
                 variant="ghost"
                 onClick={() => setUpdateDialogOpen(false)}

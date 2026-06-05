@@ -239,10 +239,10 @@ export function CampaignList() {
   const totalLandingCount = Object.values(campaignMetrics).reduce((s, m) => s + m.landingCount, 0);
 
   const summaryCards = [
-    { label: 'Active', value: activeCampaigns, icon: Play, tone: 'pos' as const },
-    { label: 'Budget', value: `₹${totalBudget.toLocaleString()}`, icon: DollarSign, tone: 'sky' as const },
-    { label: 'Impressions', value: formatCount(totalImpressions), icon: Eye, tone: 'violet' as const },
-    { label: 'Live Landings', value: formatCount(totalLandingCount), icon: Zap, tone: 'amber' as const },
+    { label: 'Active', value: activeCampaigns },
+    { label: 'Budget', value: `₹${totalBudget.toLocaleString()}` },
+    { label: 'Impressions', value: formatCount(totalImpressions) },
+    { label: 'Live Landings', value: formatCount(totalLandingCount) },
   ];
 
   // Render a numeric table cell with semantic weight:
@@ -335,20 +335,14 @@ export function CampaignList() {
           transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
           className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4"
         >
-          {summaryCards.map((s) => {
-            const Icon = s.icon;
-            return (
+          {summaryCards.map((s) => (
               <div key={s.label} className="metric-card">
                 <div className="relative z-[1]">
                   <div className="metric-label">{s.label}</div>
                   <div className="metric-value text-[1.1rem] sm:text-[1.25rem]">{s.value}</div>
                 </div>
-                <div className={`metric-icon-tone metric-icon-tone--${s.tone === 'pos' ? 'teal' : s.tone}`}>
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
               </div>
-            );
-          })}
+            ))}
         </motion.div>
 
         {/* Filters */}
@@ -393,14 +387,14 @@ export function CampaignList() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="velvet-surface overflow-hidden"
+          className="velvet-surface overflow-hidden relative"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--bg-panel-2)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <div className="flex items-center gap-2">
               <Target className="h-3.5 w-3.5 text-[var(--indigo-500)]" />
               <span className="text-[12.5px] font-semibold tracking-tight text-[var(--text-1)]">Campaign list</span>
             </div>
-            <span className="velvet-chip">{filteredCampaigns.length} campaigns</span>
+            <span className="velvet-chip" style={{ background: 'linear-gradient(135deg, rgba(99,76,230,0.08), rgba(217,70,132,0.06))', borderColor: 'rgba(99,76,230,0.15)' }}>{filteredCampaigns.length} campaigns</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -426,18 +420,18 @@ export function CampaignList() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-b border-[var(--line)] hover:bg-transparent">
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[200px]">Brand</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[120px]">Status</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[80px] text-center">Live ads</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[120px]">Created</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[110px] text-right">Target impr.</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[110px] text-right">Live impr.</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[110px] text-right">Live clicks</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[90px] text-center">CTR</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[110px] text-right">Landings</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[90px] text-right">Budget</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2 w-[80px] text-center">Actions</TableHead>
+                  <TableRow className="border-b border-[var(--line)] hover:bg-transparent" style={{ background: 'linear-gradient(90deg, rgba(99,76,230,0.04) 0%, rgba(217,70,132,0.03) 50%, rgba(99,76,230,0.04) 100%)' }}>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[200px]">Brand</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[120px]">Status</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[80px] text-center">Live ads</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[120px]">Created</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Target impr.</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Live impr.</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Live clicks</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[90px] text-center">CTR</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Landings</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[90px] text-right">Budget</TableHead>
+                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[80px] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -452,12 +446,9 @@ export function CampaignList() {
                         className="velvet-row-hover border-b border-[var(--line)] last:border-b-0 cursor-pointer hover:bg-[var(--bg-panel-2)] transition-colors"
                       >
                         <TableCell className="px-4 py-2.5">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="h-1.5 w-1.5 rounded-full bg-[var(--violet-500)] flex-shrink-0" />
-                            <span className="text-[12.5px] font-semibold text-[var(--text-1)] truncate">
-                              {campaign.brandName}
-                            </span>
-                          </div>
+                          <span className="text-[12.5px] font-semibold text-[var(--text-1)]">
+                            {campaign.brandName}
+                          </span>
                         </TableCell>
                         <TableCell className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <StatusPill
@@ -483,7 +474,12 @@ export function CampaignList() {
                         <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">
                           {numCell(m?.clicks)}
                         </TableCell>
-                        <TableCell className={`px-4 py-2.5 text-[12px] tabular-nums text-center ${ctrValue === 0 ? 'text-[var(--text-3)] font-normal' : 'text-[var(--indigo-500)] font-semibold'}`}>
+                        <TableCell className={`px-4 py-2.5 text-[12px] tabular-nums text-center font-semibold ${
+                          ctrValue === 0 ? 'text-[var(--text-3)] font-normal'
+                            : ctrValue >= 3 ? 'text-emerald-600'
+                            : ctrValue >= 1 ? 'text-amber-600'
+                            : 'text-rose-500'
+                        }`}>
                           {ctrValue === 0 ? '0.0%' : `${ctrValue.toFixed(1)}%`}
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">

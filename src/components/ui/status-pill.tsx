@@ -38,8 +38,8 @@ const styleMap: Record<StatusKind, { wrap: string; dot: string }> = {
     dot: 'bg-amber-500 dark:bg-amber-400',
   },
   test: {
-    wrap: 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/12 dark:text-sky-300 border-sky-500/25 dark:border-sky-400/28',
-    dot: 'bg-sky-500 dark:bg-sky-400',
+    wrap: 'bg-pink-500/10 text-pink-600 dark:bg-pink-400/14 dark:text-pink-300 border-pink-500/25 dark:border-pink-400/30',
+    dot: 'bg-pink-500 dark:bg-pink-400',
   },
   draft: {
     // Translucent muted slate

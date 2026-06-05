@@ -286,8 +286,8 @@ export function Header({ onMenuClick }: HeaderProps) {
           >
             <div className="relative">
               <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] flex items-center justify-center border border-[var(--line)] bg-[var(--bg-panel)] transition-all duration-300 group-hover:border-[var(--line-violet)]"
-                style={{ boxShadow: 'var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] flex items-center justify-center border border-[var(--line-violet)] bg-[var(--bg-tint)] transition-all duration-300 group-hover:border-[var(--violet-400)] group-hover:shadow-[0_0_12px_rgba(99,76,230,0.2)]"
+                style={{ boxShadow: 'var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.06)' }}
               >
                 <img
                   src="/logo_512x512.png"

@@ -4,7 +4,7 @@ import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { BreakdownModal } from '@/components/analytics/BreakdownModal';
-import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Sparkles } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Sparkles, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { CometCard } from '@/components/ui/comet-card';
@@ -138,7 +138,6 @@ export function Dashboard() {
         conversionRate: 0
       });
       setDataLoaded(true);
-      toast.success('Loaded dashboard data from cache');
     }
   }, []);
 
@@ -547,7 +546,6 @@ export function Dashboard() {
   const handleFetchAnalytics = async () => {
     setLoading(true);
     await fetchDashboardData();
-    toast.success('Last 7 days analytics loaded successfully');
   };
 
   const handleClearCache = () => {
@@ -571,11 +569,9 @@ export function Dashboard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Clear cache before fetching fresh data
     localStorage.removeItem(DASHBOARD_CACHE_KEY);
     await fetchDashboardData();
     setIsRefreshing(false);
-    toast.success('Last 7 days dashboard refreshed with fresh data');
   };
 
   const handleExport = () => {
@@ -729,8 +725,8 @@ export function Dashboard() {
         <div className="space-y-5">
           {hasComparisonData && ctrGrowth !== null && (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center gap-3 min-h-[88px]">
-                <div className="metric-icon-tone metric-icon-tone--accent relative">
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center gap-3">
+                <div className="metric-icon-tone metric-icon-tone--accent flex-shrink-0">
                   <Activity className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
@@ -738,16 +734,16 @@ export function Dashboard() {
                   <p className="text-[13px] font-semibold text-[var(--text-1)] truncate">Week-over-week</p>
                 </div>
               </div>
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between min-h-[88px]">
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between">
                 <div>
-                  <p className={`text-[20px] font-semibold tabular-nums leading-none ${ctrGrowth >= 0 ? 'text-[var(--pos)]' : 'text-[var(--neg)]'}`}>
+                  <p className={`text-[20px] font-semibold tabular-nums leading-none ${ctrGrowth >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                     {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
                   </p>
                   <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold mt-1.5">CTR growth</p>
                 </div>
-                <Sparkles className="h-4 w-4 text-[var(--gold-500)] opacity-70 flex-shrink-0" />
+                <Sparkles className="h-4 w-4 text-amber-500 opacity-70 flex-shrink-0" />
               </div>
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between min-h-[88px]">
+              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between">
                 <div>
                   <p className="text-[20px] font-semibold tabular-nums leading-none text-[var(--text-1)]">
                     {metricsData.ctr.toFixed(2)}<span className="text-[var(--text-3)] text-[14px]">%</span>
@@ -764,39 +760,49 @@ export function Dashboard() {
             <MetricsDashboard data={metricsData} comparisonData={comparisonMetricsData || undefined} period="7d" />
           </section>
 
-          <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-[var(--text-1)]">Ad slot management</p>
-              <p className="text-[11.5px] text-[var(--text-3)]">Slots across platforms</p>
+          <div className="velvet-surface velvet-micro-shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/50 via-pink-500/40 to-violet-500/50" />
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
+                  <LayoutGrid className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--text-1)]">Ad slot management</p>
+                  <p className="text-[11.5px] text-[var(--text-3)]">Slots across platforms</p>
+                </div>
+              </div>
+              <button onClick={() => navigate('/slot-management')} className="btn-velvet-ghost h-8 text-[12px] flex-shrink-0">
+                Manage slots
+                <ArrowUpRight className="h-3 w-3" />
+              </button>
             </div>
-            <button onClick={() => navigate('/slot-management')} className="btn-velvet-ghost h-8 text-[12px] flex-shrink-0">
-              Manage slots
-              <ArrowUpRight className="h-3 w-3" />
-            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <div className="velvet-surface velvet-micro-shadow xl:col-span-2 p-4 flex flex-col min-h-[360px]">
+            <div className="velvet-surface velvet-micro-shadow xl:col-span-2 p-4 flex flex-col min-h-[360px] relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/50 via-indigo-500/40 to-violet-500/50" />
               <div className="velvet-section-title mb-3">Performance trends</div>
               <div className="flex-1 min-h-[300px]">
                 <TrendChart series={trendData} title="7-day performance" showGrid animated={false} height={300} />
               </div>
             </div>
-            <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col min-h-[360px]">
+            <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col min-h-[360px] relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/50 via-orange-500/40 to-amber-500/50" />
               <div className="velvet-section-title mb-3">Quick insights</div>
               <div className="flex-1 space-y-1.5">
                 {[
-                  { label: 'Active campaigns', value: quickStats.activeCampaigns },
-                  { label: 'Overall CTR', value: `${metricsData.ctr.toFixed(2)}%` },
-                  { label: 'Top platform', value: quickStats.topPlatform },
-                  { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%` },
+                  { label: 'Active campaigns', value: quickStats.activeCampaigns, color: 'text-emerald-600' },
+                  { label: 'Overall CTR', value: `${metricsData.ctr.toFixed(2)}%`, color: 'text-[var(--indigo-500)]' },
+                  { label: 'Top platform', value: quickStats.topPlatform, color: 'text-[var(--text-1)]' },
+                  { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%`, color: 'text-violet-600' },
                 ].map((row) => (
                   <div
                     key={row.label}
                     className="flex items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--bg-panel-2)] px-3 py-2.5"
                   >
                     <span className="text-[11.5px] text-[var(--text-2)]">{row.label}</span>
-                    <span className="text-[12.5px] font-semibold tabular-nums text-[var(--text-1)]">{row.value}</span>
+                    <span className={`text-[12.5px] font-semibold tabular-nums ${row.color}`}>{row.value}</span>
                   </div>
                 ))}
               </div>
