@@ -301,9 +301,14 @@ export function SlotManagement() {
                   {/* Header row: name + status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-3)]">
-                        Slot
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-3)]">
+                          Slot
+                        </p>
+                        <span className="font-mono text-[11px] font-semibold tabular-nums text-[var(--indigo-500)] bg-[var(--bg-tint)] border border-[var(--line-violet)] rounded px-1.5 py-px leading-none">
+                          #{slot.slotId}
+                        </span>
+                      </div>
                       <h3 className="mt-0.5 text-[14.5px] font-semibold tracking-tight text-[var(--text-1)] truncate">
                         {slot.name}
                       </h3>
@@ -335,9 +340,6 @@ export function SlotManagement() {
                       {parseFloat(slot.width.toString()).toFixed(0)} × {parseFloat(slot.height.toString()).toFixed(0)}
                     </span>
                     <span className="text-[10px] text-[var(--text-3)]">px</span>
-                    <span className="ml-auto font-mono text-[10px] text-[var(--text-3)]">
-                      #{slot.slotId}
-                    </span>
                   </div>
 
                   {/* Edit button (slide-up on hover) */}

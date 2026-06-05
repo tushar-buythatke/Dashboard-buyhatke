@@ -246,6 +246,15 @@ export function AdForm() {
   // New states for slot filtering
   const [slotFilterPlatform, setSlotFilterPlatform] = useState<number | undefined>(undefined);
 
+  // OC-newest tracking mode: locks slot=84, status=paused, isTestPhase=test so this
+  // ad becomes pure tracking bookkeeping and never serves via /ads/serve. Safety
+  // is enforced again at submit time (onSubmit force-overrides regardless of
+  // whether the user toggled it back off after filling fields).
+  const OC_TRACKING_SLOT_ID = 84;
+  const OC_TRACKING_END_DATE = '2099-12-31';
+  const OC_TRACKING_PIXEL_PLACEHOLDER = 'https://buyhatke.com/_oc_tracking';
+  const [isOCTracking, setIsOCTracking] = useState(false);
+
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
@@ -626,10 +635,37 @@ export function AdForm() {
     setLabelSuggestions(Array.from(suggestions));
   }, [form.watch('label'), existingAdLabels]);
 
+  const applyOCTrackingDefaults = () => {
+    // Auto-pick slot 84 so creative upload validates against its dims (300x173).
+    setSlotFilterPlatform(undefined);
+    const slot84 = slots.find((s) => s.slotId === OC_TRACKING_SLOT_ID);
+    if (slot84) setSelectedSlot(slot84);
+    form.setValue('slotId', OC_TRACKING_SLOT_ID);
+    form.setValue('status', 0);          // paused → /ads/serve filters it out
+    form.setValue('isTestPhase', 1);     // test phase → /ads/serve filters it out
+    form.setValue('endDate', OC_TRACKING_END_DATE);
+    // Required-by-schema fields the user shouldn't have to think about for a stub
+    if (!form.getValues('impressionPixel')) form.setValue('impressionPixel', OC_TRACKING_PIXEL_PLACEHOLDER);
+    if (!form.getValues('clickPixel')) form.setValue('clickPixel', OC_TRACKING_PIXEL_PLACEHOLDER);
+    if (!form.getValues('targetUrl')) form.setValue('targetUrl', 'https://buyhatke.com/');
+  };
+
   const onSubmit = async (data: AdFormData) => {
     console.log('🚀 onSubmit called with data:', data);
     try {
       setLoading(true);
+      // Safety latch: if the OC-tracking toggle is on, re-apply the safety fields
+      // server-side regardless of any post-toggle edits. This is the only thing
+      // that keeps the stub ad from accidentally going live.
+      if (isOCTracking) {
+        data = {
+          ...data,
+          slotId: OC_TRACKING_SLOT_ID,
+          status: 0,
+          isTestPhase: 1,
+          endDate: OC_TRACKING_END_DATE,
+        };
+      }
       const url = isEditMode
         ? `${getApiBaseUrl()}/ads/update?userId=1`
         : `${getApiBaseUrl()}/ads?userId=1`;
@@ -846,6 +882,28 @@ export function AdForm() {
               </span>
             </div>
           </div>
+        </motion.div>
+
+        {/* OC-newest tracking mode toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <ElegantToggle
+            checked={isOCTracking}
+            onChange={(v) => {
+              setIsOCTracking(v);
+              if (v) applyOCTrackingDefaults();
+            }}
+            variant="primary"
+            label="OC-newest Tracking Ad"
+            description={
+              isOCTracking
+                ? `Locked: slot ${OC_TRACKING_SLOT_ID} · paused · test phase · end ${OC_TRACKING_END_DATE}. This ad will NOT be served by /ads/serve — it exists only to receive impression/click tracking from the extension's floating banner.`
+                : 'Turn this on if this ad is just a tracking row for an OC-newest floating banner offer. We will auto-pause it and put it in test phase so it never gets served as a real ad.'
+            }
+          />
         </motion.div>
 
         <Form {...form}>

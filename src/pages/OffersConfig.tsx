@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarIcon, ImagePlus, Pencil, Plus, RefreshCw, Save, Trash2,
   X, Upload, Clock, Link, Globe, Eye, Zap, Hash, ChevronDown, ChevronUp,
+  Target,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -22,6 +23,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { offerConfigService, OfferConfigItem, OfferConfigMap } from '@/services/offerConfigService';
+import { campaignService, Campaign } from '@/services/campaignService';
+import { adService } from '@/services/adService';
+
+// Tracking slot is fixed for OC floating banner. Mirrors hardcoded slotId='84' in
+// Ext-138 utility_all2.js trackImpressionPixel / trackClickPixel calls.
+const OC_TRACKING_SLOT_ID = 84;
+
+type AdOption = { adId: number; name: string; label: string };
 
 type OfferRow = { offer: OfferConfigItem; posList: string[] };
 
@@ -39,6 +48,8 @@ type OfferFormState = {
   banner_size_height: string;
   price_min: string;
   price_max: string;
+  campaign_id: string;
+  ad_id: string;
 };
 
 const emptyForm: OfferFormState = {
@@ -55,6 +66,8 @@ const emptyForm: OfferFormState = {
   banner_size_height: '',
   price_min: '0',
   price_max: '100000',
+  campaign_id: '',
+  ad_id: '',
 };
 
 // --- DateTimePicker ---
@@ -125,7 +138,7 @@ function DateTimePicker({
             {date ? format(date, 'MMM d, yyyy  HH:mm') : 'Select date & time...'}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 shadow-xl border-gray-200 dark:border-gray-700" align="start">
+        <PopoverContent className="w-auto p-0 shadow-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 z-[60]" align="start">
           <Calendar mode="single" selected={date} onSelect={handleDaySelect} initialFocus />
           <Separator />
           <div className="px-4 py-3 flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-md">
@@ -213,6 +226,10 @@ export default function OffersConfig() {
   const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [ads, setAds] = useState<AdOption[]>([]);
+  const [loadingAds, setLoadingAds] = useState(false);
+
   const posOptions = useMemo(
     () => Object.keys(configMap || {}).sort((a, b) => Number(a) - Number(b)),
     [configMap]
@@ -262,6 +279,35 @@ export default function OffersConfig() {
   };
 
   useEffect(() => { loadConfig(); }, []);
+
+  // Campaigns list for the tracking selector
+  useEffect(() => {
+    campaignService.getCampaigns().then((res) => {
+      if (res.success && res.data) setCampaigns(res.data);
+    });
+  }, []);
+
+  // Load ads for the selected campaign, filtered to OC tracking slot (84)
+  useEffect(() => {
+    const cid = Number(form.campaign_id);
+    if (!cid) { setAds([]); return; }
+    setLoadingAds(true);
+    adService.getAds({ campaignId: cid, slotId: OC_TRACKING_SLOT_ID }).then((res) => {
+      if (res.success && res.data?.adsList) {
+        const list: AdOption[] = (res.data.adsList || [])
+          .map((a: any) => ({
+            adId: Number(a.adId),
+            label: String(a.label || a.name || ''),
+            name: String(a.name || a.label || `Ad ${a.adId}`),
+          }))
+          .filter((a: AdOption) => !isNaN(a.adId) && a.adId > 0);
+        setAds(list);
+      } else {
+        setAds([]);
+      }
+      setLoadingAds(false);
+    });
+  }, [form.campaign_id]);
 
   const addPos = (posRaw: string) => {
     const pos = posRaw.trim();
@@ -314,6 +360,8 @@ export default function OffersConfig() {
       banner_size_height: String(offer.bannerSize?.height || ''),
       price_min: String(offer.price_range?.min ?? 0),
       price_max: String(offer.price_range?.max ?? 100000),
+      campaign_id: offer.campaignId ? String(offer.campaignId) : '',
+      ad_id: offer.adId ? String(offer.adId) : '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -332,6 +380,7 @@ export default function OffersConfig() {
     const s = getStartEpoch(), e = getEndEpoch();
     if (!s) return 'Select start date & time';
     if (!e || e <= s) return 'End must be after start';
+    if (!form.campaign_id || !form.ad_id) return 'Pick a tracking Campaign and Ad';
     if (!regexList.length) return 'Add at least one URL regex';
     if (!form.url.trim()) return 'URL is required';
     try { new URL(form.url.trim()); } catch { return 'Invalid URL'; }
@@ -363,6 +412,9 @@ export default function OffersConfig() {
       bannerSize: { width: Number(form.banner_size_width) || iW + 20, height: Number(form.banner_size_height) || iH + 20 },
       bread_arr: breadList,
       price_range: { min: Number(form.price_min), max: Number(form.price_max) },
+      campaignId: Number(form.campaign_id),
+      slotId: OC_TRACKING_SLOT_ID,
+      adId: Number(form.ad_id),
     };
 
     let result;
@@ -705,6 +757,78 @@ export default function OffersConfig() {
 
               <Separator className="bg-gray-100 dark:bg-gray-700/50" />
 
+              {/* ─ Tracking (campaign + ad on fixed slot 84) ─ */}
+              <div className="space-y-3">
+                <SectionHeader
+                  icon={Target}
+                  title="Ad-Backend Tracking"
+                  subtitle={`Slot ${OC_TRACKING_SLOT_ID} is fixed; pick the campaign + tracking ad you created for OC`}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <FieldLabel required>Campaign</FieldLabel>
+                    <Select
+                      value={form.campaign_id}
+                      onValueChange={(v) => {
+                        setFormValue('campaign_id', v);
+                        setFormValue('ad_id', '');
+                      }}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger className="h-11 border-gray-200 dark:border-gray-700">
+                        <SelectValue placeholder="Select campaign..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaigns.map((c) => {
+                          const cid = String(c.campaignId ?? c.id);
+                          // Backend returns brandName; older typing claims `name`. Tolerate both.
+                          const label = (c as any).brandName || (c as any).name || `Campaign ${cid}`;
+                          return (
+                            <SelectItem key={cid} value={cid}>
+                              {label} <span className="text-gray-400 ml-1">#{cid}</span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldLabel required hint={loadingAds ? 'loading…' : `slot ${OC_TRACKING_SLOT_ID} only`}>Tracking Ad</FieldLabel>
+                    <Select
+                      value={form.ad_id}
+                      onValueChange={(v) => setFormValue('ad_id', v)}
+                      disabled={!canEdit || !form.campaign_id || loadingAds}
+                    >
+                      <SelectTrigger className="h-11 border-gray-200 dark:border-gray-700">
+                        <SelectValue
+                          placeholder={
+                            !form.campaign_id
+                              ? 'Pick campaign first'
+                              : ads.length === 0
+                                ? 'No ads on slot 84 for this campaign'
+                                : 'Select ad...'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ads.map((a) => (
+                          <SelectItem key={a.adId} value={String(a.adId)}>
+                            {a.label || a.name} <span className="text-gray-400 ml-1">#{a.adId}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {form.campaign_id && form.ad_id && (
+                  <p className="text-[11px] text-purple-600/70 font-mono">
+                    Will fire: campaignId={form.campaign_id} · slotId={OC_TRACKING_SLOT_ID} · adId={form.ad_id}
+                  </p>
+                )}
+              </div>
+
+              <Separator className="bg-gray-100 dark:bg-gray-700/50" />
+
               {/* ─ Config ─ */}
               <div className="space-y-3">
                 <SectionHeader icon={Clock} title="Display & Tracking" />
@@ -725,14 +849,26 @@ export default function OffersConfig() {
                     <Input type="number" value={form.price_max} onChange={(e) => setFormValue('price_max', e.target.value)} disabled={!canEdit} className="h-11" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-60">
                   <div className="space-y-1.5">
-                    <FieldLabel>Pixel Show</FieldLabel>
-                    <Input value={form.pixel_show} onChange={(e) => setFormValue('pixel_show', e.target.value)} disabled={!canEdit} placeholder="Show tracking URL" className="h-11 text-sm" />
+                    <FieldLabel hint="legacy · 3rd-party only">Pixel Show</FieldLabel>
+                    <Input
+                      value={form.pixel_show}
+                      onChange={(e) => setFormValue('pixel_show', e.target.value)}
+                      disabled={!canEdit}
+                      placeholder="External pixel URL (optional — ad-backend tracking is above)"
+                      className="h-11 text-sm bg-gray-50 dark:bg-gray-800/40"
+                    />
                   </div>
                   <div className="space-y-1.5">
-                    <FieldLabel hint="optional">Pixel Click</FieldLabel>
-                    <Input value={form.pixel_click} onChange={(e) => setFormValue('pixel_click', e.target.value)} disabled={!canEdit} placeholder="Click tracking URL" className="h-11 text-sm" />
+                    <FieldLabel hint="legacy · 3rd-party only">Pixel Click</FieldLabel>
+                    <Input
+                      value={form.pixel_click}
+                      onChange={(e) => setFormValue('pixel_click', e.target.value)}
+                      disabled={!canEdit}
+                      placeholder="External pixel URL (optional — ad-backend tracking is above)"
+                      className="h-11 text-sm bg-gray-50 dark:bg-gray-800/40"
+                    />
                   </div>
                 </div>
               </div>
@@ -1012,7 +1148,7 @@ export default function OffersConfig() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
-        <AlertDialogContent className="rounded-2xl border-red-200 dark:border-red-800/50">
+        <AlertDialogContent className="rounded-2xl border-red-200 dark:border-red-800/50 bg-white dark:bg-gray-900 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />

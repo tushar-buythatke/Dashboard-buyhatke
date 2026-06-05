@@ -20,6 +20,9 @@ export interface OfferConfigItem {
   auto_close_time: number;
   pixel_show?: string;
   pixel_click?: string;
+  campaignId?: number;
+  slotId?: number;
+  adId?: number;
 }
 
 export type OfferConfigMap = Record<string, OfferConfigItem[]>;
