@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
-import { getCacheBustedUrl } from '@/utils/adUtils';
+import { getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
 import { FileUpload } from '@/components/ui/file-upload';
 
@@ -212,6 +212,7 @@ const adSchema = z.object({
 
 
 type AdFormData = z.infer<typeof adSchema>;
+
 
 export function AdForm() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -516,8 +517,8 @@ export function AdForm() {
               form.reset({
                 ...adData,
                 categories: categoriesForForm,
-                startDate: adData.startDate ? adData.startDate.split('T')[0] : undefined,
-                endDate: adData.endDate ? adData.endDate.split('T')[0] : undefined,
+                startDate: adData.startDate ? toLocalDateInput(adData.startDate) : undefined,
+                endDate: adData.endDate ? toLocalDateInput(adData.endDate) : undefined,
                 startTime: '', // Blank by default on edit/update
                 endTime: '', // Blank by default on edit/update,
                 logo: adData.logo || '',

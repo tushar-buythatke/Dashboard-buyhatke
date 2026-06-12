@@ -84,8 +84,8 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-        <Toaster />
       </div>
+      <Toaster />
     </Router>
   );
 }

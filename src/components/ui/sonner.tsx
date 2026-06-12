@@ -13,8 +13,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       richColors={false}
       closeButton={false}
       duration={2500}
-      visibleToasts={2}
-      gap={10}
+      visibleToasts={1}
+      gap={8}
       toastOptions={{
         unstyled: true,
         classNames: {

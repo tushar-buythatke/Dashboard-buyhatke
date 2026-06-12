@@ -12,7 +12,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { getPlatformName } from '@/utils/platform';
-import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
+import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
 import { PageHeader } from '@/components/ui/page-header';
 import { MetricCard } from '@/components/ui/metric-card';
@@ -335,9 +335,9 @@ export function AdDetail() {
           ageRangeMin: ad.ageRangeMin,
           ageRangeMax: ad.ageRangeMax,
           priority: ad.priority,
-          startDate: ad.startDate,
+          startDate: toLocalDateInput(ad.startDate),
           startTime: ad.startTime,
-          endDate: ad.endDate,
+          endDate: toLocalDateInput(ad.endDate),
           endTime: ad.endTime,
           creativeUrl: ad.creativeUrl,
           logo: ad.logo || '',
@@ -353,12 +353,12 @@ export function AdDetail() {
 
       const result = await response.json();
       if (result.status === 1) {
-        toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`);
+        toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`, { id: 'ad-status' });
         setAd(prev => prev ? { ...prev, status: newStatus } : null);
       }
     } catch (error) {
       console.error('Error updating ad status:', error);
-      toast.error('Failed to update ad status');
+      toast.error('Failed to update ad status', { id: 'ad-status' });
     }
   };
 

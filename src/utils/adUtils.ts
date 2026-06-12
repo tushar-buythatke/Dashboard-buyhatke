@@ -1,6 +1,19 @@
 import { CategoryPath } from '@/types';
 
 /**
+ * Converts an API date string (ISO or plain YYYY-MM-DD) to a YYYY-MM-DD string
+ * in the browser's local timezone. This prevents the UTC-midnight → local-previous-day
+ * shift that occurs when the server stores IST midnight as T18:30:00Z.
+ */
+export const toLocalDateInput = (dateString: string): string => {
+  const d = new Date(dateString);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Extracts categories into a Record<number, string> format (catId -> catName)
  * suitable for the ad update API payload.
  */

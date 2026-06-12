@@ -77,9 +77,10 @@ export function CampaignList() {
       if (result.status === 1 && result.data?.campaignList) {
         setCampaigns(result.data.campaignList);
 
-        const dateRange = analyticsService.getDateRange('30d');
+        const today = new Date().toISOString().split('T')[0];
         const metricsArr = await Promise.all(result.data.campaignList.map(async (c) => {
-          const mRes = await analyticsService.getMetrics({ ...dateRange, campaignId: c.campaignId });
+          const fromDate = c.createdAt ? c.createdAt.split('T')[0] : analyticsService.getDateRange('30d').from;
+          const mRes = await analyticsService.getMetrics({ from: fromDate, to: today, campaignId: c.campaignId });
           return { id: c.campaignId, metrics: mRes.success && mRes.data ? mRes.data : null };
         }));
         const metricMap: Record<number, { impressions: number; clicks: number; landingCount: number }> = {};

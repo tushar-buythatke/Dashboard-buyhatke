@@ -20,7 +20,7 @@ import { exportToCsv } from '@/utils/csvExport';
 import { getApiBaseUrl } from '@/config/api';
 import { formatCount } from '@/lib/format';
 import { getPlatformName } from '@/utils/platform';
-import { extractCategoriesForUpdate, getCacheBustedUrl } from '@/utils/adUtils';
+import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
 
 // Placeholder image URL
@@ -397,9 +397,9 @@ export function AdList() {
           ageRangeMin: adToUpdate.ageRangeMin,
           ageRangeMax: adToUpdate.ageRangeMax,
           priority: adToUpdate.priority,
-          startDate: adToUpdate.startDate,
+          startDate: toLocalDateInput(adToUpdate.startDate),
           startTime: adToUpdate.startTime,
-          endDate: adToUpdate.endDate,
+          endDate: toLocalDateInput(adToUpdate.endDate),
           endTime: adToUpdate.endTime,
           creativeUrl: adToUpdate.creativeUrl,
           logo: adToUpdate.logo || '',
@@ -415,12 +415,12 @@ export function AdList() {
 
       const result = await response.json();
       if (result.status === 1) {
-        toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`);
+        toast.success(`Ad ${newStatus === 1 ? 'activated' : 'paused'} successfully`, { id: 'ad-status' });
         fetchAds();
       }
     } catch (error) {
       console.error('Error updating ad status:', error);
-      toast.error('Failed to update ad status');
+      toast.error('Failed to update ad status', { id: 'ad-status' });
     }
   };
 

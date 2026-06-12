@@ -200,21 +200,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       return [newNotification, ...prev];
     });
 
-    // Show toast notification
-    switch (notification.type) {
-      case 'success':
-        toast.success(notification.title, { description: notification.message });
-        break;
-      case 'achievement':
-        toast.success(notification.title, { description: notification.message });
-        break;
-      case 'warning':
-        toast.warning(notification.title, { description: notification.message });
-        break;
-      case 'info':
-        toast.info(notification.title, { description: notification.message });
-        break;
-    }
   };
 
   const markAsRead = (id: string) => {
