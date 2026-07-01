@@ -180,7 +180,7 @@ const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`, {
   // Get campaigns for dropdown
   async getCampaigns(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(buildApiUrl('/campaigns'));
+      const response = await fetch(`${buildApiUrl('/campaigns')}?userId=1`);
       const result = await response.json();
 
       if (result.status === 1 && result.data?.campaignList) {
