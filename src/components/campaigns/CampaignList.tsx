@@ -15,7 +15,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { campaignService } from '@/services/campaignService';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 import { usePermissions } from '@/context/PermissionsContext';
 import { formatCount } from '@/lib/format';
 
@@ -70,7 +70,7 @@ export function CampaignList() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${getApiBaseUrl()}/campaigns`);
+      const response = await fetch(buildApiUrl('/campaigns'));
       if (!response.ok) throw new Error('Failed to fetch campaigns');
       const result: CampaignResponse = await response.json();
 
@@ -91,7 +91,7 @@ export function CampaignList() {
 
         const liveAdsPromises = result.data.campaignList.map(async (c) => {
           try {
-            const adsResponse = await fetch(`${getApiBaseUrl()}/ads?campaignId=${c.campaignId}`);
+            const adsResponse = await fetch(`${buildApiUrl('/ads')}?campaignId=${c.campaignId}`);
             if (adsResponse.ok) {
               const adsResult = await adsResponse.json();
               if (adsResult.status === 1 && adsResult.data?.adsList) {
@@ -209,7 +209,7 @@ export function CampaignList() {
 
   const handleStatusChange = async (campaignId: number, newStatus: number) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/campaigns/update?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/campaigns/update')}?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ campaignId, status: newStatus }),

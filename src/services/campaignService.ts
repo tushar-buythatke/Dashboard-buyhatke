@@ -1,6 +1,6 @@
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 
-const getCampaignApiUrl = () => `${getApiBaseUrl()}/campaigns`;
+const getCampaignApiUrl = () => buildApiUrl('/campaigns');
 
 export interface Campaign {
   id: number;

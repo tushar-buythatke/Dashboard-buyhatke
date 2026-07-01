@@ -126,3 +126,54 @@ export const notifyEnvironmentChange = (env: Environment): void => {
   setCurrentEnvironment(env);
   listeners.forEach(callback => callback(env));
 };
+
+// ─── API Version Management ───────────────────────────────────────────────
+
+export type ApiVersion = 'v1' | 'v2';
+
+const API_VERSION_KEY = 'api-version';
+
+export const getApiVersion = (): ApiVersion => {
+  if (typeof window === 'undefined') return 'v1';
+  const stored = localStorage.getItem(API_VERSION_KEY);
+  return stored === 'v2' ? 'v2' : 'v1';
+};
+
+export const setApiVersion = (version: ApiVersion): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(API_VERSION_KEY, version);
+  apiVersionListeners.forEach(cb => cb(version));
+};
+
+export const isV2 = (): boolean => getApiVersion() === 'v2';
+
+// API version change listeners
+const apiVersionListeners: Array<(version: ApiVersion) => void> = [];
+
+export const addApiVersionListener = (callback: (version: ApiVersion) => void): void => {
+  apiVersionListeners.push(callback);
+};
+
+export const removeApiVersionListener = (callback: (version: ApiVersion) => void): void => {
+  const index = apiVersionListeners.indexOf(callback);
+  if (index > -1) apiVersionListeners.splice(index, 1);
+};
+
+/**
+ * Build a version-aware API URL.
+ * In v2 mode, prefixes the path with `/v2`.
+ * Auth endpoints (`/auth`) are never versioned — always use v1.
+ *
+ * @example
+ *   buildApiUrl('/campaigns')        // v1 → {base}/campaigns     v2 → {base}/v2/campaigns
+ *   buildApiUrl('/ads/siteDetails')  // v1 → {base}/ads/siteDetails  v2 → {base}/v2/ads/siteDetails
+ *   buildApiUrl('/auth/login')       // always → {base}/auth/login (no v2 for auth)
+ */
+export const buildApiUrl = (path: string): string => {
+  const base = getApiBaseUrl();
+  // Auth & whitelist endpoints never get /v2 prefix
+  const isAuthPath = path.startsWith('/auth');
+  const version = isAuthPath ? 'v1' : getApiVersion();
+  const prefix = version === 'v2' ? '/v2' : '';
+  return `${base}${prefix}${path}`;
+};

@@ -17,7 +17,8 @@ import { useNotifications } from '@/context/NotificationContext';
 import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
 import { exportToCsv } from '@/utils/csvExport';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
+import { normalizeAdList, isV2Active } from '@/utils/v2Normalizer';
 import { formatCount } from '@/lib/format';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
@@ -152,16 +153,19 @@ export function AdList() {
 
   const fetchSlots = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots`);
+      const response = await fetch(buildApiUrl('/slots'));
       if (!response.ok) throw new Error('Failed to fetch slots');
 
       const result: SlotListResponse = await response.json();
       if (result.status === 1 && result.data?.slotList) {
-        const slotsMap = result.data.slotList.reduce((acc, slot) => ({
-          ...acc,
-          [slot.slotId]: slot
-        }), {} as Record<number, Slot>);
-        setSlots(slotsMap);
+        const slotsMap: Record<string, Slot> = {};
+        result.data.slotList.forEach((slot: Slot) => {
+          slotsMap[String(slot.slotId)] = slot;
+          if (isV2Active() && slot.slotType) {
+            slotsMap[String(slot.slotType)] = slot;
+          }
+        });
+        setSlots(slotsMap as Record<number, Slot>);
       }
     } catch (error) {
       console.error('Error fetching slots:', error);
@@ -171,7 +175,7 @@ export function AdList() {
 
   const fetchCampaign = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`);
+      const response = await fetch(`${buildApiUrl('/campaigns')}?campaignId=${campaignId}`);
       if (!response.ok) throw new Error('Failed to fetch campaign');
 
       const result = await response.json();
@@ -179,7 +183,7 @@ export function AdList() {
         const campaignData = result.data.campaignList[0];
         setCampaign({
           ...campaignData,
-          id: parseInt(campaignId || '0', 10)
+          id: isV2Active() ? (campaignId || '') : parseInt(campaignId || '0', 10)
         });
       }
     } catch (error) {
@@ -202,7 +206,7 @@ export function AdList() {
       });
 
       const response = await fetch(
-        `${getApiBaseUrl()}/ads?${params.toString()}`
+        `${buildApiUrl('/ads')}?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -213,7 +217,8 @@ export function AdList() {
 
       if (result.status === 1 && result.data?.adsList) {
         // Enrich ads with slot information and map to the frontend Ad type
-        const enrichedAds = result.data.adsList.map((apiAd: ApiAd) => {
+        const adsList = normalizeAdList(result.data.adsList);
+        const enrichedAds = adsList.map((apiAd: ApiAd) => {
           const ad = mapApiAdToAd(apiAd);
           const slot = slots[ad.slotId];
           return {
@@ -233,7 +238,7 @@ export function AdList() {
           return analyticsService.getMetrics({
             from: fromDate,
             to: today,
-            campaignId: campaignId ? Number(campaignId) : undefined,
+            campaignId: campaignId ? (isV2Active() ? campaignId : Number(campaignId)) : undefined,
             adId: ad.adId
           });
         });
@@ -373,7 +378,7 @@ export function AdList() {
       const categoriesPayload = extractCategoriesForUpdate(adToUpdate.categories);
 
       // Send full ad data to prevent backend from resetting missing fields
-      const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/ads/update')}?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

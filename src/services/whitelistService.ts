@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 
 export interface WhitelistConfig {
     multiplier: number;
@@ -12,7 +12,7 @@ export interface WhitelistUser {
     canEdit: boolean;
 }
 
-const getBaseUrl = () => `${getApiBaseUrl()}/auth`;
+const getBaseUrl = () => buildApiUrl('/auth');
 
 export const whitelistService = {
     async getConfig(): Promise<WhitelistConfig> {

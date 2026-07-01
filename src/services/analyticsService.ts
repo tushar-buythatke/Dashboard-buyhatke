@@ -1,20 +1,15 @@
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 import { coerceName } from '@/lib/format';
+import { normalizeMetricsAdStats, normalizeMetricsBreakdown } from '@/utils/v2Normalizer';
 
 export interface MetricsPayload {
   from: string;
   to: string;
-  /** Campaign filter – single id or array */
-  campaignId?: number | number[];
-  /** Slot filter */
-  slotId?: number | number[];
-  /** Marketplace / POS filter */
+  campaignId?: number | number[] | string | string[];
+  slotId?: number | number[] | string | string[];
   siteId?: number | number[];
-  /** Ad filter */
-  adId?: number | number[];
-  /** Interval bucket for trend endpoint → one of "1d", "7d", "30d" */
+  adId?: number | number[] | string | string[];
   interval?: string;
-  /** Field for breakdown grouping → gender | age | platform | location */
   by?: string;
 }
 
@@ -68,12 +63,12 @@ class AnalyticsService {
   async getMetrics(payload: MetricsPayload): Promise<{ success: boolean; data?: MetricsData; message?: string }> {
     try {
       const body = this.preparePayloadForAll(payload);
-      const response = await fetch(`${getApiBaseUrl()}/metrics/all?userId=1`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
+const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
       });
 
       const result: MetricsResponse = await response.json();
@@ -107,7 +102,7 @@ class AnalyticsService {
       const body = this.preparePayloadForTrend(payload);
       console.log('📈 Making trend API call with payload:', body);
 
-      const response = await fetch(`${getApiBaseUrl()}/metrics/trend?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/metrics/trend')}?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +143,7 @@ class AnalyticsService {
       const body = this.preparePayloadForBreakdown(payload);
       console.log(`Making breakdown API call for ${payload.by}:`, body);
 
-      const response = await fetch(`${getApiBaseUrl()}/metrics/breakdown?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/metrics/breakdown')}?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +180,7 @@ class AnalyticsService {
   // Get campaigns for dropdown
   async getCampaigns(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/campaigns`);
+      const response = await fetch(buildApiUrl('/campaigns'));
       const result = await response.json();
 
       if (result.status === 1 && result.data?.campaignList) {
@@ -212,7 +207,7 @@ class AnalyticsService {
   // Get slots for dropdown
   async getSlots(): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots?isActive=1`);
+      const response = await fetch(`${buildApiUrl('/slots')}?isActive=1`);
       const result = await response.json();
 
       if (result.status === 1 && result.data?.slotList) {
@@ -265,7 +260,7 @@ class AnalyticsService {
   // Get sites for dropdown (marketplaces/POS)
   async getSites(): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/ads/siteDetails`);
+      const response = await fetch(buildApiUrl('/ads/siteDetails'));
       const result = await response.json();
 
       if (result.status === 1 && result.data?.siteDetails) {
@@ -300,7 +295,7 @@ class AnalyticsService {
   // Fetch tabular aggregated data (location, slot, ad etc.)
   async getTableData(type: 'location' | 'slotId' | 'adId', sortBy: 'impressions' | 'clicks' = 'impressions'): Promise<{ success: boolean; data?: any[]; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/metrics/table?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/metrics/table')}?userId=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -341,7 +336,7 @@ class AnalyticsService {
   // Get all metrics data (simplified endpoint)
   async getAllMetrics(): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/metrics/all?userId=1`);
+      const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`);
       const result = await response.json();
 
       if (result.status === 1 && result.data) {
@@ -353,7 +348,8 @@ class AnalyticsService {
 
         // Extract impressions, clicks, and landingCount from adStats
         if (Array.isArray(result.data.adStats)) {
-          result.data.adStats.forEach((stat: any) => {
+          const stats = normalizeMetricsAdStats(result.data.adStats);
+          stats.forEach((stat: any) => {
             if (stat.eventType === "0") {
               impressions = Number(stat.eventCount) || 0;
             } else if (stat.eventType === "1") {
@@ -409,15 +405,14 @@ class AnalyticsService {
     let landingCount = 0;
 
     if (rawData) {
-      // Extract conversion count if present
       if (rawData.conversionStats?.conversionCount !== undefined) {
         conversions = Number(rawData.conversionStats.conversionCount) || 0;
       }
 
-      // Aggregate impressions, clicks & landingCount from adStats (eventType mapping: 0 → impression, 1 → click, 2 → landingCount)
       if (Array.isArray(rawData.adStats)) {
-        rawData.adStats.forEach((event: any) => {
-          const type = Number(event.eventType);
+        const stats = normalizeMetricsAdStats(rawData.adStats);
+        stats.forEach((event: any) => {
+          const type = event.eventType;
           if (type === 0) {
             impressions += Number(event.eventCount) || 0;
           } else if (type === 1) {
@@ -680,8 +675,10 @@ class AnalyticsService {
   private processBreakdownData(rawData: any, groupBy?: string): BreakdownData[] {
     const map: { [key: string]: { impressions: number; clicks: number; conversions: number } } = {};
 
-    if (Array.isArray(rawData)) {
-      rawData.forEach((row: any) => {
+    const data = Array.isArray(rawData) ? normalizeMetricsBreakdown(rawData) : [];
+
+    if (data.length > 0) {
+      data.forEach((row: any) => {
         // Determine the grouping key based on the breakdown type.
         // coerceName ensures object payloads like { city, state } or { name, label }
         // never collapse to "[object Object]" when used as a map key.

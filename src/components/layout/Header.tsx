@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { useNotifications } from '@/context/NotificationContext';
+import { useEnvironment } from '@/context/EnvironmentContext';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -242,6 +243,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const { userRole } = usePermissions();
   const { unreadCount } = useNotifications();
+  const { apiVersion, setApiVersion, isV2 } = useEnvironment();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -341,6 +343,22 @@ export function Header({ onMenuClick }: HeaderProps) {
               )}
             </AnimatePresence>
           </Button>
+
+          <button
+            onClick={() => setApiVersion(isV2 ? 'v1' : 'v2')}
+            className={`relative h-8 px-2.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-200 border ${
+              isV2
+                ? 'bg-[var(--indigo-50)] text-[var(--indigo-600)] border-[var(--indigo-200)] dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700'
+                : 'bg-[var(--bg-panel-2)] text-[var(--text-2)] border-[var(--line)] hover:border-[var(--line-violet)] hover:text-[var(--text-1)]'
+            }`}
+            aria-label={`Switch to ${isV2 ? 'V1' : 'V2'} API`}
+            title={`Currently using ${apiVersion.toUpperCase()} API. Click to switch to ${isV2 ? 'V1' : 'V2'}.`}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${isV2 ? 'bg-[var(--indigo-500)] animate-pulse' : 'bg-[var(--text-3)]'}`} />
+              API {apiVersion.toUpperCase()}
+            </span>
+          </button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

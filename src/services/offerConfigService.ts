@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 
 export interface OfferConfigItem {
   url_reg_arr: string[];
@@ -29,7 +29,7 @@ export type OfferConfigMap = Record<string, OfferConfigItem[]>;
 
 class OfferConfigService {
   private get baseUrl() {
-    return `${getApiBaseUrl()}/offersConfig`;
+    return buildApiUrl('/offersConfig');
   }
 
   async getConfig(): Promise<{ success: boolean; data?: OfferConfigMap; filePath?: string; message?: string }> {

@@ -1,6 +1,7 @@
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
+import { normalizeAdList } from '@/utils/v2Normalizer';
 
-const getAdApiUrl = () => `${getApiBaseUrl()}/ads`;
+const getAdApiUrl = () => buildApiUrl('/ads');
 
 export interface SiteDetail {
   domain: string[];
@@ -118,6 +119,9 @@ class AdService {
       });
 
       const result = await response.json();
+      if (result.data?.adsList) {
+        result.data.adsList = normalizeAdList(result.data.adsList);
+      }
       return {
         success: result.status === 1,
         data: result.data,
@@ -456,9 +460,10 @@ class AdService {
 
       if (result.status === 1 && result.data?.adsList) {
         console.log(`📝 Found ${result.data.adsList.length} ads in campaign ${campaignId}`);
+        const adsList = normalizeAdList(result.data.adsList);
 
         // Extract both name, label and adId for each ad with better error handling
-        const adInfo = result.data.adsList
+        const adInfo = adsList
           .map((ad: any, index: number) => {
             console.log(`🔍 Processing ad ${index + 1}:`, ad);
 

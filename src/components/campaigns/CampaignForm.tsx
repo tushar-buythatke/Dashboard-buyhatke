@@ -11,7 +11,7 @@ import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 import { usePermissions } from '@/context/PermissionsContext';
 
 const campaignFormSchema = z.object({
@@ -58,7 +58,7 @@ export function CampaignForm() {
 
   const fetchCampaign = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`, {
+      const response = await fetch(`${buildApiUrl('/campaigns')}?campaignId=${campaignId}`, {
         credentials: 'omit'
       });
       if (!response.ok) throw new Error('Failed to fetch campaign');
@@ -104,8 +104,8 @@ export function CampaignForm() {
 
       // Determine the URL based on whether we're creating or updating
       const url = isEditMode
-        ? `${getApiBaseUrl()}/campaigns/update?userId=1`
-        : `${getApiBaseUrl()}/campaigns?userId=1`;
+? `${buildApiUrl('/campaigns/update')}?userId=1`
+          : `${buildApiUrl('/campaigns')}?userId=1`;
 
       const response = await fetch(url, {
         method: 'POST',

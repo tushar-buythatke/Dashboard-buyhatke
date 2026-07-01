@@ -3,7 +3,7 @@ import { Upload, AlertCircle, Check, Loader2, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 
 interface CreativeUploadModalProps {
   isOpen: boolean;
@@ -151,7 +151,7 @@ export default function CreativeUploadModal({
       const formData = new FormData();
       formData.append('image', selectedFile);
       
-      const response = await fetch(`${getApiBaseUrl()}/uploadCreative?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/ads/uploadCreative')}?userId=1`, {
         method: 'POST',
         body: formData
       });

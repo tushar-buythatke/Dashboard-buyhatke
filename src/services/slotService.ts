@@ -1,13 +1,16 @@
 // Slot management service
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
+import { normalizeSlotList } from '@/utils/v2Normalizer';
 
 export interface Slot {
-  slotId: number;
+  slotId: number | string;
   name: string;
   platform: number;
-  width: string | number; // API returns string, but we can accept both
-  height: string | number; // API returns string, but we can accept both
+  width: string | number;
+  height: string | number;
   isActive: number;
+  slotType?: string;
+  slotIdNum?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -69,7 +72,7 @@ class SlotService {
     if (slotId !== undefined) params.append('slotId', slotId.toString());
     if (isActive !== undefined) params.append('isActive', isActive.toString());
     
-    const url = `${getApiBaseUrl()}/slots${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `${buildApiUrl('/slots')}${params.toString() ? `?${params.toString()}` : ''}`;
     
     try {
       const response = await this.makeRequest<any>(url);
@@ -77,7 +80,7 @@ class SlotService {
       // Handle the nested response structure
       let slotsData: Slot[] = [];
       if (response.status === 1 && response.data?.slotList) {
-        slotsData = Array.isArray(response.data.slotList) ? response.data.slotList : [];
+        slotsData = normalizeSlotList(Array.isArray(response.data.slotList) ? response.data.slotList : []);
       } else if (Array.isArray(response.data)) {
         slotsData = response.data;
       } else if (Array.isArray(response)) {
@@ -100,7 +103,7 @@ class SlotService {
 
   // Create a new slot
   async createSlot(payload: CreateSlotPayload): Promise<SlotResponse> {
-    const url = `${getApiBaseUrl()}/slots`;
+    const url = buildApiUrl('/slots');
     
     try {
       const response = await this.makeRequest<any>(url, {
@@ -124,7 +127,7 @@ class SlotService {
 
   // Update an existing slot
   async updateSlot(payload: UpdateSlotPayload): Promise<SlotResponse> {
-    const url = `${getApiBaseUrl()}/slots/update`;
+    const url = buildApiUrl('/slots/update');
     
     try {
       const response = await this.makeRequest<any>(url, {

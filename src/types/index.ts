@@ -1,17 +1,18 @@
 export interface Campaign {
-  campaignId: number;
+  campaignId: number | string;
   brandName: string;
   impressionTarget: number;
   clickTarget: number;
   totalBudget: string;
-  status: number; // 0: draft, 1: live, 2: test, 3: paused
+  status: number;
   createdBy: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Slot {
-  slotId: number;
+  slotId: number | string;
+  slotType?: string;
   name: string;
   platform: number;
   width: string;
@@ -22,11 +23,11 @@ export interface Slot {
 }
 
 export interface Ad {
-  adId: number;
-  campaignId: number;
+  adId: number | string;
+  campaignId: number | string;
   name: string;
   label: string;
-  slotId: number;
+  slotId: number | string;
   slotName?: string;
   slotWidth?: string;
   slotHeight?: string;
@@ -53,19 +54,20 @@ export interface Ad {
   logo?: string;
   otherDetails?: Record<string, any>;
   gender: string;
-  isTestPhase: number;
+  isTestPhase?: number;
   serveStrategy: number;
-  isModelType: number;
+  isModelType?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ApiAd {
-  adId: number;
-  campaignId: number;
+  adId: number | string;
+  campaignId: number | string;
   name: string;
   label: string;
-  slotId: number;
+  slotId?: number | string;
+  slotType?: string;
   slotName?: string;
   slotWidth?: string;
   slotHeight?: string;
@@ -100,8 +102,11 @@ export interface ApiAd {
 }
 
 export const mapApiAdToAd = (apiAd: ApiAd): Ad => ({
-  ...apiAd
-});
+  ...apiAd,
+  slotId: apiAd.slotId ?? (apiAd as any).slotType ?? 0,
+  adId: apiAd.adId ?? (apiAd as any).id ?? 0,
+  campaignId: apiAd.campaignId ?? 0,
+} as Ad);
 
 export interface SlotListResponse {
   status: number;

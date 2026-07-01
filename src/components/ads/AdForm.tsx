@@ -17,7 +17,8 @@ import { LocationAutoSuggest, BrandInput } from '@/components/ui/auto-suggest';
 import { MultiHierarchicalCategorySelector } from '@/components/ui/multi-hierarchical-category-selector';
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
+import { normalizeAd, matchSlotId, normalizeRouteId, isV2Active, resolveCatIds } from '@/utils/v2Normalizer';
 import { toast } from 'sonner';
 import { Slot, Ad, CategoryPath } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -132,9 +133,7 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
 
 // Schema validation
 const adSchema = z.object({
-  slotId: z.union([z.undefined(), z.number().min(1, 'Slot selection is required')]).refine((val) => val !== undefined && val > 0, {
-    message: 'Slot selection is required'
-  }),
+  slotId: z.union([z.string().min(1, 'Slot selection is required'), z.number().min(1, 'Slot selection is required')]),
   label: z.string().min(1, 'Ad label is required'),
   impressionTarget: z.number().min(1, 'Impression target is required'),
   clickTarget: z.number().min(1, 'Click target is required'),
@@ -142,7 +141,7 @@ const adSchema = z.object({
   clickPixel: z.string().url('Must be a valid URL'),
   targetUrl: z.string().url('Must be a valid URL'),
   categories: z.union([
-    z.record(z.number().min(0)),
+    z.record(z.union([z.string(), z.number()])),
     z.object({
       selections: z.array(z.object({
         path: z.array(z.object({ catId: z.number(), catName: z.string() })),
@@ -150,9 +149,9 @@ const adSchema = z.object({
       }))
     })
   ]),
-  sites: z.record(z.number().min(0)),
-  location: z.record(z.number().min(0)),
-  brandTargets: z.record(z.number().min(0)),
+  sites: z.record(z.union([z.string(), z.number()])),
+  location: z.record(z.union([z.string(), z.number()])),
+  brandTargets: z.record(z.union([z.string(), z.number()])),
   priceRangeMin: z.number().min(0, 'Minimum price must be 0 or greater'),
   priceRangeMax: z.number().min(1, 'Maximum price must be greater than 0'),
   ageRangeMin: z.number().min(13, 'Minimum age must be at least 13'),
@@ -170,7 +169,7 @@ const adSchema = z.object({
   noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1).optional().default(1),
   isTestPhase: z.number().min(0).max(1).optional().default(0),
-  serveStrategy: z.number().min(0).max(1).optional().default(0),
+  serveStrategy: z.number().min(0).max(3).optional().default(0),
   isModelType: z.number().min(0).max(1).optional().default(0)
 }).refine((data) => {
   // Validate impression target >= click target
@@ -296,7 +295,7 @@ export function AdForm() {
     if (file) {
       // Check if a slot is selected - use form value as fallback
       const currentSlotId = form.getValues('slotId');
-      const currentSlot = selectedSlot || slots.find(s => s.slotId === currentSlotId);
+      const currentSlot = selectedSlot || slots.find(s => matchSlotId(s, currentSlotId));
 
       if (!currentSlot) {
         toast.error('Please select an ad slot first to determine required dimensions');
@@ -413,7 +412,7 @@ export function AdForm() {
 
   const fetchSlots = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots?isActive=1`);
+      const response = await fetch(`${buildApiUrl('/slots')}?isActive=1`);
       if (!response.ok) throw new Error('Failed to fetch slots');
 
       const result = await response.json();
@@ -453,7 +452,7 @@ export function AdForm() {
         // Fetch campaign name
         if (campaignId) {
           try {
-            const response = await fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`);
+            const response = await fetch(`${buildApiUrl('/campaigns')}?campaignId=${campaignId}`);
             if (response.ok) {
               const result = await response.json();
               if (result.status === 1 && result.data?.campaignList?.[0]) {
@@ -482,7 +481,7 @@ export function AdForm() {
             });
 
             const response = await fetch(
-              `${getApiBaseUrl()}/ads?${params.toString()}`
+              `${buildApiUrl('/ads')}?${params.toString()}`
             );
 
             if (!response.ok) {
@@ -492,7 +491,7 @@ export function AdForm() {
             const result = await response.json();
 
             if (result.status === 1 && result.data?.adsList?.[0]) {
-              const adData = result.data.adsList[0];
+              const adData = normalizeAd(result.data.adsList[0]);
 
               // Transform categories from API format to form format
               let categoriesForForm: { selections: Array<{ path: Array<{ catId: number; catName: string }>; selected: { catId: number; catName: string } }> } = { selections: [] };
@@ -505,10 +504,15 @@ export function AdForm() {
                     selected: { catId: cat.catId, catName: cat.catName }
                   }));
                 } else if (!('ln' in adData.categories) && !('l0' in adData.categories)) {
-                  // Fallback: Handle simple object format {catId: catName}
+                  let catNameMap: Record<string, string> = {};
+                  if (isV2Active()) {
+                    try {
+                      catNameMap = await resolveCatIds(Object.keys(adData.categories));
+                    } catch {}
+                  }
                   categoriesForForm.selections = Object.entries(adData.categories).map(([catId, catName]) => ({
-                    path: [{ catId: Number(catId), catName: String(catName) }],
-                    selected: { catId: Number(catId), catName: String(catName) }
+                    path: [{ catId: Number(catId), catName: catNameMap[catId] || String(catName) }],
+                    selected: { catId: Number(catId), catName: catNameMap[catId] || String(catName) }
                   }));
                 }
               }
@@ -526,8 +530,8 @@ export function AdForm() {
               });
 
               // Set the selected slot for editing mode
-              if (adData.slotId && slots.length > 0) {
-                const slot = slots.find(s => s.slotId === adData.slotId);
+if (adData.slotId && slots.length > 0) {
+            const slot = slots.find(s => matchSlotId(s, adData.slotId));
                 if (slot) setSelectedSlot(slot);
               }
 
@@ -580,8 +584,8 @@ export function AdForm() {
   // Watch for slot changes and update selectedSlot
   useEffect(() => {
     const currentSlotId = form.watch('slotId');
-    if (currentSlotId && slots.length > 0 && (!selectedSlot || selectedSlot.slotId !== currentSlotId)) {
-      const slot = slots.find(s => s.slotId === currentSlotId);
+if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selectedSlot, currentSlotId))) {
+          const slot = slots.find(s => matchSlotId(s, currentSlotId));
       if (slot) setSelectedSlot(slot);
     }
   }, [form.watch('slotId'), slots, selectedSlot]);
@@ -597,7 +601,7 @@ export function AdForm() {
       try {
         if (!campaignId) return;
 
-        const result = await adService.getAdLabels(Number(campaignId));
+        const result = await adService.getAdLabels(normalizeRouteId(campaignId) as number);
         if (result.success && result.data) {
           setExistingAdLabels(result.data.map(item => item.label));
         } else {
@@ -668,8 +672,8 @@ export function AdForm() {
         };
       }
       const url = isEditMode
-        ? `${getApiBaseUrl()}/ads/update?userId=1`
-        : `${getApiBaseUrl()}/ads?userId=1`;
+? `${buildApiUrl('/ads/update')}?userId=1`
+          : `${buildApiUrl('/ads')}?userId=1`;
 
       const method = 'POST';
 
@@ -701,7 +705,7 @@ export function AdForm() {
       const body = {
         ...data,
         categories: transformedCategories,
-        campaignId: Number(campaignId),
+        campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
         otherDetails: parsedOtherDetails,
         ...(isEditMode && { adId: Number(adId) })

@@ -1,5 +1,5 @@
 import { Slot } from '@/types';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
 
 // Types for the new category format
 interface CategoryDetail {
@@ -83,7 +83,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/slots`);
+      const response = await fetch(buildApiUrl('/slots'));
       if (!response.ok) throw new Error('Failed to fetch slots');
       
       const result = await response.json();
@@ -107,7 +107,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/sites`);
+      const response = await fetch(buildApiUrl('/sites'));
       if (!response.ok) throw new Error('Failed to fetch sites');
       
       const result = await response.json();
@@ -134,7 +134,7 @@ class CacheService {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/ads/categoryDetails?param=${encodeURIComponent(searchParam || '')}`);
+      const response = await fetch(`${buildApiUrl('/ads/categoryDetails')}?param=${encodeURIComponent(searchParam || '')}`);
       if (!response.ok) throw new Error('Failed to fetch categories');
       
       const result = await response.json() as CategoryResponse;

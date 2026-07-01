@@ -36,6 +36,7 @@ import { adService } from '@/services/adService';
 // Utils
 import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
 import { formatCount, formatSmartPercent, coerceName } from '@/lib/format';
+import { normalizeFilterIds, matchesId, matchSlotId, normalizeRouteId, toLookupKey } from '@/utils/v2Normalizer';
 
 // Types
 import {
@@ -107,7 +108,7 @@ const sanitizeSlots = (rawSlots: Slot[]): Slot[] => {
   const uniqueSlots = new Map<number, Slot>();
 
   rawSlots.forEach((slot) => {
-    const normalizedSlotId = Number(slot.slotId);
+    const normalizedSlotId = toLookupKey(slot.slotId);
 
     if (!Number.isFinite(normalizedSlotId) || uniqueSlots.has(normalizedSlotId)) {
       return;
@@ -200,12 +201,12 @@ export default function Analytics() {
   }, [slots]);
 
   const slotLookup = useMemo(
-    () => new Map(slots.map((slot) => [Number(slot.slotId), slot])),
+    () => new Map(slots.map((slot) => [toLookupKey(slot.slotId), slot])),
     [slots]
   );
 
   const filteredSlotIdSet = useMemo(
-    () => new Set(filteredSlots.map((slot) => Number(slot.slotId))),
+    () => new Set(filteredSlots.map((slot) => String(slot.slotId))),
     [filteredSlots]
   );
 
@@ -305,7 +306,7 @@ export default function Analytics() {
 
       if (
         nextSelectedSlots.length === previousSelectedSlots.length &&
-        nextSelectedSlots.every((slotId, index) => Number(previousSelectedSlots[index]) === slotId)
+        nextSelectedSlots.every((slotId, index) => String(previousSelectedSlots[index]) === String(slotId))
       ) {
         return previousSelectedSlots;
       }
@@ -414,15 +415,15 @@ export default function Analytics() {
 
       // Centralized filter validation logic
       const validCampaignIdsAcrossViews = selectedCampaigns.length > 0
-        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
+        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => matchesId(c.campaignId, id))))
         : undefined;
 
       const validSlotIdsAcrossViews = selectedSlots.length > 0
-        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(String(id))))
         : dedupeNumericIds(filteredSlots.map(s => s.slotId));
 
       const validPOSIdsAcrossViews = selectedPOS.length > 0
-        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
+        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => matchesId(s.posId, id))))
         : undefined;
 
       // Build payload based on active view
@@ -443,9 +444,9 @@ export default function Analytics() {
           campaignsToProcess.map(async (campaignId) => {
             const payload: MetricsPayload = {
               ...dateRange,
-              campaignId: [Number(campaignId)],
-              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
-              siteId: validPOSIdsAcrossViews?.map(Number),
+              campaignId: normalizeFilterIds([campaignId]),
+              slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+              siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -513,10 +514,10 @@ export default function Analytics() {
           slotsToProcess.map(async (slotId) => {
             const payload: MetricsPayload = {
               ...dateRange,
-              slotId: [Number(slotId)],
-              campaignId: validCampaignIdsAcrossViews?.map(Number),
-              siteId: validPOSIdsAcrossViews?.map(Number),
-              adId: validAdIds,
+slotId: normalizeFilterIds(selectedSlots),
+        campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
+          adId: validAdIds,
               interval: dataGrouping
             };
 
@@ -525,7 +526,7 @@ export default function Analytics() {
               analyticsService.getTrendData(payload)
             ]);
 
-            const slot = slots.find(s => s.slotId === Number(slotId));
+            const slot = slots.find(s => matchesId(s.slotId, slotId));
             return {
               slotId,
               slotName: slot ? getSlotDisplayLabel(slot) : `Slot ${slotId}`,
@@ -571,7 +572,7 @@ export default function Analytics() {
         setSlotMetrics(slotResults
           .filter((r) => r.metrics)
           .map((r) => ({
-            slotId: Number(r.slotId),
+            slotId: String(r.slotId),
             slotName: r.slotName,
             metrics: r.metrics as MetricsData,
           })));
@@ -591,8 +592,8 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               siteId: [Number(posId)],
-              campaignId: validCampaignIdsAcrossViews?.map(Number),
-              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
+              campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews ? normalizeFilterIds(validSlotIdsAcrossViews) : undefined : undefined,
               adId: validAdIds,
               interval: dataGrouping
             };
@@ -660,9 +661,9 @@ export default function Analytics() {
             const payload: MetricsPayload = {
               ...dateRange,
               adId: [ad.adId],
-              campaignId: validCampaignIdsAcrossViews?.map(Number),
-              slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews?.map(Number) : undefined,
-              siteId: validPOSIdsAcrossViews?.map(Number),
+          campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+          slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+          siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
               interval: dataGrouping
             };
 
@@ -708,20 +709,20 @@ export default function Analytics() {
 
         // Validate all filter IDs to ensure they exist in the fetched data
         const validCampaignIds = selectedCampaigns.length > 0
-          ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
+          ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => matchesId(c.campaignId, id))))
           : undefined;
         const validSlotIds = selectedSlots.length > 0
-          ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+          ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(String(id))))
           : dedupeNumericIds(filteredSlots.map(s => s.slotId));
         const validPOSIds = selectedPOS.length > 0
-          ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
+          ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => matchesId(s.posId, id))))
           : undefined;
 
         const basePayload: MetricsPayload = {
           ...dateRange,
-          campaignId: validCampaignIds?.map(Number),
-          slotId: validSlotIds?.map(Number),
-          siteId: validPOSIds?.map(Number),
+          campaignId: validCampaignIds ? normalizeFilterIds(validCampaignIds) : undefined,
+          slotId: validSlotIds ? normalizeFilterIds(validSlotIds) : undefined,
+          siteId: validPOSIds ? normalizeFilterIds(validPOSIds) : undefined,
           interval: dataGrouping
         };
 
@@ -784,9 +785,9 @@ export default function Analytics() {
       try {
         const comparisonPayload: MetricsPayload = {
           ...comparisonDateRange,
-          campaignId: selectedCampaigns.length > 0 ? selectedCampaigns.map(Number) : undefined,
-          slotId: selectedSlots.length > 0 ? selectedSlots.map(Number) : undefined,
-          siteId: selectedPOS.length > 0 ? selectedPOS.map(Number) : undefined,
+          campaignId: selectedCampaigns.length > 0 ? normalizeFilterIds(selectedCampaigns) : undefined,
+          slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+          siteId: selectedPOS.length > 0 ? normalizeFilterIds(selectedPOS) : undefined,
           interval: dataGrouping
         };
 
@@ -806,20 +807,20 @@ export default function Analytics() {
 
       // Fetch breakdown data and tables (non-view-specific) with validated filters
       const validCampaignIds = selectedCampaigns.length > 0
-        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => c.campaignId === Number(id))))
+        ? dedupeNumericIds(selectedCampaigns.filter(id => campaigns.some(c => matchesId(c.campaignId, id))))
         : undefined;
       const validSlotIds = selectedSlots.length > 0
-        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(Number(id))))
+        ? dedupeNumericIds(selectedSlots.filter(id => filteredSlotIdSet.has(String(id))))
         : dedupeNumericIds(filteredSlots.map(s => s.slotId));
       const validPOSIds = selectedPOS.length > 0
-        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => Number(s.posId) === Number(id))))
+        ? dedupeNumericIds(selectedPOS.filter(id => sites.some(s => matchesId(s.posId, id))))
         : undefined;
 
       const basePayload: MetricsPayload = {
         ...dateRange,
-        campaignId: validCampaignIds?.map(Number),
-        slotId: validSlotIds?.map(Number),
-        siteId: validPOSIds?.map(Number),
+        campaignId: validCampaignIds ? normalizeFilterIds(validCampaignIds) : undefined,
+        slotId: validSlotIds ? normalizeFilterIds(validSlotIds) : undefined,
+        siteId: validPOSIds ? normalizeFilterIds(validPOSIds) : undefined,
       };
 
       // Ensure we have at least one filter for breakdown queries (backend requirement)
@@ -1782,7 +1783,7 @@ export default function Analytics() {
                     .map(slot => {
                       const impressions = slot.impressions || 0;
                       const clicks = slot.clicks || 0;
-                      const mappedSlot = slotLookup.get(Number(slot.slotId));
+                      const mappedSlot = slotLookup.get(toLookupKey(slot.slotId));
                       return {
                         slotName: mappedSlot ? getSlotDisplayLabel(mappedSlot) : `Slot ${slot.slotId || 'Unknown'}`,
                         impressions,

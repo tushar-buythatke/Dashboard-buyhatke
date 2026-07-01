@@ -10,7 +10,8 @@ import { Ad, Slot, ApiAd, mapApiAdToAd, CategoryPath } from '@/types';
 import { motion } from 'framer-motion';
 import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
-import { getApiBaseUrl } from '@/config/api';
+import { buildApiUrl } from '@/config/api';
+import { normalizeAd, normalizeSlotList, isV2Active, resolveCatIds } from '@/utils/v2Normalizer';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
@@ -149,9 +150,9 @@ export function AdDetail() {
 
       // Fetch ad details, slot info, and campaign info in parallel
       const [adResponse, slotsResponse, campaignResponse] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/ads?campaignId=${campaignId}&adId=${adId}&slotId=&status=`),
-        fetch(`${getApiBaseUrl()}/slots`),
-        fetch(`${getApiBaseUrl()}/campaigns?campaignId=${campaignId}`)
+        fetch(`${buildApiUrl('/ads')}?campaignId=${campaignId}&adId=${adId}&slotId=&status=`),
+        fetch(buildApiUrl('/slots')),
+        fetch(`${buildApiUrl('/campaigns')}?campaignId=${campaignId}`)
       ]);
 
       if (!adResponse.ok || !slotsResponse.ok || !campaignResponse.ok) {
@@ -166,8 +167,23 @@ export function AdDetail() {
 
       // Set ad data
       if (adResult.status === 1 && adResult.data?.adsList?.[0]) {
-        const apiAd = adResult.data.adsList[0] as ApiAd;
-        const adData = mapApiAdToAd(apiAd);
+          const apiAd = normalizeAd(adResult.data.adsList[0]) as ApiAd;
+        let adData = mapApiAdToAd(apiAd);
+
+        if (isV2Active() && adData.categories) {
+          const catIds = Object.keys(adData.categories as Record<string, unknown>);
+          if (catIds.length > 0) {
+            try {
+              const nameMap = await resolveCatIds(catIds);
+              const resolved: Record<string, string> = {};
+              for (const catId of catIds) {
+                resolved[catId] = nameMap[catId] || String(catId);
+              }
+              adData = { ...adData, categories: resolved };
+            } catch {}
+          }
+        }
+
         setAd(adData);
         fetchLiveMetrics(adData);
       } else {
@@ -177,8 +193,10 @@ export function AdDetail() {
 
       // Set slot data
       if (slotsResult.status === 1 && slotsResult.data?.slotList) {
-        const adData = adResult.data.adsList[0];
-        const slotData = slotsResult.data.slotList.find((s: Slot) => s.slotId === adData.slotId);
+          const adData = normalizeAd(adResult.data.adsList[0]);
+        const slotData = slotsResult.data.slotList.find((s: Slot) =>
+          s.slotId === adData.slotId || (isV2Active() && s.slotType === String(adData.slotId))
+        );
         if (slotData) setSlot(slotData);
       }
 
@@ -203,7 +221,7 @@ export function AdDetail() {
       const resp = await analyticsService.getMetrics({
         from: fromDate,
         to: today,
-        campaignId: Number(campaignId),
+        campaignId: isV2Active() ? (campaignId ?? '') : Number(campaignId),
         adId: currentAd.adId
       });
       if (resp.success && resp.data) {
@@ -222,7 +240,7 @@ export function AdDetail() {
     if (!ad) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/ads/clone?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/ads/clone')}?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adId: ad.adId })
@@ -273,11 +291,10 @@ export function AdDetail() {
             sel.path.map(c => c.catName).join(' → ')
           ).join('; ');
         }
-        // {catId: catName} format
         if (Array.isArray(ad.categories)) {
           return ad.categories.map((c: any) => c.catName).join(', ');
         }
-        const categoryMap = ad.categories as unknown as Record<number, string>;
+        const categoryMap = ad.categories as unknown as Record<string, string>;
         return Object.values(categoryMap).join(', ') || 'N/A';
       })(),
       'Sites': ad.sites ? Object.keys(ad.sites).join(', ') : 'N/A',
@@ -311,7 +328,7 @@ export function AdDetail() {
       const categoriesPayload = extractCategoriesForUpdate(ad.categories);
 
       // Send full ad data to prevent backend from resetting missing fields
-      const response = await fetch(`${getApiBaseUrl()}/ads/update?userId=1`, {
+      const response = await fetch(`${buildApiUrl('/ads/update')}?userId=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
