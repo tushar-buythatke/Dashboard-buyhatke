@@ -52,10 +52,10 @@ export function AdList() {
   const [searchQuery, setSearchQuery] = useState('');
   const statusFilter = searchParams.get('status') || 'all';
   const [loading, setLoading] = useState(true);
-  const [slots, setSlots] = useState<Record<number, Slot>>({});
+  const [slots, setSlots] = useState<Record<string, any>>({});
   const [campaign, setCampaign] = useState<{ brandName?: string; id?: number }>({});
   const [error, setError] = useState<string | null>(null);
-  const [adMetrics, setAdMetrics] = useState<Record<number, { impressions: number; clicks: number; landingCount: number }>>({});
+  const [adMetrics, setAdMetrics] = useState<Record<string, { impressions: number; clicks: number; landingCount: number }>>({});
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     adId?: number;
@@ -107,7 +107,7 @@ export function AdList() {
     if (ads.length > 0 && Object.keys(adMetrics).length > 0) {
       // Check each ad for performance achievements
       ads.forEach(ad => {
-        const metrics = adMetrics[ad.adId];
+        const metrics = (adMetrics as any)[ad.adId];
         if (!metrics) return;
 
         const impressionExceeded = metrics.impressions > ad.impressionTarget;
@@ -122,8 +122,8 @@ export function AdList() {
               title: 'Impression Target Exceeded!',
               message: `Ad "${ad.name}" exceeded impression targets by ${improvement}%`,
               metadata: {
-                campaignId: campaign.id,
-                adId: ad.adId,
+                campaignId: campaign.id as any,
+                adId: ad.adId as any,
                 metric: 'impressions',
                 improvement
               }
@@ -139,8 +139,8 @@ export function AdList() {
               title: 'Click Target Exceeded!',
               message: `Ad "${ad.name}" exceeded click targets by ${improvement}%`,
               metadata: {
-                campaignId: campaign.id,
-                adId: ad.adId,
+                campaignId: campaign.id as any,
+                adId: ad.adId as any,
                 metric: 'clicks',
                 improvement
               }
@@ -158,14 +158,14 @@ export function AdList() {
 
       const result: SlotListResponse = await response.json();
       if (result.status === 1 && result.data?.slotList) {
-        const slotsMap: Record<string, Slot> = {};
-        result.data.slotList.forEach((slot: Slot) => {
+        const slotsMap: Record<string, any> = {};
+        result.data.slotList.forEach((slot: any) => {
           slotsMap[String(slot.slotId)] = slot;
           if (isV2Active() && slot.slotType) {
             slotsMap[String(slot.slotType)] = slot;
           }
         });
-        setSlots(slotsMap as Record<number, Slot>);
+        setSlots(slotsMap as any);
       }
     } catch (error) {
       console.error('Error fetching slots:', error);
@@ -238,14 +238,14 @@ export function AdList() {
           return analyticsService.getMetrics({
             from: fromDate,
             to: today,
-            campaignId: campaignId ? (isV2Active() ? campaignId : Number(campaignId)) : undefined,
-            adId: ad.adId
+            campaignId: (campaignId ? (isV2Active() ? campaignId : Number(campaignId)) : undefined) as any,
+            adId: ad.adId as any
           });
         });
 
         const metricsResults = await Promise.all(metricsPromises);
 
-        const newAdMetrics: Record<number, { impressions: number; clicks: number; landingCount: number }> = {};
+        const newAdMetrics: Record<string, any> = {};
         metricsResults.forEach((resp, index) => {
           const adId = enrichedAds[index].adId;
           if (resp.success && resp.data) {
@@ -577,7 +577,7 @@ export function AdList() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCloneAd(ad.adId);
+                          handleCloneAd(Number(ad.adId));
                         }}
                       >
                         <Copy className="mr-2 h-4 w-4 text-purple-600" />
@@ -586,7 +586,7 @@ export function AdList() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleArchiveAd(ad.adId);
+                          handleArchiveAd(Number(ad.adId));
                         }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
@@ -597,7 +597,7 @@ export function AdList() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStatusChange(ad.adId, 0);
+                            handleStatusChange(Number(ad.adId), 0);
                           }}
                         >
                           <Pause className="mr-2 h-4 w-4 text-orange-600" />
@@ -607,7 +607,7 @@ export function AdList() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStatusChange(ad.adId, 1);
+                            handleStatusChange(Number(ad.adId), 1);
                           }}
                         >
                           <Play className="mr-2 h-4 w-4 text-green-600" />
@@ -1151,7 +1151,7 @@ export function AdList() {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleCloneAd(ad.adId);
+                                        handleCloneAd(Number(ad.adId));
                                       }}
                                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                     >
@@ -1161,7 +1161,7 @@ export function AdList() {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleArchiveAd(ad.adId);
+                                        handleArchiveAd(Number(ad.adId));
                                       }}
                                       className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
                                     >
@@ -1172,7 +1172,7 @@ export function AdList() {
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStatusChange(ad.adId, 0);
+                                          handleStatusChange(Number(ad.adId), 0);
                                         }}
                                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >
@@ -1183,7 +1183,7 @@ export function AdList() {
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStatusChange(ad.adId, 1);
+                                          handleStatusChange(Number(ad.adId), 1);
                                         }}
                                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >

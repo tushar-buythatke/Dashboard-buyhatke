@@ -328,7 +328,7 @@ export function AdForm() {
         // Upload to server using the API
         try {
           setLoading(true);
-          const result = await adService.uploadCreative(file, currentSlot.slotId);
+          const result = await adService.uploadCreative(file, Number(currentSlot.slotId));
 
           if (result.success && result.creativeUrl) {
             setPreviewUrl(result.creativeUrl);
@@ -386,7 +386,7 @@ export function AdForm() {
     try {
       setLoading(true);
       const currentSlotId = form.getValues('slotId');
-      const result = await adService.uploadLogo(file, currentSlotId || 0);
+      const result = await adService.uploadLogo(file, Number(currentSlotId || 0));
       if (result.success && result.creativeUrl) {
         setLogoPreviewUrl(result.creativeUrl);
         form.setValue('logo', result.creativeUrl);
@@ -1588,7 +1588,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                                     form.setValue('noGenderSpecificity', true, { shouldValidate: true });
                                   }
                                 }}
-                                value={field.value}
+                                value={field.value as any}
                                 disabled={form.watch('noSpecificity')}
                               >
                                 <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200">
@@ -1804,7 +1804,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                           </FormDescription>
                           <FormControl>
                             <SiteSelect
-                              value={field.value}
+                              value={field.value as any}
                               onChange={field.onChange}
                               placeholder="Select sites..."
                             />
@@ -1846,7 +1846,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                           </FormDescription>
                           <FormControl>
                             <BrandInput
-                              value={field.value}
+                              value={field.value as any}
                               onChange={field.onChange}
                               placeholder="Type brand names..."
                             />
@@ -1867,7 +1867,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                           </FormDescription>
                           <FormControl>
                             <LocationAutoSuggest
-                              value={field.value}
+                              value={field.value as any}
                               onChange={field.onChange}
                               placeholder="Search locations..."
                             />

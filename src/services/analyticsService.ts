@@ -5,10 +5,10 @@ import { normalizeMetricsAdStats, normalizeMetricsBreakdown } from '@/utils/v2No
 export interface MetricsPayload {
   from: string;
   to: string;
-  campaignId?: number | number[] | string | string[];
-  slotId?: number | number[] | string | string[];
-  siteId?: number | number[];
-  adId?: number | number[] | string | string[];
+  campaignId?: any;
+  slotId?: any;
+  siteId?: any;
+  adId?: any;
   interval?: string;
   by?: string;
 }

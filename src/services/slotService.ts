@@ -23,7 +23,7 @@ export interface CreateSlotPayload {
 }
 
 export interface UpdateSlotPayload {
-  slotId: number;
+  slotId: number | string;
   name?: string;
   platform?: number;
   width?: number;

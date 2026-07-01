@@ -168,7 +168,7 @@ export function AdDetail() {
       // Set ad data
       if (adResult.status === 1 && adResult.data?.adsList?.[0]) {
           const apiAd = normalizeAd(adResult.data.adsList[0]) as ApiAd;
-        let adData = mapApiAdToAd(apiAd);
+        let adData = mapApiAdToAd(apiAd) as any;
 
         if (isV2Active() && adData.categories) {
           const catIds = Object.keys(adData.categories as Record<string, unknown>);

@@ -105,12 +105,12 @@ const dedupeNumericIds = (values?: (string | number)[]): number[] | undefined =>
 };
 
 const sanitizeSlots = (rawSlots: Slot[]): Slot[] => {
-  const uniqueSlots = new Map<number, Slot>();
+  const uniqueSlots = new Map<string | number, Slot>();
 
   rawSlots.forEach((slot) => {
     const normalizedSlotId = toLookupKey(slot.slotId);
 
-    if (!Number.isFinite(normalizedSlotId) || uniqueSlots.has(normalizedSlotId)) {
+    if (!Number.isFinite(Number(normalizedSlotId)) || uniqueSlots.has(normalizedSlotId)) {
       return;
     }
 
@@ -179,7 +179,7 @@ export default function Analytics() {
   const [topLocations, setTopLocations] = useState<any[]>([]);
   const [topSlotsData, setTopSlotsData] = useState<any[]>([]);
   const [slotMetrics, setSlotMetrics] = useState<Array<{
-    slotId: number;
+    slotId: string | number;
     slotName: string;
     metrics: MetricsData;
   }>>([]);
@@ -302,7 +302,7 @@ export default function Analytics() {
     setSelectedSlots((previousSelectedSlots) => {
       const normalizedSelectedSlots = dedupeNumericIds(previousSelectedSlots) || [];
 
-      const nextSelectedSlots = normalizedSelectedSlots.filter((slotId) => filteredSlotIdSet.has(slotId));
+      const nextSelectedSlots = normalizedSelectedSlots.filter((slotId) => filteredSlotIdSet.has(String(slotId)));
 
       if (
         nextSelectedSlots.length === previousSelectedSlots.length &&

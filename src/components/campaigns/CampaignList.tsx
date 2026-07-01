@@ -48,7 +48,7 @@ export function CampaignList() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const [campaignMetrics, setCampaignMetrics] = useState<Record<number, { impressions: number; clicks: number; landingCount: number }>>({});
+  const [campaignMetrics, setCampaignMetrics] = useState<Record<string, { impressions: number; clicks: number; landingCount: number }>>({});
   const [liveAdsCount, setLiveAdsCount] = useState<Record<number, number>>({});
 
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -83,7 +83,7 @@ export function CampaignList() {
           const mRes = await analyticsService.getMetrics({ from: fromDate, to: today, campaignId: c.campaignId });
           return { id: c.campaignId, metrics: mRes.success && mRes.data ? mRes.data : null };
         }));
-        const metricMap: Record<number, { impressions: number; clicks: number; landingCount: number }> = {};
+        const metricMap: Record<string, { impressions: number; clicks: number; landingCount: number }> = {};
         metricsArr.forEach(({ id, metrics }) => {
           if (metrics) metricMap[id] = { impressions: metrics.impressions, clicks: metrics.clicks, landingCount: metrics.landingCount };
         });
@@ -105,7 +105,7 @@ export function CampaignList() {
           }
         });
         const liveAdsResults = await Promise.all(liveAdsPromises);
-        const liveAdsMap: Record<number, number> = {};
+        const liveAdsMap: Record<string, number> = {};
         liveAdsResults.forEach(({ campaignId, count }) => {
           liveAdsMap[campaignId] = count;
         });
@@ -154,7 +154,7 @@ export function CampaignList() {
       return;
     }
     const csvData = filteredCampaigns.map(campaign => ({
-      'Campaign ID': campaign.campaignId,
+      'Campaign ID': Number(campaign.campaignId),
       'Brand Name': campaign.brandName,
       'Status': campaign.status === 1 ? 'Live' : campaign.status === 0 ? 'Draft' : campaign.status === 2 ? 'Test' : 'Paused',
       'Impression Target': campaign.impressionTarget || 0,
@@ -437,13 +437,13 @@ export function CampaignList() {
                 </TableHeader>
                 <TableBody>
                   {filteredCampaigns.map((campaign) => {
-                    const m = campaignMetrics[campaign.campaignId];
+                    const m = campaignMetrics[Number(campaign.campaignId)];
                     const ctrValue = m && m.impressions > 0 ? ((m.clicks / m.impressions) * 100) : 0;
                     const statusInfo = statusMap[campaign.status as keyof typeof statusMap];
                     return (
                       <TableRow
-                        key={campaign.campaignId}
-                        onClick={() => navigate(`/campaigns/${campaign.campaignId}/ads`)}
+                        key={Number(campaign.campaignId)}
+                        onClick={() => navigate(`/campaigns/${Number(campaign.campaignId)}/ads`)}
                         className="velvet-row-hover border-b border-[var(--line)] last:border-b-0 cursor-pointer hover:bg-[var(--bg-panel-2)] transition-colors"
                       >
                         <TableCell className="px-4 py-2.5">
@@ -459,8 +459,8 @@ export function CampaignList() {
                           />
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-center">
-                          <span className={`text-[12px] font-semibold tabular-nums ${liveAdsCount[campaign.campaignId] > 0 ? 'text-[var(--pos)]' : 'text-[var(--text-3)]'}`}>
-                            {liveAdsCount[campaign.campaignId] || 0}
+                          <span className={`text-[12px] font-semibold tabular-nums ${liveAdsCount[Number(campaign.campaignId)] > 0 ? 'text-[var(--pos)]' : 'text-[var(--text-3)]'}`}>
+                            {liveAdsCount[Number(campaign.campaignId)] || 0}
                           </span>
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-[11.5px] text-[var(--text-2)]">
@@ -498,7 +498,7 @@ export function CampaignList() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
                               <DropdownMenuItem
-                                onClick={() => navigate(`/campaigns/${campaign.campaignId}/ads`)}
+                                onClick={() => navigate(`/campaigns/${Number(campaign.campaignId)}/ads`)}
                                 className="text-[12px]"
                               >
                                 <Eye className="mr-2 h-3.5 w-3.5" />
@@ -507,14 +507,14 @@ export function CampaignList() {
                               {canEdit && (
                                 <>
                                   <DropdownMenuItem
-                                    onClick={() => navigate(`/campaigns/${campaign.campaignId}/edit`)}
+                                    onClick={() => navigate(`/campaigns/${Number(campaign.campaignId)}/edit`)}
                                     className="text-[12px]"
                                   >
                                     <Edit className="mr-2 h-3.5 w-3.5" />
                                     Edit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handleCloneCampaign(campaign.campaignId)}
+                                    onClick={() => handleCloneCampaign(Number(campaign.campaignId))}
                                     className="text-[12px]"
                                   >
                                     <Copy className="mr-2 h-3.5 w-3.5" />
@@ -522,7 +522,7 @@ export function CampaignList() {
                                   </DropdownMenuItem>
                                   {campaign.status !== 3 ? (
                                     <DropdownMenuItem
-                                      onClick={() => handleStatusChange(campaign.campaignId, 3)}
+                                      onClick={() => handleStatusChange(Number(campaign.campaignId), 3)}
                                       className="text-[12px]"
                                     >
                                       <Pause className="mr-2 h-3.5 w-3.5" />
@@ -530,7 +530,7 @@ export function CampaignList() {
                                     </DropdownMenuItem>
                                   ) : (
                                     <DropdownMenuItem
-                                      onClick={() => handleStatusChange(campaign.campaignId, 1)}
+                                      onClick={() => handleStatusChange(Number(campaign.campaignId), 1)}
                                       className="text-[12px]"
                                     >
                                       <Play className="mr-2 h-3.5 w-3.5" />
@@ -538,7 +538,7 @@ export function CampaignList() {
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem
-                                    onClick={() => handleArchiveCampaign(campaign.campaignId)}
+                                    onClick={() => handleArchiveCampaign(Number(campaign.campaignId))}
                                     className="text-[12px] text-[var(--neg)] focus:text-[var(--neg)] focus:bg-[var(--neg-soft)]"
                                   >
                                     <Archive className="mr-2 h-3.5 w-3.5" />
