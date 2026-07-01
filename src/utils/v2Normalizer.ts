@@ -26,7 +26,9 @@ export function normalizeAd(ad: any): any {
 
 export function normalizeAdList(ads: any[]): any[] {
   if (!isV2Active()) return ads;
-  return ads.map(normalizeAd);
+  return ads
+    .map(normalizeAd)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export function normalizeSlot(slot: any): any {
