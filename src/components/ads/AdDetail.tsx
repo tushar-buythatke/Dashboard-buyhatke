@@ -336,7 +336,7 @@ export function AdDetail() {
           campaignId: ad.campaignId,
           name: ad.name,
           label: ad.label,
-          slotId: ad.slotId,
+          slotType: ad.slotType ?? ad.slotId,
           impressionTarget: ad.impressionTarget,
           clickTarget: ad.clickTarget,
           impressionPixel: ad.impressionPixel,

@@ -268,10 +268,10 @@ class AdService {
   }
 
   // Upload creative file
-  async uploadCreative(file: File, slotId: number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
+  async uploadCreative(file: File, slotId: string | number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
     const formData = new FormData();
     formData.append('image', file); // Using 'image' key instead of 'file'
-    formData.append('slotId', slotId.toString());
+    formData.append('slotId', String(slotId));
 
     try {
       const response = await fetch(`${getAdApiUrl()}/uploadCreative?userId=1`, {
@@ -302,7 +302,7 @@ class AdService {
   }
 
   // Upload logo file (with _logo suffix in filename)
-  async uploadLogo(file: File, slotId: number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
+  async uploadLogo(file: File, slotId: string | number): Promise<{ success: boolean; creativeUrl?: string; message?: string }> {
     const formData = new FormData();
     
     // Create a new File object with _logo suffix
@@ -312,7 +312,7 @@ class AdService {
     const logoFile = new File([file], logoFileName, { type: file.type });
     
     formData.append('image', logoFile);
-    formData.append('slotId', slotId.toString());
+    formData.append('slotId', String(slotId));
 
     try {
       const response = await fetch(`${getAdApiUrl()}/uploadCreative?userId=1`, {
@@ -377,7 +377,7 @@ class AdService {
   }
 
   // Update an existing ad
-  async updateAd(adId: number, data: UpdateAdData): Promise<{ success: boolean; data?: any; message?: string }> {
+  async updateAd(adId: string | number, data: UpdateAdData): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       // Ensure time is in HH:mm:ss format if provided as HH:mm
       const formattedData = {
@@ -417,7 +417,7 @@ class AdService {
   }
 
   // Clone existing ad
-  async cloneAd(adId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  async cloneAd(adId: string | number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       const response = await fetch(`${getAdApiUrl()}/clone?userId=${userId}`, {
         method: 'POST',
@@ -444,7 +444,7 @@ class AdService {
   }
 
   // Get ad labels for suggestion
-  async getAdLabels(campaignId: number): Promise<{ success: boolean; data?: Array<{ name: string; label: string; adId: number }>; message?: string }> {
+  async getAdLabels(campaignId: string | number): Promise<{ success: boolean; data?: Array<{ name: string; label: string; adId: string | number }>; message?: string }> {
     try {
       console.log(`🔍 Fetching ad labels for campaign ID: ${campaignId}`);
 
@@ -470,7 +470,7 @@ class AdService {
             // Use label as name if name is missing (common pattern)
             const name = ad.name || ad.label || `Ad ${ad.adId || index + 1}`;
             const label = ad.label || ad.name || `Label ${ad.adId || index + 1}`;
-            const adId = Number(ad.adId);
+            const adId = ad.adId;
 
             return {
               name: String(name).trim(),
@@ -478,8 +478,8 @@ class AdService {
               adId: adId
             };
           })
-          .filter((info: { name: string; label: string; adId: number }) => {
-            const isValid = info.name && info.name !== '' && info.label && info.label !== '' && !isNaN(info.adId);
+          .filter((info: { name: string; label: string; adId: string | number }) => {
+            const isValid = info.name && info.name !== '' && info.label && info.label !== '' && info.adId != null && String(info.adId) !== '';
             if (!isValid) {
               console.warn(`⚠️ Filtered out invalid ad info:`, info);
             }
@@ -513,11 +513,11 @@ class AdService {
   }
 
   // Archive an ad
-  async archiveAd(adId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  async archiveAd(adId: string | number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       console.log(`📦 Archiving ad ${adId}...`);
 
-      if (!adId || isNaN(adId) || adId < 0) {
+      if (!adId || (typeof adId === 'number' && (isNaN(adId) || adId < 0))) {
         return {
           success: false,
           message: 'Invalid ad ID'

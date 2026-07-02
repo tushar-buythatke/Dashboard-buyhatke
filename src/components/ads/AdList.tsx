@@ -58,7 +58,7 @@ export function AdList() {
   const [adMetrics, setAdMetrics] = useState<Record<string, { impressions: number; clicks: number; landingCount: number }>>({});
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
-    adId?: number;
+    adId?: string | number;
     adName?: string;
   }>({ isOpen: false });
   // We use adService for auto-numbering, but don't need visual indicators in the UI
@@ -284,7 +284,7 @@ export function AdList() {
     }
   };
 
-  const handleCloneAd = async (adId: number) => {
+  const handleCloneAd = async (adId: string | number) => {
     try {
       const response = await adService.cloneAd(adId, 1);
 
@@ -300,7 +300,7 @@ export function AdList() {
     }
   };
 
-  const handleArchiveAd = (adId: number) => {
+  const handleArchiveAd = (adId: string | number) => {
     const ad = ads.find(a => a.adId === adId);
     setConfirmationModal({
       isOpen: true,
@@ -365,7 +365,7 @@ export function AdList() {
     toast.success(`Exported ${filteredAds.length} ads to ${filename}`);
   };
 
-  const handleStatusChange = async (adId: number, newStatus: 0 | 1) => {
+  const handleStatusChange = async (adId: string | number, newStatus: 0 | 1) => {
     try {
       // Find the ad to get all its data
       const adToUpdate = ads.find(a => a.adId === adId);
@@ -386,7 +386,7 @@ export function AdList() {
           campaignId: adToUpdate.campaignId,
           name: adToUpdate.name,
           label: adToUpdate.label,
-          slotId: adToUpdate.slotId,
+          slotType: adToUpdate.slotType ?? adToUpdate.slotId,
           impressionTarget: adToUpdate.impressionTarget,
           clickTarget: adToUpdate.clickTarget,
           impressionPixel: adToUpdate.impressionPixel,

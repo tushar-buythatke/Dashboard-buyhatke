@@ -59,7 +59,7 @@ interface Site {
 interface AdOption {
   name: string;
   label: string;
-  adId: number;
+  adId: string | number;
 }
 
 
@@ -1023,7 +1023,7 @@ siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : un
       });
     });
     selectedSlots.forEach((id) => {
-      const s = filteredSlots.find((x) => x.slotId === id) || slots.find((x) => x.slotId === id);
+      const s = filteredSlots.find((x) => matchSlotId(x, id)) || slots.find((x) => matchSlotId(x, id));
       chips.push({
         id: `slot-${id}`,
         group: 'Slot',

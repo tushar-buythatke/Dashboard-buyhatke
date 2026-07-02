@@ -250,7 +250,7 @@ export function AdForm() {
   // ad becomes pure tracking bookkeeping and never serves via /ads/serve. Safety
   // is enforced again at submit time (onSubmit force-overrides regardless of
   // whether the user toggled it back off after filling fields).
-  const OC_TRACKING_SLOT_ID = 84;
+  const OC_TRACKING_SLOT_NAME = 'Pop up ads';
   const OC_TRACKING_END_DATE = '2099-12-31';
   const OC_TRACKING_PIXEL_PLACEHOLDER = 'https://buyhatke.com/_oc_tracking';
   const [isOCTracking, setIsOCTracking] = useState(false);
@@ -328,7 +328,7 @@ export function AdForm() {
         // Upload to server using the API
         try {
           setLoading(true);
-          const result = await adService.uploadCreative(file, Number(currentSlot.slotId));
+          const result = await adService.uploadCreative(file, currentSlot.slotId);
 
           if (result.success && result.creativeUrl) {
             setPreviewUrl(result.creativeUrl);
@@ -386,7 +386,7 @@ export function AdForm() {
     try {
       setLoading(true);
       const currentSlotId = form.getValues('slotId');
-      const result = await adService.uploadLogo(file, Number(currentSlotId || 0));
+      const result = await adService.uploadLogo(file, currentSlotId || 0);
       if (result.success && result.creativeUrl) {
         setLogoPreviewUrl(result.creativeUrl);
         form.setValue('logo', result.creativeUrl);
@@ -601,7 +601,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
       try {
         if (!campaignId) return;
 
-        const result = await adService.getAdLabels(normalizeRouteId(campaignId) as number);
+        const result = await adService.getAdLabels(normalizeRouteId(campaignId));
         if (result.success && result.data) {
           setExistingAdLabels(result.data.map(item => item.label));
         } else {
@@ -641,11 +641,11 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
   }, [form.watch('label'), existingAdLabels]);
 
   const applyOCTrackingDefaults = () => {
-    // Auto-pick slot 84 so creative upload validates against its dims (300x173).
+    // Auto-pick Pop up ads slot so creative upload validates against its dims (300x173).
     setSlotFilterPlatform(undefined);
-    const slot84 = slots.find((s) => s.slotId === OC_TRACKING_SLOT_ID);
-    if (slot84) setSelectedSlot(slot84);
-    form.setValue('slotId', OC_TRACKING_SLOT_ID);
+    const trackingSlot = slots.find((s) => s.name === OC_TRACKING_SLOT_NAME);
+    if (trackingSlot) setSelectedSlot(trackingSlot);
+    form.setValue('slotId', trackingSlot?.slotId as string | number);
     form.setValue('status', 0);          // paused → /ads/serve filters it out
     form.setValue('isTestPhase', 1);     // test phase → /ads/serve filters it out
     form.setValue('endDate', OC_TRACKING_END_DATE);
@@ -663,9 +663,10 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
       // server-side regardless of any post-toggle edits. This is the only thing
       // that keeps the stub ad from accidentally going live.
       if (isOCTracking) {
+        const trackingSlot = slots.find((s) => s.name === OC_TRACKING_SLOT_NAME);
         data = {
           ...data,
-          slotId: OC_TRACKING_SLOT_ID,
+          slotId: trackingSlot?.slotId || data.slotId,
           status: 0,
           isTestPhase: 1,
           endDate: OC_TRACKING_END_DATE,
@@ -702,13 +703,16 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
         }
       });
 
+      const { slotId: formSlotId, ...restData } = data;
+
       const body = {
-        ...data,
+        ...restData,
+        slotType: formSlotId,
         categories: transformedCategories,
         campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
         otherDetails: parsedOtherDetails,
-        ...(isEditMode && { adId: Number(adId) })
+        ...(isEditMode && { adId: isV2Active() ? adId : Number(adId) })
       };
 
       const response = await fetch(url, {
@@ -905,7 +909,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
             label="OC-newest Tracking Ad"
             description={
               isOCTracking
-                ? `Locked: slot ${OC_TRACKING_SLOT_ID} · paused · test phase · end ${OC_TRACKING_END_DATE}. This ad will NOT be served by /ads/serve — it exists only to receive impression/click tracking from the extension's floating banner.`
+                ? `Locked: Pop up ads · paused · test phase · end ${OC_TRACKING_END_DATE}. This ad will NOT be served by /ads/serve — it exists only to receive impression/click tracking from the extension's floating banner.`
                 : 'Turn this on if this ad is just a tracking row for an OC-newest floating banner offer. We will auto-pause it and put it in test phase so it never gets served as a real ad.'
             }
           />
@@ -1019,11 +1023,11 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                           {/* Slot Selection */}
                           <Select
                             onValueChange={(value) => {
-                              const slot = filteredSlots.find(s => s.slotId === parseInt(value));
+                              const slot = filteredSlots.find(s => String(s.slotType ?? s.slotId) === value);
                               setSelectedSlot(slot || null);
-                              field.onChange(parseInt(value));
+                              field.onChange(value);
                             }}
-                            value={field.value?.toString() || ""}
+                            value={field.value != null ? String(field.value) : ""}
                           >
                             <FormControl>
                               <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200">
@@ -1034,7 +1038,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                               {filteredSlots.map((slot) => (
                                 <SelectItem
                                   key={slot.slotId}
-                                  value={slot.slotId.toString()}
+                                  value={String(slot.slotType ?? slot.slotId)}
                                   className="py-3"
                                 >
                                   <div className="flex flex-col">
@@ -1065,7 +1069,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                         Creative
                       </FormLabel>
                       {(() => {
-                        const currentSlot = selectedSlot || filteredSlots.find(s => s.slotId === form.watch('slotId'));
+                        const currentSlot = selectedSlot || filteredSlots.find(s => matchSlotId(s, form.watch('slotId')));
                         return currentSlot ? (
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             Required: {parseFloat(currentSlot.width.toString()).toFixed(0)} x {parseFloat(currentSlot.height.toString()).toFixed(0)} px

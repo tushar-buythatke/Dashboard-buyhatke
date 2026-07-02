@@ -28,6 +28,7 @@ export interface Ad {
   name: string;
   label: string;
   slotId: number | string;
+  slotType?: string;
   slotName?: string;
   slotWidth?: string;
   slotHeight?: string;
