@@ -707,7 +707,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
 
       const body = {
         ...restData,
-        slotType: formSlotId,
+        // V1 expects `slotId`; V2 expects `slotType`
+        ...(isV2Active() ? { slotType: formSlotId } : { slotId: formSlotId }),
         categories: transformedCategories,
         campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
