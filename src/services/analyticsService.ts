@@ -350,12 +350,13 @@ const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`, {
         if (Array.isArray(result.data.adStats)) {
           const stats = normalizeMetricsAdStats(result.data.adStats);
           stats.forEach((stat: any) => {
-            if (stat.eventType === "0") {
-              impressions = Number(stat.eventCount) || 0;
-            } else if (stat.eventType === "1") {
-              clicks = Number(stat.eventCount) || 0;
-            } else if (stat.eventType === "2") {
-              landingCount = Number(stat.eventCount) || 0;
+            const type = Number(stat.eventType);
+            if (type === 0) {
+              impressions += Number(stat.eventCount) || 0;
+            } else if (type === 1) {
+              clicks += Number(stat.eventCount) || 0;
+            } else if (type === 2) {
+              landingCount += Number(stat.eventCount) || 0;
             }
           });
         }
@@ -412,7 +413,7 @@ const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`, {
       if (Array.isArray(rawData.adStats)) {
         const stats = normalizeMetricsAdStats(rawData.adStats);
         stats.forEach((event: any) => {
-          const type = event.eventType;
+          const type = Number(event.eventType);
           if (type === 0) {
             impressions += Number(event.eventCount) || 0;
           } else if (type === 1) {

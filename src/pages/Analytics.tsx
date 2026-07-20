@@ -514,10 +514,10 @@ export default function Analytics() {
           slotsToProcess.map(async (slotId) => {
             const payload: MetricsPayload = {
               ...dateRange,
-slotId: normalizeFilterIds(selectedSlots),
-        campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
-siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
-          adId: validAdIds,
+              slotId: normalizeFilterIds([slotId]),
+              campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+              siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
+              adId: validAdIds,
               interval: dataGrouping
             };
 
