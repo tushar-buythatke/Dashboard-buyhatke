@@ -898,7 +898,7 @@ export function AdList() {
                 setSearchParams(newSearchParams);
               }}
             >
-              <SelectTrigger className="w-40 h-10 bg-white/70 dark:bg-[var(--bg-panel-2)]/70 border-slate-200/80 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-[var(--text-1)] rounded-xl backdrop-blur-sm">
+              <SelectTrigger className="w-40 h-9 bg-[var(--bg-panel)] border-[var(--line)] text-[12.5px] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>

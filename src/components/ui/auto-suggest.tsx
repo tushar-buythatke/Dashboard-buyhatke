@@ -1,9 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, ChevronDown, X, MapPin, Tag, Sparkles, Package } from 'lucide-react';
+import { Check, ChevronDown, X, MapPin, Tag, Package, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { adService, CategoryDetail, CategoryDetails, LocationDetails } from '@/services/adService';
+import { adService, CategoryDetails, LocationDetails } from '@/services/adService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
+import { fieldStyles } from '@/components/ui/select-field-styles';
+import { brandLogoUrl } from '@/utils/adUtils';
+
+// Brand logo <img> from the shared brand-logo service, falling back to a Package
+// icon if the lookup misses. Used in the Brand Targets chips.
+function BrandLogo({ name }: { name: string }) {
+  const src = brandLogoUrl(name);
+  return (
+    <>
+      {src ? (
+        <img
+          src={src}
+          alt={name}
+          className="h-3.5 w-3.5 rounded object-contain shrink-0"
+          onError={(e) => {
+            const img = e.currentTarget;
+            img.style.display = 'none';
+            const icon = img.nextElementSibling as HTMLElement | null;
+            if (icon) icon.style.display = 'block';
+          }}
+        />
+      ) : null}
+      <Package className={cn('h-3 w-3 shrink-0', src ? 'hidden' : 'block')} />
+    </>
+  );
+}
 
 interface LocationSuggestProps {
   value: { [key: string]: number };
@@ -13,6 +39,7 @@ interface LocationSuggestProps {
 }
 
 export function LocationAutoSuggest({ value, onChange, placeholder = "Search locations...", className }: LocationSuggestProps) {
+  const S = fieldStyles('violet');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<LocationDetails>({});
@@ -48,9 +75,17 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const normalizedSearchTerm = searchTerm.trim();
   const filteredSuggestions = Object.entries(suggestions).filter(([locationName]) =>
     locationName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const canAddCustom =
+    normalizedSearchTerm &&
+    !value[normalizedSearchTerm] &&
+    !filteredSuggestions.some(
+      ([locationName]) => locationName.toLowerCase() === normalizedSearchTerm.toLowerCase()
+    );
 
   const selectedItems = Object.keys(value);
 
@@ -58,6 +93,54 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
     if (!value[locationName]) {
       onChange({ ...value, [locationName]: suggestions[locationName] || 1 });
     }
+    setSearchTerm('');
+    setIsOpen(false);
+  };
+
+  const handleAddCustom = (rawLocationName: string) => {
+    const locationName = rawLocationName.trim();
+    if (!locationName || value[locationName]) return;
+    onChange({ ...value, [locationName]: suggestions[locationName] || 1 });
+    setSearchTerm('');
+    setIsOpen(false);
+  };
+
+  const addFromTerm = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    // If the search term matches a single suggestion exactly, prefer that suggestion.
+    const exactMatch = filteredSuggestions.find(
+      ([locationName]) => locationName.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (exactMatch) {
+      handleAdd(exactMatch[0]);
+    } else {
+      handleAddCustom(trimmed);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addFromTerm(searchTerm);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    if (!pasted || !pasted.includes(',') && !pasted.includes('\n') && !pasted.includes('\t')) {
+      return;
+    }
+    e.preventDefault();
+    const tokens = pasted.split(/[,\n\t]+/).map(t => t.trim()).filter(Boolean);
+    const nextValue = { ...value };
+    for (const token of tokens) {
+      if (!nextValue[token]) {
+        nextValue[token] = suggestions[token] || 1;
+      }
+    }
+    onChange(nextValue);
     setSearchTerm('');
     setIsOpen(false);
   };
@@ -70,33 +153,25 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <motion.div 
-        className="min-h-[48px] w-full rounded-xl border-2 border-gradient-to-r from-purple-200 to-pink-200 dark:from-purple-700 dark:to-pink-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 px-4 py-3 text-sm shadow-lg hover:shadow-xl transition-all duration-300 focus-within:ring-4 focus-within:ring-purple-500/20 focus-within:border-purple-500"
-        whileHover={{ scale: 1.01 }}
-        whileFocus={{ scale: 1.01 }}
-      >
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedItems.map((location) => (
-            <motion.span
-              key={location}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <MapPin className="h-3 w-3" />
-              {location} ({suggestions[location] || '0'})
-              <button
-                type="button"
-                onClick={() => handleRemove(location)}
-                className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </motion.span>
-          ))}
-        </div>
-        <div className="flex items-center">
+      <div className={S.shell}>
+        {selectedItems.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {selectedItems.map((location) => (
+              <span key={location} className={S.chip}>
+                <MapPin className="h-3 w-3" />
+                {location}{suggestions[location] ? ` (${suggestions[location]})` : ' (custom)'}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(location)}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={searchTerm}
@@ -105,91 +180,85 @@ export function LocationAutoSuggest({ value, onChange, placeholder = "Search loc
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={selectedItems.length === 0 ? placeholder : "Add more locations..."}
-            className="flex-1 border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+            className={S.input}
           />
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+          <span className="text-[10.5px] text-[var(--text-3)] hidden sm:inline whitespace-nowrap">Enter or comma to add</span>
+          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="h-4 w-4 text-[var(--text-3)]" />
           </motion.div>
         </div>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-[1] w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-h-[400px] overflow-hidden"
-            style={{ 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
-            }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className={S.menu}
           >
             {loading ? (
               <div className="p-6 flex items-center justify-center">
                 <VelvetLoader size={22} label="Loading locations" />
               </div>
-            ) : filteredSuggestions.length > 0 ? (
-              <div className="py-2 max-h-[350px] overflow-y-auto">
-                {filteredSuggestions.map(([locationName, count], index) => (
-                  <motion.button
+            ) : filteredSuggestions.length > 0 || canAddCustom ? (
+              <div className="py-1.5 max-h-[300px] overflow-y-auto">
+                {canAddCustom && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddCustom(normalizedSearchTerm)}
+                    className={cn(S.row, S.rowHover, 'border-b border-[var(--line-strong)]')}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className={cn('flex items-center justify-center w-7 h-7 rounded-lg', S.iconOff)}>
+                        <Plus className="h-4 w-4" />
+                      </span>
+                      <span className="font-medium text-[var(--text-1)]">Add “{normalizedSearchTerm}”</span>
+                    </span>
+                    <span className="text-[11px] text-[var(--text-3)]">custom</span>
+                  </button>
+                )}
+                {filteredSuggestions.map(([locationName, count]) => (
+                  <button
                     key={locationName}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
                     type="button"
                     onClick={() => handleAdd(locationName)}
                     disabled={!!value[locationName]}
-                    className={cn(
-                      "w-full text-left px-6 py-4 text-sm transition-all duration-200 flex items-center justify-between group",
-                      value[locationName] 
-                        ? "bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/50 dark:to-pink-900/50 border-l-4 border-purple-500" 
-                        : "hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30"
-                    )}
+                    className={cn(S.row, value[locationName] ? S.rowSelected : S.rowHover)}
                   >
-                    <span className="flex items-center gap-4">
-                      <div className={cn(
-                        "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
-                        value[locationName] 
-                          ? "bg-purple-500 text-white" 
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-purple-100 group-hover:text-purple-500 dark:group-hover:bg-purple-800 dark:group-hover:text-purple-300"
-                      )}>
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className={cn(
-                          "font-semibold text-lg",
-                          value[locationName] 
-                            ? "text-purple-700 dark:text-purple-300" 
-                            : "text-gray-900 dark:text-gray-100"
-                        )}>{locationName}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {count} active users
-                        </div>
-                      </div>
+                    <span className="flex items-center gap-2.5">
+                      <span className={cn('flex items-center justify-center w-7 h-7 rounded-lg', value[locationName] ? S.iconOn : S.iconOff)}>
+                        <MapPin className="h-4 w-4" />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className={cn('font-medium', value[locationName] ? S.nameOn : 'text-[var(--text-1)]')}>{locationName}</span>
+                        <span className="text-[11px] text-[var(--text-3)]">{count} active users</span>
+                      </span>
                     </span>
-                    {value[locationName] && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center"
-                      >
-                        <Check className="h-5 w-5 text-white" />
-                      </motion.div>
-                    )}
-                  </motion.button>
+                    {value[locationName] && <Check className={cn('h-4 w-4', S.check)} />}
+                  </button>
                 ))}
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <div className="text-gray-800 dark:text-gray-200 font-medium">
-                  {searchTerm ? `No locations found for "${searchTerm}"` : 'No locations available'}
+              <div className="p-6 text-center text-[var(--text-3)]">
+                <MapPin className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <div className="text-[var(--text-2)] text-[13px] font-medium">
+                  {searchTerm ? `No locations found for “${searchTerm}”` : 'No locations available'}
                 </div>
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddCustom(normalizedSearchTerm)}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white rounded-lg text-[12px] font-medium transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add “{normalizedSearchTerm}”
+                  </button>
+                )}
               </div>
             )}
           </motion.div>
@@ -207,6 +276,7 @@ interface CategorySuggestProps {
 }
 
 export function CategoryAutoSuggest({ value, onChange, placeholder = "Search categories...", className }: CategorySuggestProps) {
+  const S = fieldStyles('sky');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<CategoryDetails>({});
@@ -304,34 +374,25 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <motion.div 
-        className="min-h-[48px] w-full rounded-xl border-2 border-gradient-to-r from-blue-200 to-cyan-200 dark:from-blue-700 dark:to-cyan-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 px-4 py-3 text-sm shadow-lg hover:shadow-xl transition-all duration-300 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500"
-        whileHover={{ scale: 1.01 }}
-        whileFocus={{ scale: 1.01 }}
-      >
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedItems.map((category) => (
-            <motion.span
-              key={category}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-md hover:shadow-lg transition-all duration-200"
-              title={suggestions[category]?.path || ''}
-            >
-              <Tag className="h-3 w-3" />
-              {category}
-              <button
-                type="button"
-                onClick={() => handleRemove(category)}
-                className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </motion.span>
-          ))}
-        </div>
-        <div className="flex items-center">
+      <div className={S.shell}>
+        {selectedItems.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {selectedItems.map((category) => (
+              <span key={category} className={S.chip} title={suggestions[category]?.path || ''}>
+                <Tag className="h-3 w-3" />
+                {category}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(category)}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={searchTerm}
@@ -341,101 +402,56 @@ export function CategoryAutoSuggest({ value, onChange, placeholder = "Search cat
             }}
             onFocus={() => setIsOpen(true)}
             placeholder={selectedItems.length === 0 ? placeholder : "Add more categories..."}
-            className="flex-1 border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+            className={S.input}
           />
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="h-4 w-4 text-[var(--text-3)]" />
           </motion.div>
         </div>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-[9999] w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-h-[400px] overflow-hidden"
-            style={{ 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
-            }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className={S.menu}
           >
             {loading ? (
               <div className="p-6 flex items-center justify-center">
                 <VelvetLoader size={22} label="Searching categories" />
               </div>
             ) : Object.keys(suggestions).length > 0 ? (
-              <div className="py-2 max-h-[350px] overflow-y-auto">
-                {Object.entries(suggestions).map(([categoryName, details], index) => (
-                  <motion.button
+              <div className="py-1.5 max-h-[300px] overflow-y-auto">
+                {Object.entries(suggestions).map(([categoryName, details]) => (
+                  <button
                     key={categoryName}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
                     type="button"
                     onClick={() => handleAdd(categoryName)}
                     disabled={!!value[categoryName]}
-                    className={cn(
-                      "w-full text-left px-6 py-4 text-sm transition-all duration-200 group",
-                      value[categoryName] 
-                        ? "bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/50 dark:to-cyan-900/50 border-l-4 border-blue-500" 
-                        : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30"
-                    )}
+                    className={cn(S.row, value[categoryName] ? S.rowSelected : S.rowHover)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className={cn(
-                          "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 mt-1",
-                          value[categoryName] 
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-500 dark:group-hover:bg-blue-800 dark:group-hover:text-blue-300"
-                        )}>
-                          <Tag className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <div className={cn(
-                            "font-semibold text-lg",
-                            value[categoryName] 
-                              ? "text-blue-700 dark:text-blue-300" 
-                              : "text-gray-900 dark:text-gray-100"
-                          )}>{categoryName}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md mt-1">
-                            {details.path}
-                          </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            ID: {details.catId}
-                          </div>
-                        </div>
-                      </div>
-                      {value[categoryName] && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"
-                        >
-                          <Check className="h-5 w-5 text-white" />
-                        </motion.div>
-                      )}
-                    </div>
-                  </motion.button>
+                    <span className="flex items-start gap-2.5 min-w-0">
+                      <span className={cn('flex items-center justify-center w-7 h-7 rounded-lg mt-0.5 shrink-0', value[categoryName] ? S.iconOn : S.iconOff)}>
+                        <Tag className="h-4 w-4" />
+                      </span>
+                      <span className="flex flex-col min-w-0">
+                        <span className={cn('font-medium', value[categoryName] ? S.nameOn : 'text-[var(--text-1)]')}>{categoryName}</span>
+                        <span className="text-[11px] text-[var(--text-3)] truncate max-w-[320px]">{details.path}</span>
+                        <span className="text-[10.5px] text-[var(--text-3)] opacity-70">ID: {details.catId}</span>
+                      </span>
+                    </span>
+                    {value[categoryName] && <Check className={cn('h-4 w-4 shrink-0', S.check)} />}
+                  </button>
                 ))}
               </div>
-            ) : searchTerm ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <div className="text-gray-800 dark:text-gray-200 font-medium">
-                  No categories found for "{searchTerm}"
-                </div>
-              </div>
             ) : (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <div className="text-gray-800 dark:text-gray-200 font-medium">
-                  Start typing to search categories...
+              <div className="p-6 text-center text-[var(--text-3)]">
+                <Tag className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <div className="text-[var(--text-2)] text-[13px] font-medium">
+                  {searchTerm ? `No categories found for “${searchTerm}”` : 'Start typing to search categories…'}
                 </div>
               </div>
             )}
@@ -454,6 +470,7 @@ interface BrandInputProps {
 }
 
 export function BrandInput({ value, onChange, placeholder = "Type brand names...", className }: BrandInputProps) {
+  const S = fieldStyles('amber');
   const [inputValue, setInputValue] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -500,33 +517,25 @@ export function BrandInput({ value, onChange, placeholder = "Type brand names...
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <motion.div 
-        className="min-h-[48px] w-full rounded-xl border-2 border-gradient-to-r from-orange-200 to-red-200 dark:from-orange-700 dark:to-red-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 px-4 py-3 text-sm shadow-lg hover:shadow-xl transition-all duration-300 focus-within:ring-4 focus-within:ring-orange-500/20 focus-within:border-orange-500"
-        whileHover={{ scale: 1.01 }}
-        whileFocus={{ scale: 1.01 }}
-      >
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedBrands.map((brand) => (
-            <motion.span
-              key={brand}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <Package className="h-5 w-5" />
-              {brand}
-              <button
-                type="button"
-                onClick={() => handleRemove(brand)}
-                className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </motion.span>
-          ))}
-        </div>
-        <div className="flex items-center">
+      <div className={S.shell}>
+        {selectedBrands.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {selectedBrands.map((brand) => (
+              <span key={brand} className={S.chip}>
+                <BrandLogo name={brand} />
+                {brand}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(brand)}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={inputValue}
@@ -534,24 +543,22 @@ export function BrandInput({ value, onChange, placeholder = "Type brand names...
             onKeyPress={handleKeyPress}
             onBlur={handleInputBlur}
             placeholder={selectedBrands.length === 0 ? placeholder : "Add more brands..."}
-            className="flex-1 border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+            className={S.input}
           />
-          <div className="flex items-center gap-2 text-gray-400">
-            <span className="text-xs">Press Enter or comma to add</span>
-            <Package className="h-5 w-5" />
-          </div>
+          <span className="text-[10.5px] text-[var(--text-3)] hidden sm:inline whitespace-nowrap">Enter or comma to add</span>
+          <Package className="h-4 w-4 text-[var(--text-3)]" />
         </div>
-      </motion.div>
-      
+      </div>
+
       {inputValue && (
         <motion.div
-          initial={{ opacity: 0, y: -5 }}
+          initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute z-50 left-4 top-full mt-1 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded text-xs"
+          className="absolute z-50 left-3 top-full mt-1 bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-500/30 px-2 py-1 rounded-md text-[11px]"
         >
-          Will be saved as: <strong>{capitalizeBrand(inputValue)}</strong>
+          Saved as: <strong>{capitalizeBrand(inputValue)}</strong>
         </motion.div>
       )}
     </div>
   );
-} 
+}

@@ -83,3 +83,16 @@ export const getCacheBustedUrl = (url: string | undefined): string => {
     return url;
   }
 };
+
+/**
+ * Resolves a brand/site name to a logo image URL via the shared brand-logo
+ * service. The endpoint returns an image directly (image/jpeg) with permissive
+ * CORS, so the result can be dropped straight into an <img src>. Returns '' for
+ * an empty name so callers can fall back to their own placeholder.
+ */
+const BRAND_LOGO_ENDPOINT = 'https://dashboard-combined.vercel.app/api/brand-logo';
+export const brandLogoUrl = (name: string | undefined): string => {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return '';
+  return `${BRAND_LOGO_ENDPOINT}?brand=${encodeURIComponent(trimmed)}`;
+};

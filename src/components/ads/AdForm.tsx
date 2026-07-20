@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
@@ -24,6 +24,7 @@ import { Slot, Ad, CategoryPath } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
 import { getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
@@ -163,13 +164,19 @@ const adSchema = z.object({
   endTime: z.string().optional(),
   creativeUrl: z.string().url('Creative URL must be valid'),
   logo: z.string().optional(),
+  couponCode: z.string().optional(),
+  impressionCharge: z.number().min(0).optional(),
+  clickCharge: z.number().min(0).optional(),
+  minBid: z.number().min(0).optional(),
+  maxBid: z.number().min(0).optional(),
+  bidModel: z.number().min(0).optional(),
   otherDetails: z.record(z.any()).optional(),
   gender: z.string().optional(),
   noGenderSpecificity: z.boolean().optional(),
   noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1).optional().default(1),
   isTestPhase: z.number().min(0).max(1).optional().default(0),
-  serveStrategy: z.number().min(0).max(3).optional().default(0),
+  serveStrategy: z.number().min(0).max(4).optional().default(0),
   isModelType: z.number().min(0).max(1).optional().default(0)
 }).refine((data) => {
   // Validate impression target >= click target
@@ -206,9 +213,116 @@ const adSchema = z.object({
 }, {
   message: "Maximum age must be equal to or greater than minimum age",
   path: ["ageRangeMax"]
+}).refine((data) => {
+  // Coupon ads (serveStrategy=2) require a location match to ever serve (guide §5/§7).
+  if (data.serveStrategy === 2) {
+    return data.location && Object.keys(data.location).length > 0;
+  }
+  return true;
+}, {
+  message: "Coupon ads require at least one location, or they never serve.",
+  path: ["location"]
 });
 
 
+// ── Gender (guide §4): API stores only u / m / f. Anything else is rejected on
+// create, so the form must speak u/m/f — not the old Male/Female/Other/NA.
+const GENDER_OPTIONS = [
+  { value: 'u', label: 'All genders', hint: 'Served to everyone (no gender gate)' },
+  { value: 'm', label: 'Male only', hint: 'Serves only to users resolved as male' },
+  { value: 'f', label: 'Female only', hint: 'Serves only to users resolved as female' },
+] as const;
+
+// Map any legacy/stored gender value onto the canonical u/m/f the form understands.
+const toFormGender = (raw: unknown): string => {
+  const v = String(raw ?? '').trim().toLowerCase();
+  if (v === 'm' || v === 'male') return 'm';
+  if (v === 'f' || v === 'female') return 'f';
+  return 'u'; // u, na, '', other, or anything unrecognized → unrestricted
+};
+
+// serveStrategy (guide §7): the five real ad types and what each does when served.
+const SERVE_STRATEGIES = [
+  { value: 0, label: 'Banner', icon: ImageIcon, tone: 'violet', desc: 'Creative + landing URL only. No product list.' },
+  { value: 1, label: 'Product', icon: Package, tone: 'sky', desc: 'Serves with a product list matched to user interest.' },
+  { value: 2, label: 'Coupon', icon: Ticket, tone: 'amber', desc: 'Coupon offer. Requires a location match to serve.' },
+  { value: 3, label: 'Flight', icon: Plane, tone: 'teal', desc: 'Served via the separate flight path, not the normal query.' },
+  { value: 4, label: 'Category-locked', icon: Lock, tone: 'plum', desc: "Banner that serves only when the request's category is in this ad's categories." },
+] as const;
+
+// ── Date helpers: the form stores dates as local YYYY-MM-DD strings. Parse/format
+// via local Y/M/D parts to avoid the UTC-midnight timezone shift.
+const ymdToDate = (s?: string): Date | undefined => {
+  if (!s) return undefined;
+  const [y, m, d] = s.split('-').map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+const dateToYmd = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const formatDateDisplay = (s?: string): string => {
+  const d = ymdToDate(s);
+  if (!d) return '';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); // 20 Jul 2026
+};
+const startOfToday = (): Date => {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+};
+
+// Velvet calendar popover — a toggle button that opens a styled month calendar,
+// replacing the native browser date picker so dates match the rest of the form.
+function VelvetDatePicker({
+  value,
+  onChange,
+  min,
+  disabled,
+  placeholder = 'Select date',
+}: {
+  value?: string;
+  onChange: (v: string) => void;
+  min?: Date;
+  disabled?: boolean;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = ymdToDate(value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="w-full h-10 rounded-[10px] border border-[var(--line-strong)] bg-[var(--bg-panel)] px-3 text-[13px] text-left flex items-center justify-between transition-[border-color,box-shadow] duration-200 hover:border-[var(--line-violet)] focus:outline-none focus:border-[var(--violet-500)] focus:ring-2 focus:ring-[var(--violet-500)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className={selected ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'}>
+            {selected ? formatDateDisplay(value) : placeholder}
+          </span>
+          <CalendarIcon className="h-4 w-4 text-[var(--text-3)]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          defaultMonth={selected ?? min}
+          disabled={min ? { before: min } : undefined}
+          onSelect={(d) => {
+            if (d) {
+              onChange(dateToYmd(d));
+              setOpen(false);
+            }
+          }}
+          classNames={{
+            day_selected:
+              'bg-[var(--indigo-500)] text-white hover:bg-[var(--indigo-500)] hover:text-white focus:bg-[var(--indigo-500)] focus:text-white',
+            day_today: 'bg-[var(--bg-tint)] text-[var(--indigo-500)] font-semibold',
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 type AdFormData = z.infer<typeof adSchema>;
 
@@ -280,9 +394,15 @@ export function AdForm() {
       endTime: '', // Blank by default
       creativeUrl: '',
       logo: '',
+      couponCode: '',
+      impressionCharge: 0,
+      clickCharge: 0,
+      minBid: 0,
+      maxBid: 0,
+      bidModel: 0,
       otherDetails: {},
-      gender: 'Male',
-      noGenderSpecificity: false,
+      gender: 'u',
+      noGenderSpecificity: true,
       noSpecificity: false,
       status: 1,
       isTestPhase: 0,
@@ -440,6 +560,18 @@ export function AdForm() {
       filtered = filtered.filter(slot => slot.platform === slotFilterPlatform);
     }
 
+    // Dedupe by the SAME key we use as each option's value (slotType in V2, slotId
+    // in V1). Multiple slots can share a slotType; without this the Select renders
+    // duplicate values — selecting one checks them all and the trigger stacks every
+    // match. One entry per serving target keeps values unique.
+    const seen = new Set<string>();
+    filtered = filtered.filter((slot) => {
+      const key = String(slot.slotType ?? slot.slotId);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
     setFilteredSlots(filtered);
   }, [slots, slotFilterPlatform]);
 
@@ -521,11 +653,19 @@ export function AdForm() {
               form.reset({
                 ...adData,
                 categories: categoriesForForm,
+                gender: toFormGender(adData.gender), // stored may be legacy Male/NA/etc → u/m/f
+                noGenderSpecificity: toFormGender(adData.gender) === 'u',
                 startDate: adData.startDate ? toLocalDateInput(adData.startDate) : undefined,
                 endDate: adData.endDate ? toLocalDateInput(adData.endDate) : undefined,
                 startTime: '', // Blank by default on edit/update
                 endTime: '', // Blank by default on edit/update,
                 logo: adData.logo || '',
+                couponCode: adData.couponCode || '',
+                impressionCharge: adData.impressionCharge ?? 0,
+                clickCharge: adData.clickCharge ?? 0,
+                minBid: adData.minBid ?? 0,
+                maxBid: adData.maxBid ?? 0,
+                bidModel: adData.bidModel ?? 0,
                 otherDetails: adData.otherDetails || {}
               });
 
@@ -709,6 +849,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
         ...restData,
         // V1 expects `slotId`; V2 expects `slotType`
         ...(isV2Active() ? { slotType: formSlotId } : { slotId: formSlotId }),
+        gender: toFormGender(data.gender), // guarantee u/m/f — API rejects anything else on create
         categories: transformedCategories,
         campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
@@ -941,13 +1082,13 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                   </h3>
                 </div>
                 <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                  <div className="space-y-6 sm:space-y-8">
                     <FormField
                       control={form.control}
                       name="label"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                             <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                             Ad Name
                           </FormLabel>
@@ -996,7 +1137,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                       name="slotId"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                             <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                             Ad Slot
                           </FormLabel>
@@ -1040,14 +1181,23 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                                 <SelectItem
                                   key={slot.slotId}
                                   value={String(slot.slotType ?? slot.slotId)}
-                                  className="py-3"
+                                  className="py-2.5"
                                 >
-                                  <div className="flex flex-col">
-                                    <div className="font-medium">{slot.name}</div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      {getPlatformName(slot.platform)} • {parseFloat(slot.width.toString()).toFixed(0)} x {parseFloat(slot.height.toString()).toFixed(0)} px
-                                    </div>
-                                  </div>
+                                  {/* Single line: rich content here is cloned into the trigger,
+                                      so keep it on one row. The slotId is a full UUID — cap and
+                                      truncate it in a monospace pill so it can't blow out the row. */}
+                                  <span className="flex items-center gap-2 min-w-0 w-full">
+                                    <span className="font-medium whitespace-nowrap shrink-0">{slot.name}</span>
+                                    <span className="text-xs text-[var(--text-3)] whitespace-nowrap shrink-0">
+                                      {getPlatformName(slot.platform)} · {parseFloat(slot.width.toString()).toFixed(0)}×{parseFloat(slot.height.toString()).toFixed(0)}
+                                    </span>
+                                    <span
+                                      title={String(slot.slotId)}
+                                      className="ml-auto shrink truncate max-w-[340px] font-mono text-[11px] leading-none text-[var(--indigo-500)] bg-[var(--bg-tint)] px-2 py-1 rounded"
+                                    >
+                                      {slot.slotId}
+                                    </span>
+                                  </span>
                                 </SelectItem>
                               ))}
                               {filteredSlots.length === 0 && (
@@ -1065,7 +1215,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                         <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                         Creative
                       </FormLabel>
@@ -1138,7 +1288,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                   {/* Logo Upload Section */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                         <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                         Logo (Optional)
                       </FormLabel>
@@ -1196,7 +1346,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     name="impressionTarget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Impression Target</FormLabel>
+                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Impression Target</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
@@ -1228,7 +1378,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     name="clickTarget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Click Target</FormLabel>
+                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Click Target</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
@@ -1260,7 +1410,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Priority Score (0-1000)</FormLabel>
+                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Priority Score (0-1000)</FormLabel>
                         <FormControl>
                           <div className="space-y-3">
                             <Input
@@ -1299,7 +1449,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Status</FormLabel>
+                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Status</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString()}
@@ -1384,70 +1534,97 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     control={form.control}
                     name="serveStrategy"
                     render={({ field }) => {
-                      const isUserBased = field.value === 1;
+                      const selected = SERVE_STRATEGIES.find((s) => s.value === field.value) ?? SERVE_STRATEGIES[0];
                       return (
                         <FormItem>
-                          <div
-                            onClick={() => field.onChange(isUserBased ? 0 : 1)}
-                            className={`
-                          flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
-                          ${isUserBased
-                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20'
-                                : 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-700 text-orange-800 dark:text-orange-200 shadow-orange-100 dark:shadow-orange-900/20'
-                              }
-                        `}
-                          >
-                            <div className={`
-                          relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
-                          ${isUserBased
-                                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-200 dark:shadow-blue-800'
-                                : 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-200 dark:shadow-orange-800'
-                              }
-                        `}>
-                              <div className={`
-                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
-                            ${isUserBased
-                                  ? 'translate-x-6'
-                                  : 'translate-x-0.5'
-                                }
-                          `}>
-                                {isUserBased && (
-                                  <div className="flex items-center justify-center h-full">
-                                    <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                )}
-                                {!isUserBased && (
-                                  <div className="flex items-center justify-center h-full">
-                                    <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <FormLabel className={`font-semibold text-base cursor-pointer ${isUserBased ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'}`}>
-                                Serve Strategy
-                              </FormLabel>
-                              <FormDescription className={`mt-1 ${isUserBased ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                                {isUserBased ? 'User-based targeting for personalized ads' : 'Product-based targeting for specific items'}
-                              </FormDescription>
-                            </div>
-                            <div className="ml-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm ${isUserBased
-                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700'
-                                : 'bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
-                                }`}>
-                                {isUserBased ? 'User-based' : 'Product-based'}
-                              </span>
-                            </div>
+                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Serve Strategy</FormLabel>
+                          <FormDescription className="text-[var(--text-3)]">
+                            The ad type. Determines how it's selected and rendered when served.
+                          </FormDescription>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                            {SERVE_STRATEGIES.map((s) => {
+                              const active = field.value === s.value;
+                              const Icon = s.icon;
+                              return (
+                                <button
+                                  key={s.value}
+                                  type="button"
+                                  onClick={() => field.onChange(s.value)}
+                                  className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all duration-200 ${
+                                    active
+                                      ? 'border-[var(--line-violet)] bg-[var(--bg-tint)] shadow-[var(--shadow-ring)]'
+                                      : 'border-[var(--line)] bg-[var(--bg-panel)] hover:border-[var(--line-violet)]'
+                                  }`}
+                                >
+                                  <span className={`metric-icon-tone metric-icon-tone--${s.tone} !static shrink-0`}>
+                                    <Icon className="h-4 w-4" />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className={`block text-[13px] font-semibold ${active ? 'text-[var(--indigo-500)]' : 'text-[var(--text-1)]'}`}>
+                                      {s.label}
+                                    </span>
+                                    <span className="block text-[10.5px] leading-tight text-[var(--text-3)] mt-0.5">{s.desc}</span>
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
+
+                          {/* Serve-behavior warnings (guide §5, §7) */}
+                          {field.value === 2 && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/40 p-3">
+                              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-amber-800 dark:text-amber-200">
+                                <strong>Coupon ads require a location.</strong> With an empty Locations field a coupon ad never serves — set at least one location below.
+                              </p>
+                            </div>
+                          )}
+                          {field.value === 3 && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-teal-300/60 bg-teal-50 dark:border-teal-700/50 dark:bg-teal-950/40 p-3">
+                              <Plane className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-teal-800 dark:text-teal-200">
+                                Flight ads serve through the separate flight path and are excluded from the normal product/banner query.
+                              </p>
+                            </div>
+                          )}
+                          {field.value === 4 && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--line-violet)] bg-[var(--bg-tint)] p-3">
+                              <Lock className="h-4 w-4 text-[var(--indigo-500)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--text-2)]">
+                                Category-locked ads serve only when the request's category is in this ad's Categories. Make sure Categories below is set.
+                              </p>
+                            </div>
+                          )}
+                          <input type="hidden" value={selected.value} readOnly />
+                          <FormMessage />
                         </FormItem>
                       );
                     }}
                   />
+
+                  {/* Coupon code — fallback coupon for serveStrategy=2 (guide §3) */}
+                  {form.watch('serveStrategy') === 2 && (
+                    <FormField
+                      control={form.control}
+                      name="couponCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Coupon Code</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., SAVE20"
+                              {...field}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[var(--text-3)]">
+                            Fallback coupon shown when a product has no per-product coupon.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -1541,7 +1718,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
 
                         if (checked) {
                           // If enabling master toggle, set default values and highlight price range
-                          form.setValue('gender', 'NA', { shouldValidate: true });
+                          form.setValue('gender', 'u', { shouldValidate: true });
                           form.setValue('ageRangeMin', 13, { shouldValidate: true });
                           form.setValue('ageRangeMax', 100, { shouldValidate: true });
                           setAgeRange([13, 100]);
@@ -1557,7 +1734,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                           setTimeout(() => setPriceRangeHighlighted(false), 3000);
                         } else {
                           // If disabling master toggle, reset to defaults
-                          form.setValue('gender', 'Male', { shouldValidate: true });
+                          form.setValue('gender', 'm', { shouldValidate: true });
                           form.setValue('ageRangeMin', 18, { shouldValidate: true });
                           form.setValue('ageRangeMax', 65, { shouldValidate: true });
                           setAgeRange([18, 65]);
@@ -1581,56 +1758,50 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     <FormField
                       control={form.control}
                       name="gender"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold">Gender Targeting</FormLabel>
-                          <div className="space-y-3">
-                            <FormControl>
-                              <Select
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  if (value === 'NA') {
-                                    form.setValue('noGenderSpecificity', true, { shouldValidate: true });
-                                  }
-                                }}
-                                value={field.value as any}
-                                disabled={form.watch('noSpecificity')}
-                              >
-                                <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200">
-                                  <SelectValue placeholder={form.watch('noSpecificity') ? "All Genders (No Specificity)" : "Select gender"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Male">Male</SelectItem>
-                                  <SelectItem value="Female">Female</SelectItem>
-                                  <SelectItem value="Other">Other</SelectItem>
-                                  <SelectItem value="NA">All Genders</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-
-                            <ElegantToggle
-                              checked={form.watch('noGenderSpecificity') || false}
-                              onChange={(checked) => {
-                                form.setValue('noGenderSpecificity', checked, { shouldValidate: true });
-                                if (checked) {
-                                  form.setValue('gender', 'NA', { shouldValidate: true });
-                                } else {
-                                  form.setValue('gender', 'Male', { shouldValidate: true });
-                                }
-                              }}
-                              label="No Gender Specificity"
-                              description="Target all genders equally"
-                              disabled={form.watch('noSpecificity')}
-                              variant="success"
-                            />
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const current = toFormGender(field.value);
+                        const disabled = form.watch('noSpecificity');
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Gender Targeting</FormLabel>
+                            <FormDescription className="text-[var(--text-3)]">
+                              Only a positive match serves — a Male/Female ad skips users whose gender is unknown. Use “All genders” to show it to everyone.
+                            </FormDescription>
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                              {GENDER_OPTIONS.map((opt) => {
+                                const active = current === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    disabled={disabled}
+                                    onClick={() => {
+                                      field.onChange(opt.value);
+                                      form.setValue('noGenderSpecificity', opt.value === 'u', { shouldValidate: true });
+                                    }}
+                                    title={opt.hint}
+                                    className={`flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      active
+                                        ? 'border-[var(--line-violet)] bg-[var(--bg-tint)] shadow-[var(--shadow-ring)]'
+                                        : 'border-[var(--line)] bg-[var(--bg-panel)] hover:border-[var(--line-violet)]'
+                                    }`}
+                                  >
+                                    <span className={`text-[13px] font-semibold ${active ? 'text-[var(--indigo-500)]' : 'text-[var(--text-1)]'}`}>
+                                      {opt.label}
+                                    </span>
+                                    <span className="text-[10.5px] leading-tight text-[var(--text-3)]">{opt.hint}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <div className="space-y-3">
-                      <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                         <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
                         Age Range
                       </FormLabel>
@@ -1688,7 +1859,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                       transition={{ duration: 0.6, repeat: priceRangeHighlighted ? 2 : 0 }}
                     >
                       <div className="flex items-center space-x-2">
-                        <FormLabel className="text-gray-700 dark:text-gray-300 font-semibold text-lg flex items-center">
+                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
                           <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-2"></div>
                           Price Range
                         </FormLabel>
@@ -1835,6 +2006,22 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                               placeholder="Select categories..."
                             />
                           </FormControl>
+                          {(() => {
+                            const cats = field.value;
+                            const isEmpty =
+                              !cats ||
+                              (typeof cats === 'object' && 'selections' in cats
+                                ? (cats as CategoryPath).selections.length === 0
+                                : Object.keys(cats).length === 0);
+                            return isEmpty ? (
+                              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/40 p-3">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <p className="text-[12px] leading-snug text-amber-800 dark:text-amber-200">
+                                  An ad with <strong>no categories</strong> fails the category filter and won't serve. Add at least one.
+                                </p>
+                              </div>
+                            ) : null;
+                          })()}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1868,7 +2055,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                         <FormItem>
                           <FormLabel>Locations</FormLabel>
                           <FormDescription>
-                            Search and select locations to target for your ad.
+                            Search and select locations, or type any country, state, city, or pincode and press Enter.
                           </FormDescription>
                           <FormControl>
                             <LocationAutoSuggest
@@ -1957,6 +2144,136 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                       </FormItem>
                     )}
                   />
+                </div>
+              </div>
+            </Card>
+
+            {/* Billing & Bidding — per-event charges + bidding bookkeeping (guide §3) */}
+            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
+                <div className="metric-icon-tone metric-icon-tone--amber !static">
+                  <IndianRupee className="h-4 w-4" />
+                </div>
+                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
+                  Billing &amp; Bidding <span className="text-[var(--text-3)] font-normal">(Optional)</span>
+                </h3>
+              </div>
+              <div className="p-8 space-y-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="velvet-section-title">Billing</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="impressionCharge"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Impression Charge</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0)}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormDescription>Deducted from balance per impression.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="clickCharge"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Click Charge</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0)}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormDescription>Deducted from balance per click.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Gavel className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                    <span className="velvet-section-title !before:hidden">Bidding</span>
+                  </div>
+                  <p className="text-[12px] text-[var(--text-3)] mb-4">
+                    Stored for bidding bookkeeping — not used by the current serve scoring.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="minBid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Min Bid</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0)}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="maxBid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Max Bid</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0)}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="bidModel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bid Model</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="0"
+                              value={field.value ?? ''}
+                              onChange={(e) => handleNumberInput(e, field.onChange, 0)}
+                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -2061,44 +2378,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Start Date</FormLabel>
-                        <div className="relative">
-                          <Input
-                            type="date"
-                            min={new Date().toISOString().split('T')[0]}
-                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                            ref={field.ref}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleDateChange('startDate', e.target.value);
-                            }}
-                            onBlur={field.onBlur}
-                            value={field.value}
-                            id="start-date-input"
-                            style={{
-                              colorScheme: 'light',
-                              direction: 'ltr'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const input = document.getElementById('start-date-input') as HTMLInputElement;
-                              if (input) {
-                                // Focus the input first to establish context
-                                input.focus();
-                                // Small delay to ensure focus is established
-                                setTimeout(() => {
-                                  input.showPicker?.();
-                                }, 10);
-                              }
-                            }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                          >
-                            <CalendarIcon className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <VelvetDatePicker
+                          value={field.value}
+                          min={startOfToday()}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            handleDateChange('startDate', v);
+                          }}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -2110,44 +2397,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>End Date</FormLabel>
-                        <div className="relative">
-                          <Input
-                            type="date"
-                            min={form.getValues('startDate') || new Date().toISOString().split('T')[0]}
-                            className="pr-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
-                            ref={field.ref}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleDateChange('endDate', e.target.value);
-                            }}
-                            onBlur={field.onBlur}
-                            value={field.value}
-                            id="end-date-input"
-                            style={{
-                              colorScheme: 'light',
-                              direction: 'ltr'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const input = document.getElementById('end-date-input') as HTMLInputElement;
-                              if (input) {
-                                // Focus the input first to establish context
-                                input.focus();
-                                // Small delay to ensure focus is established
-                                setTimeout(() => {
-                                  input.showPicker?.();
-                                }, 10);
-                              }
-                            }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
-                          >
-                            <CalendarIcon className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <VelvetDatePicker
+                          value={field.value}
+                          min={ymdToDate(form.getValues('startDate')) ?? startOfToday()}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            handleDateChange('endDate', v);
+                          }}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, X, Tag, Loader2, Plus, Check, FolderTree, Sparkles } from 'lucide-react';
+import { ChevronRight, X, Tag, Plus, Check, FolderTree } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { adService } from '@/services/adService';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
-import { Badge } from '@/components/ui/badge';
+import { fieldStyles } from '@/components/ui/select-field-styles';
 import { CategoryPath, CategoryLevel, CategorySelection } from '@/types';
 
 interface MultiHierarchicalCategorySelectorProps {
@@ -21,6 +20,7 @@ export function MultiHierarchicalCategorySelector({
   placeholder = "Select categories...",
   className
 }: MultiHierarchicalCategorySelectorProps) {
+  const S = fieldStyles('sky');
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentCategories, setCurrentCategories] = useState<CategoryLevel[]>([]);
@@ -168,49 +168,40 @@ export function MultiHierarchicalCategorySelector({
           className="mb-3"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Selected Categories ({value.selections.length})
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+              Selected ({value.selections.length})
             </span>
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => onChange({ selections: [] })}
-              className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+              className="inline-flex items-center gap-1 h-6 px-2 text-[11px] rounded-md text-[var(--text-3)] hover:text-red-500 hover:bg-[var(--bg-tint)] transition-colors"
             >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Clear All
-            </Button>
+              <X className="h-3 w-3" />
+              Clear all
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <AnimatePresence>
-              {value.selections.map((selection, index) => (
-                <motion.div
+              {value.selections.map((selection) => (
+                <motion.span
                   key={selection.selected.catId}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group relative"
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={cn(S.chip, 'pl-2 pr-1')}
                 >
-                  <Badge
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white pr-8 py-2 text-sm font-medium shadow-md hover:shadow-lg transition-all cursor-default"
+                  <FolderTree className="h-3 w-3 shrink-0" />
+                  <span className="max-w-[200px] truncate">
+                    {selection.path.map(cat => cat.catName).join(' → ')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeSelection(selection.selected.catId)}
+                    className="opacity-70 hover:opacity-100 rounded p-0.5 transition-opacity"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <FolderTree className="h-3.5 w-3.5" />
-                      <span className="max-w-[200px] truncate">
-                        {selection.path.map(cat => cat.catName).join(' → ')}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeSelection(selection.selected.catId)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </Badge>
-                </motion.div>
+                    <X className="h-3 w-3" />
+                  </button>
+                </motion.span>
               ))}
             </AnimatePresence>
           </div>
@@ -218,61 +209,56 @@ export function MultiHierarchicalCategorySelector({
       )}
 
       {/* Selector Button */}
-      <motion.button
+      <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full rounded-xl border-2 px-4 py-3 text-sm shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between",
+          "w-full min-h-[2.5rem] rounded-[10px] border bg-[var(--bg-panel)] px-3 py-1.5 text-[13px] transition-[border-color,box-shadow] duration-200 flex items-center justify-between",
           isOpen
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/50"
-            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400"
+            ? "border-sky-400 ring-2 ring-sky-500/20"
+            : "border-[var(--line-strong)] hover:border-sky-300"
         )}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
       >
-        <div className="flex items-center gap-2">
-          <Plus className={cn("h-5 w-5 transition-transform", isOpen && "rotate-45")} />
-          <span className="text-gray-700 dark:text-gray-300 font-medium">
+        <span className="flex items-center gap-2">
+          <Plus className={cn("h-4 w-4 text-[var(--text-3)] transition-transform", isOpen && "rotate-45 text-sky-500")} />
+          <span className={cn("font-medium", hasSelections ? "text-[var(--text-1)]" : "text-[var(--text-3)]")}>
             {hasSelections ? `${value.selections.length} selected` : placeholder}
           </span>
-        </div>
-        <Sparkles className={cn("h-5 w-5", isOpen ? "text-blue-500" : "text-gray-400")} />
-      </motion.button>
+        </span>
+        <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen ? "rotate-90 text-sky-500" : "text-[var(--text-3)]")} />
+      </button>
 
       {/* Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-[9999] w-full mt-2 bg-white dark:bg-gray-800 border-2 border-blue-500 dark:border-blue-600 rounded-xl shadow-2xl overflow-hidden"
-            style={{ boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.5)' }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-[9999] w-full mt-1.5 bg-[var(--bg-panel)] border border-[var(--line)] rounded-xl shadow-[var(--shadow-3)] overflow-hidden"
           >
             {/* Breadcrumb Navigation */}
             {breadcrumb.length > 0 && (
-              <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-b border-blue-200 dark:border-blue-700">
-                <div className="flex items-center gap-2 text-sm flex-wrap">
-                  <Button
+              <div className="px-3 py-2 bg-[var(--bg-tint)] border-b border-[var(--line)]">
+                <div className="flex items-center gap-1.5 text-[12px] flex-wrap">
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={navigateBack}
-                    className="h-7 px-2 hover:bg-blue-100 dark:hover:bg-blue-900"
+                    className="inline-flex items-center justify-center h-6 w-6 rounded-md text-[var(--text-3)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-panel)] transition-colors"
                   >
                     <ChevronRight className="h-4 w-4 rotate-180" />
-                  </Button>
+                  </button>
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">Root</span>
+                    <span className="text-[var(--text-3)] font-medium">Root</span>
                     {breadcrumb.map((cat, index) => (
                       <React.Fragment key={cat.catId}>
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-3.5 w-3.5 text-[var(--text-3)]" />
                         <span className={cn(
                           "font-medium",
                           index === breadcrumb.length - 1
-                            ? "text-blue-800 dark:text-blue-200"
-                            : "text-blue-600 dark:text-blue-400"
+                            ? "text-[var(--indigo-500)]"
+                            : "text-[var(--text-3)]"
                         )}>
                           {cat.catName}
                         </span>
@@ -291,90 +277,78 @@ export function MultiHierarchicalCategorySelector({
                 </div>
               ) : currentCategories.length > 0 ? (
                 <div className="py-2">
-                  {currentCategories.map((category, index) => {
+                  {currentCategories.map((category) => {
                     const selected = isSelected(category.catId);
                     return (
-                      <motion.div
+                      <div
                         key={category.catId}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.03 }}
                         className={cn(
-                          "flex items-center justify-between px-4 py-3 transition-all duration-200 group",
-                          selected
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950"
-                            : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950 dark:hover:to-purple-950"
+                          "flex items-center justify-between px-3 py-2 transition-colors duration-150 group",
+                          selected ? "bg-[var(--bg-tint)]" : "hover:bg-[var(--bg-tint)]"
                         )}
                       >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className={cn(
-                            "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
-                            selected
-                              ? "bg-green-500 text-white"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-500 dark:group-hover:bg-blue-900 dark:group-hover:text-blue-300"
-                          )}>
-                            {selected ? <Check className="h-5 w-5" /> : <Tag className="h-5 w-5" />}
-                          </div>
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           <span className={cn(
-                            "text-base font-medium",
+                            "flex items-center justify-center w-7 h-7 rounded-lg shrink-0",
                             selected
-                              ? "text-green-700 dark:text-green-300"
-                              : "text-gray-900 dark:text-gray-100"
+                              ? "bg-[var(--indigo-500)] text-white"
+                              : "bg-[var(--bg-tint)] text-[var(--text-3)] group-hover:text-[var(--indigo-500)]"
+                          )}>
+                            {selected ? <Check className="h-4 w-4" /> : <Tag className="h-4 w-4" />}
+                          </span>
+                          <span className={cn(
+                            "text-[13px] font-medium truncate",
+                            selected ? "text-[var(--indigo-500)]" : "text-[var(--text-1)]"
                           )}>
                             {category.catName}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {!selected && (
-                            <Button
+                            <button
                               type="button"
-                              size="sm"
-                              variant="ghost"
                               onClick={() => selectCategory(category)}
-                              className="h-8 px-3 bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300"
+                              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[12px] font-medium bg-[var(--bg-tint)] text-[var(--indigo-500)] border border-[var(--line-violet)] hover:bg-[var(--bg-panel)] transition-colors"
                             >
-                              <Plus className="h-4 w-4 mr-1" />
+                              <Plus className="h-3.5 w-3.5" />
                               Select
-                            </Button>
+                            </button>
                           )}
-                          <Button
+                          <button
                             type="button"
-                            size="sm"
-                            variant="ghost"
                             onClick={() => loadSubcategories(category)}
-                            className="h-8 px-2 hover:bg-purple-100 dark:hover:bg-purple-900"
+                            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-[var(--text-3)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-panel)] transition-colors"
                           >
-                            <ChevronRight className="h-5 w-5 text-purple-500" />
-                          </Button>
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>
               ) : breadcrumb.length > 0 ? (
-                <div className="p-8 text-center">
-                  <Tag className="h-12 w-12 mx-auto mb-3 text-green-500" />
-                  <div className="text-gray-800 dark:text-gray-200 font-medium mb-2">
+                <div className="p-6 text-center">
+                  <Tag className="h-8 w-8 mx-auto mb-2 text-[var(--indigo-500)] opacity-60" />
+                  <div className="text-[var(--text-2)] text-[13px] font-medium mb-1">
                     No more subcategories
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-[12px] text-[var(--text-3)] mb-3">
                     You've reached the end of this branch
                   </p>
-                  <Button
+                  <button
                     type="button"
                     onClick={navigateBack}
-                    variant="outline"
-                    size="sm"
+                    className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-[12px] font-medium border border-[var(--line)] text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] transition-colors"
                   >
-                    <ChevronRight className="h-4 w-4 mr-1 rotate-180" />
-                    Go Back
-                  </Button>
+                    <ChevronRight className="h-4 w-4 rotate-180" />
+                    Go back
+                  </button>
                 </div>
               ) : (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <div className="text-gray-800 dark:text-gray-200 font-medium">
+                <div className="p-6 text-center">
+                  <Tag className="h-8 w-8 mx-auto mb-2 text-[var(--text-3)] opacity-40" />
+                  <div className="text-[var(--text-2)] text-[13px] font-medium">
                     No categories available
                   </div>
                 </div>
@@ -382,24 +356,21 @@ export function MultiHierarchicalCategorySelector({
             </div>
 
             {/* Footer Actions */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <Button
+            <div className="px-3 py-2 bg-[var(--bg-tint)] border-t border-[var(--line)] flex items-center justify-between">
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={startOver}
-                className="text-xs"
+                className="h-7 px-2 rounded-md text-[12px] text-[var(--text-3)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-panel)] transition-colors"
               >
-                Reset & Start Over
-              </Button>
-              <Button
+                Reset &amp; start over
+              </button>
+              <button
                 type="button"
-                size="sm"
                 onClick={() => setIsOpen(false)}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
+                className="h-7 px-3 rounded-md text-[12px] font-medium bg-[var(--indigo-500)] text-white hover:opacity-90 transition-opacity"
               >
                 Done ({value.selections.length})
-              </Button>
+              </button>
             </div>
           </motion.div>
         )}
