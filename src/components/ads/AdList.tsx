@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { toast } from 'sonner';
 import { Ad, Slot, SlotListResponse, ApiAd, mapApiAdToAd } from '@/types';
@@ -84,11 +85,13 @@ export function AdList() {
     const fetchData = async () => {
       if (campaignId) {
         try {
-          await Promise.all([
+          // Slots must resolve BEFORE ads so enrichment (slot name/dimensions) has
+          // the map — otherwise the SLOT column falls back to the raw id.
+          const [, slotsMap] = await Promise.all([
             fetchCampaign(),
-            fetchSlots(),
-            fetchAds()
+            fetchSlots()
           ]);
+          await fetchAds(slotsMap);
         } catch (error) {
           console.error('Error fetching data:', error);
           setError('Failed to load data. Please try again.');
@@ -151,7 +154,7 @@ export function AdList() {
     }
   }, [ads, adMetrics, campaign.id, addNotification]);
 
-  const fetchSlots = async () => {
+  const fetchSlots = async (): Promise<Record<string, any>> => {
     try {
       const response = await fetch(buildApiUrl('/slots'));
       if (!response.ok) throw new Error('Failed to fetch slots');
@@ -166,11 +169,13 @@ export function AdList() {
           }
         });
         setSlots(slotsMap as any);
+        return slotsMap;
       }
     } catch (error) {
       console.error('Error fetching slots:', error);
       toast.error('Failed to load slot information');
     }
+    return {};
   };
 
   const fetchCampaign = async () => {
@@ -192,7 +197,7 @@ export function AdList() {
     }
   };
 
-  const fetchAds = async () => {
+  const fetchAds = async (slotsMap: Record<string, any> = slots) => {
     try {
       setLoading(true);
       setError(null);
@@ -220,7 +225,7 @@ export function AdList() {
         const adsList = normalizeAdList(result.data.adsList);
         const enrichedAds = adsList.map((apiAd: ApiAd) => {
           const ad = mapApiAdToAd(apiAd);
-          const slot = slots[ad.slotId];
+          const slot = slotsMap[ad.slotId] ?? slotsMap[String((apiAd as any).slotType)];
           return {
             ...ad,
             slotName: slot?.name || `Slot-${ad.slotId}`,
@@ -577,7 +582,7 @@ export function AdList() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCloneAd(Number(ad.adId));
+                          handleCloneAd(ad.adId);
                         }}
                       >
                         <Copy className="mr-2 h-4 w-4 text-purple-600" />
@@ -586,7 +591,7 @@ export function AdList() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleArchiveAd(Number(ad.adId));
+                          handleArchiveAd(ad.adId);
                         }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
@@ -597,7 +602,7 @@ export function AdList() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStatusChange(Number(ad.adId), 0);
+                            handleStatusChange(ad.adId, 0);
                           }}
                         >
                           <Pause className="mr-2 h-4 w-4 text-orange-600" />
@@ -607,7 +612,7 @@ export function AdList() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleStatusChange(Number(ad.adId), 1);
+                            handleStatusChange(ad.adId, 1);
                           }}
                         >
                           <Play className="mr-2 h-4 w-4 text-green-600" />
@@ -1007,7 +1012,10 @@ export function AdList() {
                         <motion.tr
                           key={ad.adId}
                           initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          // Include a 0-alpha same-hue backgroundColor in the resting state so
+                          // framer interpolates rgba→rgba on hover (animating from `transparent`
+                          // resolves to oklab(0 0 0 / 0), which it warns is not animatable).
+                          animate={{ opacity: 1, x: 0, backgroundColor: 'rgba(99, 76, 230, 0)' }}
                           transition={{ duration: 0.3, delay: index * 0.02 }}
                           whileHover={{
                             scale: 1.005,
@@ -1065,9 +1073,22 @@ export function AdList() {
                           <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
                             {ad.slotName && (
                               <div className="flex flex-col space-y-1">
-                                <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors">{ad.slotName}</span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors cursor-help">{ad.slotName}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-none">
+                                    <div className="flex flex-col gap-1">
+                                      <span className="font-semibold">{ad.slotName}</span>
+                                      <span className="text-[10.5px] opacity-90">
+                                        <span className="opacity-70">slotId: </span>
+                                        <span className="font-mono">{String(ad.slotId)}</span>
+                                      </span>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
                                 {ad.slotWidth && ad.slotHeight && (
-                                  <span className="text-[10.5px] text-[var(--text-3)] bg-[var(--bg-panel-2)] border border-[var(--line)] px-2 py-0.5 rounded-md text-center font-medium tabular-nums">
+                                  <span className="w-fit self-start text-[10.5px] text-[var(--text-3)] bg-[var(--bg-panel-2)] border border-[var(--line)] px-2 py-0.5 rounded-md font-medium tabular-nums whitespace-nowrap">
                                     {Math.round(Number(ad.slotWidth))} × {Math.round(Number(ad.slotHeight))} px
                                   </span>
                                 )}
@@ -1151,7 +1172,7 @@ export function AdList() {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleCloneAd(Number(ad.adId));
+                                        handleCloneAd(ad.adId);
                                       }}
                                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                     >
@@ -1161,7 +1182,7 @@ export function AdList() {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleArchiveAd(Number(ad.adId));
+                                        handleArchiveAd(ad.adId);
                                       }}
                                       className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
                                     >
@@ -1172,7 +1193,7 @@ export function AdList() {
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStatusChange(Number(ad.adId), 0);
+                                          handleStatusChange(ad.adId, 0);
                                         }}
                                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >
@@ -1183,7 +1204,7 @@ export function AdList() {
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStatusChange(Number(ad.adId), 1);
+                                          handleStatusChange(ad.adId, 1);
                                         }}
                                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >

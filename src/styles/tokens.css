@@ -1415,3 +1415,64 @@ html * {
   color: #f59e0b;
   background: color-mix(in srgb, #f59e0b 16%, transparent);
 }
+
+/* =========================
+   SHADCN COMPAT TOKENS
+   The shadcn/ui primitives (popover, dropdown, card, command, dialog, etc.)
+   reference HSL-triplet vars via tailwind.config.js `hsl(var(--x))`. These were
+   never defined, so those components rendered transparent/borderless. Map them to
+   the velvet palette so any un-migrated shadcn component stays on-brand.
+   ========================= */
+:root {
+  --background: 250 20% 96%;        /* bg-canvas */
+  --foreground: 240 40% 6%;         /* text-1 */
+  --card: 0 0% 100%;                /* bg-panel */
+  --card-foreground: 240 40% 6%;
+  --popover: 0 0% 100%;             /* bg-panel */
+  --popover-foreground: 240 40% 6%;
+  --primary: 249 75% 60%;           /* violet-600 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 260 20% 97%;         /* bg-panel-2 */
+  --secondary-foreground: 240 20% 20%;
+  --muted: 260 20% 97%;
+  --muted-foreground: 245 8% 57%;   /* text-3 */
+  --accent: 250 60% 96%;            /* light violet tint */
+  --accent-foreground: 249 75% 45%;
+  --destructive: 2 64% 48%;         /* neg */
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 20% 90%;
+  --input: 240 20% 88%;
+  --ring: 249 75% 60%;
+  --chart-1: 249 75% 60%;
+  --chart-2: 322 45% 58%;
+  --chart-3: 211 78% 54%;
+  --chart-4: 38 72% 46%;
+  --chart-5: 334 66% 56%;
+}
+
+.dark {
+  --background: 240 33% 5%;         /* bg-canvas */
+  --foreground: 240 33% 97%;        /* text-1 */
+  --card: 240 24% 9%;               /* bg-panel */
+  --card-foreground: 240 33% 97%;
+  --popover: 240 24% 9%;            /* bg-panel */
+  --popover-foreground: 240 33% 97%;
+  --primary: 246 76% 68%;           /* violet-600 dark */
+  --primary-foreground: 240 33% 5%;
+  --secondary: 240 26% 12%;         /* bg-panel-2 */
+  --secondary-foreground: 240 33% 97%;
+  --muted: 240 26% 12%;
+  --muted-foreground: 240 9% 46%;   /* text-3 */
+  --accent: 240 26% 15%;
+  --accent-foreground: 246 76% 80%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 15% 18%;
+  --input: 240 15% 18%;
+  --ring: 246 76% 68%;
+  --chart-1: 246 76% 68%;
+  --chart-2: 322 55% 66%;
+  --chart-3: 211 78% 62%;
+  --chart-4: 38 80% 60%;
+  --chart-5: 334 70% 64%;
+}

@@ -1,6 +1,6 @@
 import { buildApiUrl } from '@/config/api';
 import { coerceName } from '@/lib/format';
-import { normalizeMetricsAdStats, normalizeMetricsBreakdown } from '@/utils/v2Normalizer';
+import { normalizeMetricsAdStats, normalizeMetricsBreakdown, isV2Active } from '@/utils/v2Normalizer';
 
 export interface MetricsPayload {
   from: string;
@@ -238,18 +238,23 @@ const response = await fetch(`${buildApiUrl('/metrics/all')}?userId=1`, {
       return [];
     }
 
-    const uniqueSlots = new Map<number, AnalyticsSlot>();
+    const uniqueSlots = new Map<string | number, AnalyticsSlot>();
 
     slotList.forEach((slot) => {
-      const normalizedSlotId = Number(slot.slotId);
+      // V2 slotIds are UUID strings — Number() would NaN them out. Keep the raw
+      // string id in V2; only coerce/validate numerically in V1.
+      const normalizedSlotId: string | number = isV2Active() ? String(slot.slotId) : Number(slot.slotId);
+      const isValid = isV2Active()
+        ? String(normalizedSlotId).length > 0
+        : Number.isFinite(normalizedSlotId as number);
 
-      if (!Number.isFinite(normalizedSlotId) || uniqueSlots.has(normalizedSlotId)) {
+      if (!isValid || uniqueSlots.has(normalizedSlotId)) {
         return;
       }
 
       uniqueSlots.set(normalizedSlotId, {
         ...slot,
-        slotId: normalizedSlotId,
+        slotId: normalizedSlotId as any,
         platform: Number(slot.platform),
       });
     });

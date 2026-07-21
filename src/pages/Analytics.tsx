@@ -36,7 +36,7 @@ import { adService } from '@/services/adService';
 // Utils
 import { exportToCSV, formatMetricsForCSV } from '@/utils/csvExport';
 import { formatCount, formatSmartPercent, coerceName } from '@/lib/format';
-import { normalizeFilterIds, matchesId, matchSlotId, normalizeRouteId, toLookupKey } from '@/utils/v2Normalizer';
+import { normalizeFilterIds, matchesId, matchSlotId, normalizeRouteId, toLookupKey, isV2Active } from '@/utils/v2Normalizer';
 
 // Types
 import {
@@ -94,8 +94,15 @@ const getPlatformName = (platformId: number | string): string => {
   }
 };
 
-const dedupeNumericIds = (values?: (string | number)[]): number[] | undefined => {
+const dedupeNumericIds = (values?: (string | number)[]): (string | number)[] | undefined => {
   if (!values || values.length === 0) return undefined;
+
+  // V2 campaign/slot ids are UUID strings — Number()/isFinite would drop them all.
+  // Dedupe as strings in V2; the downstream normalizeFilterIds re-normalizes per type.
+  if (isV2Active()) {
+    const deduped = Array.from(new Set(values.map(String).filter((s) => s.length > 0)));
+    return deduped.length > 0 ? deduped : undefined;
+  }
 
   const normalizedValues = values
     .map((value) => Number(value))
@@ -110,7 +117,12 @@ const sanitizeSlots = (rawSlots: Slot[]): Slot[] => {
   rawSlots.forEach((slot) => {
     const normalizedSlotId = toLookupKey(slot.slotId);
 
-    if (!Number.isFinite(Number(normalizedSlotId)) || uniqueSlots.has(normalizedSlotId)) {
+    // In V2 slotId is a UUID string — don't reject it via a numeric-finite check.
+    const isValidSlotId = isV2Active()
+      ? String(normalizedSlotId).length > 0
+      : Number.isFinite(Number(normalizedSlotId));
+
+    if (!isValidSlotId || uniqueSlots.has(normalizedSlotId)) {
       return;
     }
 
@@ -252,7 +264,7 @@ export default function Analytics() {
         await Promise.all(
           campaignsToProcess.map(async (campId) => {
             console.log('Fetching ads for campaign ID:', campId);
-            const res = await adService.getAdLabels(Number(campId));
+            const res = await adService.getAdLabels(isV2Active() ? campId : Number(campId));
             console.log('Ad labels response for campaign', campId, ':', res);
 
             if (res.success && res.data) {

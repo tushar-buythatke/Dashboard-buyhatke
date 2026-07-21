@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
@@ -18,7 +18,14 @@ import { MultiHierarchicalCategorySelector } from '@/components/ui/multi-hierarc
 import { SiteSelect } from '@/components/ui/site-select';
 import { adService } from '@/services/adService';
 import { buildApiUrl } from '@/config/api';
-import { normalizeAd, matchSlotId, normalizeRouteId, isV2Active, resolveCatIds } from '@/utils/v2Normalizer';
+import { normalizeAd, normalizeRouteId, isV2Active, resolveCatIds } from '@/utils/v2Normalizer';
+
+// The ad's slot field now carries the real slotId (UUID in V2). Match a slot by its
+// slotId, with a slotType fallback so any legacy value still resolves.
+const slotMatches = (slot: { slotId: string | number; slotType?: string | number }, target: string | number | undefined | null): boolean => {
+  if (target == null || target === '') return false;
+  return String(slot.slotId) === String(target) || (slot.slotType != null && String(slot.slotType) === String(target));
+};
 import { toast } from 'sonner';
 import { Slot, Ad, CategoryPath } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -345,6 +352,7 @@ export function AdForm() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -415,7 +423,7 @@ export function AdForm() {
     if (file) {
       // Check if a slot is selected - use form value as fallback
       const currentSlotId = form.getValues('slotId');
-      const currentSlot = selectedSlot || slots.find(s => matchSlotId(s, currentSlotId));
+      const currentSlot = selectedSlot || slots.find(s => slotMatches(s, currentSlotId));
 
       if (!currentSlot) {
         toast.error('Please select an ad slot first to determine required dimensions');
@@ -560,13 +568,12 @@ export function AdForm() {
       filtered = filtered.filter(slot => slot.platform === slotFilterPlatform);
     }
 
-    // Dedupe by the SAME key we use as each option's value (slotType in V2, slotId
-    // in V1). Multiple slots can share a slotType; without this the Select renders
-    // duplicate values — selecting one checks them all and the trigger stacks every
-    // match. One entry per serving target keeps values unique.
+    // Dedupe by slotId (the unique per-slot identifier we bind the ad to). Every
+    // distinct slot is a separately pickable target — we no longer collapse by
+    // slotType, which was hiding slots that happen to share a size/type.
     const seen = new Set<string>();
     filtered = filtered.filter((slot) => {
-      const key = String(slot.slotType ?? slot.slotId);
+      const key = String(slot.slotId);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -671,7 +678,7 @@ export function AdForm() {
 
               // Set the selected slot for editing mode
 if (adData.slotId && slots.length > 0) {
-            const slot = slots.find(s => matchSlotId(s, adData.slotId));
+            const slot = slots.find(s => slotMatches(s, adData.slotId));
                 if (slot) setSelectedSlot(slot);
               }
 
@@ -724,8 +731,8 @@ if (adData.slotId && slots.length > 0) {
   // Watch for slot changes and update selectedSlot
   useEffect(() => {
     const currentSlotId = form.watch('slotId');
-if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selectedSlot, currentSlotId))) {
-          const slot = slots.find(s => matchSlotId(s, currentSlotId));
+if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selectedSlot, currentSlotId))) {
+          const slot = slots.find(s => slotMatches(s, currentSlotId));
       if (slot) setSelectedSlot(slot);
     }
   }, [form.watch('slotId'), slots, selectedSlot]);
@@ -845,10 +852,23 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
 
       const { slotId: formSlotId, ...restData } = data;
 
+      // Both V1 and V2 create/update expect `slotId`. In V2 the slot field actually
+      // carries a `slotType` (multiple slots share a slotType, so the picker dedupes
+      // by it) — but the API requires a concrete slot UUID, which it validates and
+      // then derives `slotType` from. Resolve the selected value back to a real slot
+      // UUID: match a slot by id first (OC-tracking path already sets a UUID), then
+      // fall back to any slot with that slotType.
+      let outgoingSlotId: string | number = formSlotId;
+      if (isV2Active()) {
+        const matched =
+          slots.find(s => String(s.slotId) === String(formSlotId)) ||
+          slots.find(s => String(s.slotType) === String(formSlotId));
+        if (matched) outgoingSlotId = matched.slotId;
+      }
+
       const body = {
         ...restData,
-        // V1 expects `slotId`; V2 expects `slotType`
-        ...(isV2Active() ? { slotType: formSlotId } : { slotId: formSlotId }),
+        slotId: outgoingSlotId,
         gender: toFormGender(data.gender), // guarantee u/m/f — API rejects anything else on create
         categories: transformedCategories,
         campaignId: normalizeRouteId(campaignId),
@@ -1162,51 +1182,89 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                             </SelectContent>
                           </Select>
 
-                          {/* Slot Selection */}
-                          <Select
-                            onValueChange={(value) => {
-                              const slot = filteredSlots.find(s => String(s.slotType ?? s.slotId) === value);
-                              setSelectedSlot(slot || null);
-                              field.onChange(value);
-                            }}
-                            value={field.value != null ? String(field.value) : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200">
-                                <SelectValue placeholder="Select a slot" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-60">
-                              {filteredSlots.map((slot) => (
-                                <SelectItem
-                                  key={slot.slotId}
-                                  value={String(slot.slotType ?? slot.slotId)}
-                                  className="py-2.5"
+                          {/* Slot Selection — searchable by name AND dimension */}
+                          <Popover open={slotPickerOpen} onOpenChange={setSlotPickerOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <button
+                                  type="button"
+                                  role="combobox"
+                                  aria-expanded={slotPickerOpen}
+                                  className="w-full h-10 rounded-[10px] border border-slate-200 dark:border-[var(--line)] bg-white dark:bg-[var(--bg-panel-2)] px-3 text-[13px] text-left flex items-center justify-between gap-2 transition-[border-color,box-shadow] duration-200 hover:border-[var(--line-violet)] focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
                                 >
-                                  {/* Single line: rich content here is cloned into the trigger,
-                                      so keep it on one row. The slotId is a full UUID — cap and
-                                      truncate it in a monospace pill so it can't blow out the row. */}
-                                  <span className="flex items-center gap-2 min-w-0 w-full">
-                                    <span className="font-medium whitespace-nowrap shrink-0">{slot.name}</span>
-                                    <span className="text-xs text-[var(--text-3)] whitespace-nowrap shrink-0">
-                                      {getPlatformName(slot.platform)} · {parseFloat(slot.width.toString()).toFixed(0)}×{parseFloat(slot.height.toString()).toFixed(0)}
+                                  {selectedSlot ? (
+                                    <span className="flex items-center gap-2 min-w-0">
+                                      <span className="font-medium text-[var(--text-1)] whitespace-nowrap">{selectedSlot.name}</span>
+                                      <span className="text-xs text-[var(--text-3)] whitespace-nowrap">
+                                        {getPlatformName(selectedSlot.platform)} · {parseFloat(selectedSlot.width.toString()).toFixed(0)}×{parseFloat(selectedSlot.height.toString()).toFixed(0)}
+                                      </span>
                                     </span>
-                                    <span
-                                      title={String(slot.slotId)}
-                                      className="ml-auto shrink truncate max-w-[340px] font-mono text-[11px] leading-none text-[var(--indigo-500)] bg-[var(--bg-tint)] px-2 py-1 rounded"
-                                    >
-                                      {slot.slotId}
-                                    </span>
-                                  </span>
-                                </SelectItem>
-                              ))}
-                              {filteredSlots.length === 0 && (
-                                <div className="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                                  No slots found matching your filters
-                                </div>
-                              )}
-                            </SelectContent>
-                          </Select>
+                                  ) : (
+                                    <span className="text-[var(--text-3)]">Select a slot</span>
+                                  )}
+                                  <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--text-3)]" />
+                                </button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="p-0 w-[var(--radix-popover-trigger-width)] max-w-[640px] min-w-[360px] rounded-[14px] border-[var(--line)] shadow-[0_20px_48px_-16px_rgba(79,61,212,0.24),0_2px_6px_rgba(15,12,40,0.06)] overflow-hidden"
+                              align="start"
+                            >
+                              <Command
+                                className="bg-transparent"
+                                filter={(value, search, keywords) => {
+                                  const haystack = `${value} ${(keywords ?? []).join(' ')}`.toLowerCase();
+                                  // Normalise 300x173 / 300×173 / "300 173" so any separator matches
+                                  const q = search.toLowerCase().replace(/[×x]/g, ' ').trim();
+                                  const terms = q.split(/\s+/).filter(Boolean);
+                                  return terms.every(t => haystack.replace(/[×x]/g, ' ').includes(t)) ? 1 : 0;
+                                }}
+                              >
+                                <CommandInput
+                                  placeholder="Search slots by name or size…"
+                                  className="text-[13px] focus-visible:outline-none focus:outline-none"
+                                />
+                                <CommandList className="max-h-72">
+                                  <CommandEmpty className="py-8 text-center text-[13px] text-[var(--text-3)]">No slots match your search.</CommandEmpty>
+                                  <CommandGroup className="p-1.5">
+                                    {filteredSlots.map((slot) => {
+                                      const w = parseFloat(slot.width.toString()).toFixed(0);
+                                      const h = parseFloat(slot.height.toString()).toFixed(0);
+                                      const optValue = String(slot.slotId);
+                                      const isSelected = String(field.value) === optValue;
+                                      return (
+                                        <CommandItem
+                                          key={slot.slotId}
+                                          value={optValue}
+                                          keywords={[slot.name, `${w}x${h}`, `${w}×${h}`, getPlatformName(slot.platform), String(slot.slotType ?? '')]}
+                                          onSelect={() => {
+                                            setSelectedSlot(slot);
+                                            field.onChange(optValue);
+                                            setSlotPickerOpen(false);
+                                          }}
+                                          className="rounded-[10px] px-2.5 py-2 gap-3 cursor-pointer aria-selected:bg-[var(--bg-tint)] data-[selected=true]:bg-[var(--bg-tint)]"
+                                        >
+                                          <Check className={`h-4 w-4 shrink-0 ${isSelected ? 'opacity-100 text-[var(--indigo-500)]' : 'opacity-0'}`} />
+                                          <div className="flex flex-col min-w-0 flex-1">
+                                            <span className="font-semibold text-[13px] text-[var(--text-1)] leading-tight truncate">{slot.name}</span>
+                                            <span className="text-[11px] text-[var(--text-3)] leading-tight mt-0.5 whitespace-nowrap">
+                                              {getPlatformName(slot.platform)} · {w}×{h}
+                                            </span>
+                                          </div>
+                                          <span
+                                            title={optValue}
+                                            className="shrink-0 font-mono text-[10.5px] tracking-tight text-[var(--text-3)]"
+                                          >
+                                            {optValue}
+                                          </span>
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage className="text-red-500 font-medium" />
                         </FormItem>
                       )}
@@ -1220,7 +1278,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                         Creative
                       </FormLabel>
                       {(() => {
-                        const currentSlot = selectedSlot || filteredSlots.find(s => matchSlotId(s, form.watch('slotId')));
+                        const currentSlot = selectedSlot || filteredSlots.find(s => slotMatches(s, form.watch('slotId')));
                         return currentSlot ? (
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             Required: {parseFloat(currentSlot.width.toString()).toFixed(0)} x {parseFloat(currentSlot.height.toString()).toFixed(0)} px
@@ -2006,22 +2064,6 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !matchSlotId(selected
                               placeholder="Select categories..."
                             />
                           </FormControl>
-                          {(() => {
-                            const cats = field.value;
-                            const isEmpty =
-                              !cats ||
-                              (typeof cats === 'object' && 'selections' in cats
-                                ? (cats as CategoryPath).selections.length === 0
-                                : Object.keys(cats).length === 0);
-                            return isEmpty ? (
-                              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/40 p-3">
-                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                <p className="text-[12px] leading-snug text-amber-800 dark:text-amber-200">
-                                  An ad with <strong>no categories</strong> fails the category filter and won't serve. Add at least one.
-                                </p>
-                              </div>
-                            ) : null;
-                          })()}
                           <FormMessage />
                         </FormItem>
                       )}

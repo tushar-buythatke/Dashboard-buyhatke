@@ -210,7 +210,9 @@ export function NotificationsModal() {
                         <motion.div
                           key={notification.id}
                           initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          // 0-alpha same-hue base so hover interpolates rgba→rgba (avoids the
+                          // "oklab(0 0 0 / 0) is not animatable" warning from animating off transparent).
+                          animate={{ opacity: 1, x: 0, backgroundColor: "rgba(99, 102, 241, 0)" }}
                           whileHover={{ scale: 1.01, backgroundColor: "rgba(99, 102, 241, 0.05)" }}
                           className={`group p-3 sm:p-5 rounded-lg sm:rounded-xl border cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md ${
                             !notification.isRead 

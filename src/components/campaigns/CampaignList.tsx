@@ -53,7 +53,7 @@ export function CampaignList() {
 
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
-    campaignId?: number;
+    campaignId?: string | number;
     campaignName?: string;
   }>({ isOpen: false });
 
@@ -169,7 +169,7 @@ export function CampaignList() {
     toast.success(`Exported ${filteredCampaigns.length} campaigns to ${filename}`);
   };
 
-  const handleCloneCampaign = async (campaignId: number) => {
+  const handleCloneCampaign = async (campaignId: string | number) => {
     try {
       const response = await campaignService.cloneCampaign(campaignId, 1);
       if (response.success) {
@@ -183,7 +183,7 @@ export function CampaignList() {
     }
   };
 
-  const handleArchiveCampaign = (campaignId: number) => {
+  const handleArchiveCampaign = (campaignId: string | number) => {
     const campaign = campaigns.find(c => c.campaignId === campaignId);
     setConfirmationModal({
       isOpen: true,
@@ -207,7 +207,7 @@ export function CampaignList() {
     }
   };
 
-  const handleStatusChange = async (campaignId: number, newStatus: number) => {
+  const handleStatusChange = async (campaignId: string | number, newStatus: number) => {
     try {
       const response = await fetch(`${buildApiUrl('/campaigns/update')}?userId=1`, {
         method: 'POST',
@@ -459,7 +459,7 @@ export function CampaignList() {
                           />
                         </TableCell>
                         <TableCell className="px-4 py-2.5 text-center">
-                          <span className={`text-[12px] font-semibold tabular-nums ${liveAdsCount[Number(campaign.campaignId)] > 0 ? 'text-[var(--pos)]' : 'text-[var(--text-3)]'}`}>
+                          <span className={`text-[12px] font-semibold tabular-nums ${liveAdsCount[String(campaign.campaignId)] > 0 ? 'text-[var(--pos)]' : 'text-[var(--text-3)]'}`}>
                             {liveAdsCount[String(campaign.campaignId)] || 0}
                           </span>
                         </TableCell>
@@ -514,7 +514,7 @@ export function CampaignList() {
                                     Edit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handleCloneCampaign(Number(campaign.campaignId))}
+                                    onClick={() => handleCloneCampaign(campaign.campaignId)}
                                     className="text-[12px]"
                                   >
                                     <Copy className="mr-2 h-3.5 w-3.5" />
@@ -522,7 +522,7 @@ export function CampaignList() {
                                   </DropdownMenuItem>
                                   {campaign.status !== 3 ? (
                                     <DropdownMenuItem
-                                      onClick={() => handleStatusChange(Number(campaign.campaignId), 3)}
+                                      onClick={() => handleStatusChange(campaign.campaignId, 3)}
                                       className="text-[12px]"
                                     >
                                       <Pause className="mr-2 h-3.5 w-3.5" />
@@ -530,7 +530,7 @@ export function CampaignList() {
                                     </DropdownMenuItem>
                                   ) : (
                                     <DropdownMenuItem
-                                      onClick={() => handleStatusChange(Number(campaign.campaignId), 1)}
+                                      onClick={() => handleStatusChange(campaign.campaignId, 1)}
                                       className="text-[12px]"
                                     >
                                       <Play className="mr-2 h-3.5 w-3.5" />
@@ -538,7 +538,7 @@ export function CampaignList() {
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem
-                                    onClick={() => handleArchiveCampaign(Number(campaign.campaignId))}
+                                    onClick={() => handleArchiveCampaign(campaign.campaignId)}
                                     className="text-[12px] text-[var(--neg)] focus:text-[var(--neg)] focus:bg-[var(--neg-soft)]"
                                   >
                                     <Archive className="mr-2 h-3.5 w-3.5" />

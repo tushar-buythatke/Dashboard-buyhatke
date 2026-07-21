@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { buildApiUrl } from '@/config/api';
+import { isV2Active } from '@/utils/v2Normalizer';
 import { usePermissions } from '@/context/PermissionsContext';
 
 const campaignFormSchema = z.object({
@@ -87,7 +88,7 @@ export function CampaignForm() {
       // Prepare the payload according to the API requirements
       const payload = isEditMode
         ? {
-          campaignId: Number(campaignId),
+          campaignId: isV2Active() ? campaignId : Number(campaignId),
           brandName: data.brandName,
           impressionTarget: Number(data.impressionTarget),
           clickTarget: Number(data.clickTarget),

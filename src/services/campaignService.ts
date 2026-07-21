@@ -1,4 +1,5 @@
 import { buildApiUrl } from '@/config/api';
+import { isV2Active } from '@/utils/v2Normalizer';
 
 const getCampaignApiUrl = () => buildApiUrl('/campaigns');
 
@@ -102,11 +103,11 @@ class CampaignService {
   }
 
   // Update a campaign
-  async updateCampaign(campaignId: number, data: UpdateCampaignData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  async updateCampaign(campaignId: string | number, data: UpdateCampaignData, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       console.log(`📝 Updating campaign ${campaignId}...`);
       
-      if (!campaignId || isNaN(campaignId) || campaignId < 0) {
+      if (!campaignId || (!isV2Active() && (isNaN(Number(campaignId)) || Number(campaignId) < 0))) {
         return {
           success: false,
           message: 'Invalid campaign ID'
@@ -151,11 +152,11 @@ class CampaignService {
   }
 
   // Archive a campaign (and its associated ads)
-  async archiveCampaign(campaignId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  async archiveCampaign(campaignId: string | number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       console.log(`📦 Archiving campaign ${campaignId}...`);
       
-      if (!campaignId || isNaN(campaignId) || campaignId < 0) {
+      if (!campaignId || (!isV2Active() && (isNaN(Number(campaignId)) || Number(campaignId) < 0))) {
         return {
           success: false,
           message: 'Invalid campaign ID'
@@ -197,11 +198,11 @@ class CampaignService {
   }
 
   // Clone a campaign
-  async cloneCampaign(campaignId: number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
+  async cloneCampaign(campaignId: string | number, userId: number = 1): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       console.log(`📋 Cloning campaign ${campaignId}...`);
       
-      if (!campaignId || isNaN(campaignId) || campaignId < 0) {
+      if (!campaignId || (!isV2Active() && (isNaN(Number(campaignId)) || Number(campaignId) < 0))) {
         return {
           success: false,
           message: 'Invalid campaign ID'

@@ -24,12 +24,13 @@ import { cn } from '@/lib/utils';
 import { offerConfigService, OfferConfigItem, OfferConfigMap } from '@/services/offerConfigService';
 import { campaignService, Campaign } from '@/services/campaignService';
 import { adService } from '@/services/adService';
+import { isV2Active } from '@/utils/v2Normalizer';
 
 // Tracking slot is fixed for OC floating banner. Mirrors hardcoded slotId='84' in
 // Ext-138 utility_all2.js trackImpressionPixel / trackClickPixel calls.
 const OC_TRACKING_SLOT_ID = 84;
 
-type AdOption = { adId: number; name: string; label: string };
+type AdOption = { adId: string | number; name: string; label: string };
 
 type OfferRow = { offer: OfferConfigItem; posList: string[] };
 
@@ -288,18 +289,18 @@ export default function OffersConfig() {
 
   // Load ads for the selected campaign, filtered to OC tracking slot (84)
   useEffect(() => {
-    const cid = Number(form.campaign_id);
+    const cid: string | number = isV2Active() ? form.campaign_id : Number(form.campaign_id);
     if (!cid) { setAds([]); return; }
     setLoadingAds(true);
-    adService.getAds({ campaignId: cid, slotId: OC_TRACKING_SLOT_ID }).then((res) => {
+    adService.getAds({ campaignId: cid as any, slotId: OC_TRACKING_SLOT_ID }).then((res) => {
       if (res.success && res.data?.adsList) {
         const list: AdOption[] = (res.data.adsList || [])
           .map((a: any) => ({
-            adId: Number(a.adId),
+            adId: isV2Active() ? String(a.adId) : Number(a.adId),
             label: String(a.label || a.name || ''),
             name: String(a.name || a.label || `Ad ${a.adId}`),
           }))
-          .filter((a: AdOption) => !isNaN(a.adId) && a.adId > 0);
+          .filter((a: AdOption) => isV2Active() ? !!a.adId : (!isNaN(a.adId as number) && (a.adId as number) > 0));
         setAds(list);
       } else {
         setAds([]);
@@ -411,9 +412,9 @@ export default function OffersConfig() {
       bannerSize: { width: Number(form.banner_size_width) || iW + 20, height: Number(form.banner_size_height) || iH + 20 },
       bread_arr: breadList,
       price_range: { min: Number(form.price_min), max: Number(form.price_max) },
-      campaignId: Number(form.campaign_id),
+      campaignId: (isV2Active() ? form.campaign_id : Number(form.campaign_id)) as any,
       slotId: OC_TRACKING_SLOT_ID,
-      adId: Number(form.ad_id),
+      adId: (isV2Active() ? form.ad_id : Number(form.ad_id)) as any,
     };
 
     let result;

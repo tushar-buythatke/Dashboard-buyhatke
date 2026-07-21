@@ -4,6 +4,7 @@ import { useFilters } from '@/context/FilterContext';
 import { useEffect, useState } from 'react';
 import { analyticsService } from '@/services/analyticsService';
 import { adService } from '@/services/adService';
+import { isV2Active } from '@/utils/v2Normalizer';
 import { PLATFORM_OPTIONS } from '@/utils/platform';
 
 const genderOptions = ['Male', 'Female'];
@@ -33,7 +34,7 @@ export function FilterSidebar() {
         const namesSet = new Set<string>();
         await Promise.all(
           filters.campaigns.map(async (campId) => {
-            const res = await adService.getAdLabels(Number(campId));
+            const res = await adService.getAdLabels(isV2Active() ? campId : Number(campId));
             if (res.success && res.data) {
               res.data.forEach((adInfo: { name: string; label: string }) => {
                 namesSet.add(adInfo.name);

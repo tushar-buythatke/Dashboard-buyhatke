@@ -17,6 +17,7 @@ import { AdList } from '@/components/ads/AdList';
 import { AdForm } from '@/components/ads/AdForm';
 import { AdDetail } from '@/components/ads/AdDetail';
 import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import AuthLogin from '@/pages/AuthLogin';
 import OffersConfig from '@/pages/OffersConfig';
 
@@ -98,7 +99,9 @@ function App() {
           <PermissionsProvider>
             <NotificationProvider>
               <FilterProvider>
-                <AppRoutes />
+                <TooltipProvider delayDuration={200}>
+                  <AppRoutes />
+                </TooltipProvider>
               </FilterProvider>
             </NotificationProvider>
           </PermissionsProvider>
