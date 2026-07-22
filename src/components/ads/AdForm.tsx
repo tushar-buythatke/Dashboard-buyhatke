@@ -162,8 +162,8 @@ const adSchema = z.object({
   brandTargets: z.record(z.union([z.string(), z.number()])),
   priceRangeMin: z.number().min(0, 'Minimum price must be 0 or greater'),
   priceRangeMax: z.number().min(1, 'Maximum price must be greater than 0'),
-  ageRangeMin: z.number().min(13, 'Minimum age must be at least 13'),
-  ageRangeMax: z.number().min(13, 'Maximum age must be at least 13'),
+  ageRangeMin: z.number().min(0, 'Minimum age must be at least 0'),
+  ageRangeMax: z.number().min(0, 'Maximum age must be at least 0'),
   priority: z.number().min(0, 'Priority must be at least 0').max(1000, 'Priority cannot exceed 1000'),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
@@ -357,7 +357,7 @@ export function AdForm() {
   const [formLoading, setFormLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
-  const [ageRange, setAgeRange] = useState<[number, number]>([18, 65]);
+  const [ageRange, setAgeRange] = useState<[number, number]>([0, 18]);
   const [priceRangeHighlighted, setPriceRangeHighlighted] = useState(false);
   const [existingAdLabels, setExistingAdLabels] = useState<string[]>([]);
   const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
@@ -393,8 +393,8 @@ export function AdForm() {
       brandTargets: {},
       priceRangeMin: 0,
       priceRangeMax: 1000,
-      ageRangeMin: 18,
-      ageRangeMax: 65,
+      ageRangeMin: 0,
+      ageRangeMax: 18,
       priority: 500,
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -723,8 +723,8 @@ if (adData.slotId && slots.length > 0) {
 
   // Sync age range state with form values
   useEffect(() => {
-    const minAge = form.getValues('ageRangeMin') || 18;
-    const maxAge = form.getValues('ageRangeMax') || 65;
+    const minAge = form.getValues('ageRangeMin') || 0;
+    const maxAge = form.getValues('ageRangeMax') || 18;
     setAgeRange([minAge, maxAge]);
   }, [form.getValues('ageRangeMin'), form.getValues('ageRangeMax')]);
 
@@ -1793,9 +1793,9 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                         } else {
                           // If disabling master toggle, reset to defaults
                           form.setValue('gender', 'm', { shouldValidate: true });
-                          form.setValue('ageRangeMin', 18, { shouldValidate: true });
-                          form.setValue('ageRangeMax', 65, { shouldValidate: true });
-                          setAgeRange([18, 65]);
+                          form.setValue('ageRangeMin', 0, { shouldValidate: true });
+                          form.setValue('ageRangeMax', 18, { shouldValidate: true });
+                          setAgeRange([0, 18]);
                           setPriceRangeHighlighted(false);
 
                           // Reset no-specificity for all target sections
@@ -1876,7 +1876,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               handleAgeChange('ageRangeMin', min);
                               handleAgeChange('ageRangeMax', max);
                             }}
-                            min={13}
+                            min={0}
                             max={100}
                             step={1}
                             className="w-full"
