@@ -62,6 +62,12 @@ export interface CreateAdData {
   isTestPhase: number;
   serveStrategy: number;
   isModelType?: number;
+  couponCode?: string;
+  impressionCharge?: number;
+  clickCharge?: number;
+  minBid?: number;
+  maxBid?: number;
+  bidModel?: number;
 }
 
 export interface UpdateAdData {
@@ -92,6 +98,12 @@ export interface UpdateAdData {
   isTestPhase?: number;
   serveStrategy?: number;
   isModelType?: number;
+  couponCode?: string;
+  impressionCharge?: number;
+  clickCharge?: number;
+  minBid?: number;
+  maxBid?: number;
+  bidModel?: number;
 }
 
 class AdService {

@@ -58,6 +58,12 @@ export interface Ad {
   isTestPhase?: number;
   serveStrategy: number;
   isModelType?: number;
+  couponCode?: string;
+  impressionCharge?: number;
+  clickCharge?: number;
+  minBid?: number;
+  maxBid?: number;
+  bidModel?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -98,6 +104,12 @@ export interface ApiAd {
   isTestPhase: number;
   serveStrategy: number;
   isModelType: number;
+  couponCode?: string;
+  impressionCharge?: number;
+  clickCharge?: number;
+  minBid?: number;
+  maxBid?: number;
+  bidModel?: number;
   createdAt: string;
   updatedAt: string;
 }

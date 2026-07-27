@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2 } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { Badge } from '@/components/ui/badge';
@@ -363,6 +363,12 @@ export function AdDetail() {
           isTestPhase: ad.isTestPhase,
           serveStrategy: ad.serveStrategy,
           isModelType: ad.isModelType,
+          couponCode: ad.couponCode || '',
+          impressionCharge: ad.impressionCharge ?? 0,
+          clickCharge: ad.clickCharge ?? 0,
+          minBid: ad.minBid ?? 0,
+          maxBid: ad.maxBid ?? 0,
+          bidModel: ad.bidModel ?? 0,
         })
       });
 
@@ -662,6 +668,19 @@ export function AdDetail() {
               <div className="panel-inset flex items-center gap-2 border-[var(--line-violet)] p-3.5">
                 <span className="live-dot" />
                 <p className="text-[13px] font-medium text-[var(--text-1)]">This ad is in test phase</p>
+              </div>
+            )}
+
+            {/* Coupon Code — shown when serveStrategy=2 and couponCode is set */}
+            {ad.serveStrategy === 2 && ad.couponCode && (
+              <div className="panel-inset p-3.5 mt-3">
+                <div className="metric-label flex items-center gap-1.5">
+                  <Ticket className="h-3 w-3" />
+                  Coupon Code
+                </div>
+                <p className="mt-1.5 font-mono text-[13px] font-semibold text-[var(--text-1)]">
+                  {ad.couponCode}
+                </p>
               </div>
             )}
           </div>
@@ -977,6 +996,31 @@ export function AdDetail() {
               </div>
             );
           })()}
+        </div>
+      </SectionPanel>
+
+      {/* Billing & Bidding */}
+      <SectionPanel
+        icon={<IndianRupee className="h-3.5 w-3.5" />}
+        title="Billing & Bidding"
+        delay={0.24}
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Impression Charge">
+            {ad.impressionCharge != null ? `₹{Number(ad.impressionCharge).toFixed(2)}` : '—'}
+          </Field>
+          <Field label="Click Charge">
+            {ad.clickCharge != null ? `₹{Number(ad.clickCharge).toFixed(2)}` : '—'}
+          </Field>
+          <Field label="Min Bid">
+            {ad.minBid != null ? `₹{Number(ad.minBid).toFixed(2)}` : '—'}
+          </Field>
+          <Field label="Max Bid">
+            {ad.maxBid != null ? `₹{Number(ad.maxBid).toFixed(2)}` : '—'}
+          </Field>
+          <Field label="Bid Model">
+            {ad.bidModel ?? '—'}
+          </Field>
         </div>
       </SectionPanel>
 

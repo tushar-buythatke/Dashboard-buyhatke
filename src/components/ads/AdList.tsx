@@ -418,6 +418,12 @@ export function AdList() {
           isTestPhase: adToUpdate.isTestPhase,
           serveStrategy: adToUpdate.serveStrategy,
           isModelType: adToUpdate.isModelType,
+          couponCode: adToUpdate.couponCode || '',
+          impressionCharge: adToUpdate.impressionCharge ?? 0,
+          clickCharge: adToUpdate.clickCharge ?? 0,
+          minBid: adToUpdate.minBid ?? 0,
+          maxBid: adToUpdate.maxBid ?? 0,
+          bidModel: adToUpdate.bidModel ?? 0,
         })
       });
 
