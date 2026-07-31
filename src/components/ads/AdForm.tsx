@@ -248,6 +248,16 @@ const toFormGender = (raw: unknown): string => {
   return 'u'; // u, na, '', other, or anything unrecognized → unrestricted
 };
 
+// Convert the form's u/m/f to the shape each API version expects on write:
+// V2 stores u/m/f; V1 uses the legacy Male / Female / NA (NA = all genders).
+const toApiGender = (raw: unknown): string => {
+  const g = toFormGender(raw);
+  if (isV2Active()) return g;
+  if (g === 'm') return 'Male';
+  if (g === 'f') return 'Female';
+  return 'NA';
+};
+
 // serveStrategy (guide §7): the five real ad types and what each does when served.
 const SERVE_STRATEGIES = [
   { value: 0, label: 'Banner', icon: ImageIcon, tone: 'violet', desc: 'Creative + landing URL only. No product list.' },
@@ -869,7 +879,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
       const body = {
         ...restData,
         slotId: outgoingSlotId,
-        gender: toFormGender(data.gender), // guarantee u/m/f — API rejects anything else on create
+        gender: toApiGender(data.gender), // V2 → u/m/f; V1 → Male/Female/NA
         categories: transformedCategories,
         campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
