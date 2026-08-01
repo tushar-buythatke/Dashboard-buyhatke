@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X, Target, Activity, Zap, Star, Sparkles, Archive, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Plus, Play, Pause, Edit, Copy, MoreHorizontal, Image as ImageIcon, ArrowLeft, RefreshCw, Download, TrendingUp, Eye, MousePointerClick, Search, X, AlertTriangle, Zap, Archive, Filter, Rows3 } from 'lucide-react';
 import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
-import { MetricCard } from '@/components/ui/metric-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { toast } from 'sonner';
 import { Ad, Slot, SlotListResponse, ApiAd, mapApiAdToAd } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { analyticsService } from '@/services/analyticsService';
@@ -24,6 +22,8 @@ import { formatCount } from '@/lib/format';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useCountUp } from '@/hooks/useCountUp';
 
 // Placeholder image URL
 const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg';
@@ -40,6 +40,27 @@ const statusMap = {
   1: { label: 'Live', variant: 'success' as const },
   '-1': { label: 'Archived', variant: 'destructive' as const },
 } as const;
+
+/** A compact stat inside the inline stat-bar row. */
+function StatItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-4">
+      <span className="halo-chip h-9 w-9 rounded-[10px]">{icon}</span>
+      <div className="min-w-0">
+        <p className="truncate text-[12.5px] font-medium text-[var(--h-ink-2)]">{label}</p>
+        <p className="num mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--h-ink)]">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 export function AdList() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -485,24 +506,24 @@ export function AdList() {
   // Mobile Ad Card Component
   const AdCard = ({ ad, index }: { ad: Ad; index: number }) => {
     const isVideo = ad.creativeUrl && (/\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video'));
+    const spotlight = useSpotlight();
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
+      <div
         onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-        className="velvet-surface rounded-xl p-4 hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99] cursor-pointer group"
+        className="halo-card halo-card-interactive halo-spotlight halo-rise p-4"
+        style={{ '--i': Math.min(index, 10) } as React.CSSProperties}
+        {...spotlight}
       >
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
           {/* Creative */}
           <div className="flex-shrink-0 self-center lg:self-auto">
-            <div className="h-16 w-20 flex items-center justify-center overflow-hidden bg-[var(--bg-panel-2)] rounded-lg border border-[var(--line)] shadow-[var(--shadow-1)] group-hover:border-[var(--line-violet)] group-hover:shadow-[var(--shadow-2)] transition-all duration-200">
+            <div className="h-16 w-20 flex items-center justify-center overflow-hidden halo-inset">
               {ad.creativeUrl ? (
                 isVideo ? (
                   <video
                     src={getCacheBustedUrl(ad.creativeUrl)}
-                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
                     muted
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -510,7 +531,7 @@ export function AdList() {
                   <img
                     src={getCacheBustedUrl(ad.creativeUrl)}
                     alt="Ad creative"
-                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       if (!target.dataset.fallback) {
@@ -521,9 +542,9 @@ export function AdList() {
                   />
                 )
               ) : (
-                <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-                  <ImageIcon className="h-4 w-4 mb-1" />
-                  <span className="text-xs font-medium">No Media</span>
+                <div className="flex flex-col items-center justify-center text-[var(--h-ink-3)]">
+                  <ImageIcon className="h-4 w-4 mb-1" strokeWidth={1.75} />
+                  <span className="text-xs font-medium">No media</span>
                 </div>
               )}
             </div>
@@ -533,36 +554,33 @@ export function AdList() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
+                <div className="flex items-center gap-2 mb-1">
                   <StatusPill
                     status={ad.status === 1 ? 'live' : ad.status === 0 ? 'paused' : ad.status === -1 ? 'archived' : 'muted'}
                     label={ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
                     size="sm"
                   />
                   {ad.slotName && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-                      {ad.slotName}
-                    </span>
+                    <span className="halo-badge">{ad.slotName}</span>
                   )}
                 </div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                <div className="text-sm font-semibold text-[var(--h-ink)] mb-1">
                   {ad.name}
                 </div>
                 {ad.slotWidth && ad.slotHeight && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                  <p className="text-xs text-[var(--h-ink-3)] num">
                     {Math.round(Number(ad.slotWidth))} × {Math.round(Number(ad.slotHeight))} px
                   </p>
                 )}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  <button
+                    className="btn-halo-ghost btn-halo-icon btn-halo-sm"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  </Button>
+                    <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
@@ -571,8 +589,8 @@ export function AdList() {
                       navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
                     }}
                   >
-                    <Eye className="mr-2 h-4 w-4 text-indigo-600" />
-                    <span>View Details</span>
+                    <Eye className="mr-2 h-4 w-4 text-[var(--h-iris-600)]" strokeWidth={1.75} />
+                    <span>View details</span>
                   </DropdownMenuItem>
                   {canEdit && (
                     <>
@@ -582,7 +600,7 @@ export function AdList() {
                           navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
                         }}
                       >
-                        <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                        <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
                         <span>Edit</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -591,7 +609,7 @@ export function AdList() {
                           handleCloneAd(ad.adId);
                         }}
                       >
-                        <Copy className="mr-2 h-4 w-4 text-purple-600" />
+                        <Copy className="mr-2 h-4 w-4" strokeWidth={1.75} />
                         <span>Clone</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -599,9 +617,9 @@ export function AdList() {
                           e.stopPropagation();
                           handleArchiveAd(ad.adId);
                         }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-[var(--h-coral)] focus:text-[var(--h-coral)] focus:bg-[var(--h-neg-soft)]"
                       >
-                        <Archive className="mr-2 h-4 w-4" />
+                        <Archive className="mr-2 h-4 w-4" strokeWidth={1.75} />
                         <span>Archive</span>
                       </DropdownMenuItem>
                       {ad.status === 1 ? (
@@ -611,7 +629,7 @@ export function AdList() {
                             handleStatusChange(ad.adId, 0);
                           }}
                         >
-                          <Pause className="mr-2 h-4 w-4 text-orange-600" />
+                          <Pause className="mr-2 h-4 w-4 text-[var(--h-amber)]" strokeWidth={1.75} />
                           <span>Pause</span>
                         </DropdownMenuItem>
                       ) : (
@@ -621,7 +639,7 @@ export function AdList() {
                             handleStatusChange(ad.adId, 1);
                           }}
                         >
-                          <Play className="mr-2 h-4 w-4 text-green-600" />
+                          <Play className="mr-2 h-4 w-4 text-[var(--h-mint)]" strokeWidth={1.75} />
                           <span>Activate</span>
                         </DropdownMenuItem>
                       )}
@@ -632,97 +650,103 @@ export function AdList() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-3 mt-3">
+            <div className="grid grid-cols-4 gap-2 mt-3">
               {/* Target Metrics */}
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Impr.</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Target impr.</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)] num">
                   {formatCount(ad.impressionTarget)}
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Clicks</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Target clicks</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)] num">
                   {formatCount(ad.clickTarget)}
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target CTR</div>
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Target CTR</div>
+                <div className="text-sm font-semibold text-[var(--h-iris-600)] num">
                   {ad.impressionTarget > 0 ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2) : '0.00'}%
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Landing</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Target landing</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)]">
                   —
                 </div>
               </div>
 
               {/* Live Metrics */}
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Impr.</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Live impr.</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)] num">
                   {formatCount(adMetrics[ad.adId]?.impressions)}
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Clicks</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Live clicks</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)] num">
                   {formatCount(adMetrics[ad.adId]?.clicks)}
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live CTR</div>
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Live CTR</div>
+                <div className="text-sm font-semibold text-[var(--h-iris-600)] num">
                   {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
                     ? ((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(2) + '%'
                     : '0.0%'}
                 </div>
               </div>
-              <div className="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Live Landing</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-center p-2 halo-inset">
+                <div className="text-[10px] text-[var(--h-ink-3)] mb-1">Live landing</div>
+                <div className="text-sm font-semibold text-[var(--h-ink)] num">
                   {formatCount(adMetrics[ad.adId]?.landingCount)}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="halo-page">
+        <div className="space-y-5">
+          <div className="halo-skeleton h-16 rounded-[var(--h-r-lg)]" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="halo-skeleton h-20 rounded-[var(--h-r-card)]" />
+            ))}
+          </div>
+          <div className="halo-skeleton h-96 rounded-[var(--h-r-card)]" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+      <div className="halo-page">
+        <div className="halo-card p-5 flex items-center gap-3" role="alert">
+          <span className="halo-chip" style={{ background: 'var(--h-neg-soft)', color: 'var(--h-coral)' }}>
+            <AlertTriangle size={16} strokeWidth={1.75} />
+          </span>
+          <div>
+            <p className="halo-heading text-[var(--h-coral)]">Error</p>
+            <p className="halo-subtitle">{error}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-slate-800 dark:to-gray-900 transition-all duration-300 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-blue-400/10 to-indigo-400/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-green-400/5 to-cyan-400/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 pt-2 space-y-6 relative z-10">
-        {/* Enhanced Header Section */}
+    <div className="halo-page">
+      <div className="space-y-5">
+        {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -733,136 +757,89 @@ export function AdList() {
             type="button"
             onClick={() => navigate('/campaigns')}
             aria-label="Back to campaigns"
-            className="group inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-3)] hover:text-[var(--indigo-500)] transition-colors duration-200"
+            className="group inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-iris-500)] transition-colors duration-200"
           >
-            <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" strokeWidth={1.75} />
             Campaigns
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-              <h1 className="page-display">
-                <span className="velvet-header-gradient">{campaign?.brandName || 'Campaign'}</span>
-              </h1>
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">
-                <span className="font-semibold tabular-nums">{totalAds}</span> total
-                <span className="mx-1.5 text-[var(--text-3)]">·</span>
-                <span className="font-semibold tabular-nums text-emerald-600">{activeAds}</span> live
+              <p className="halo-eyebrow">Ads</p>
+              <h1 className="halo-title mt-1">{campaign?.brandName || 'Campaign'}</h1>
+              <p className="mt-1.5 halo-subtitle">
+                <span className="font-semibold num text-[var(--h-ink-2)]">{totalAds}</span> total
+                <span className="mx-1.5 text-[var(--h-ink-3)]">·</span>
+                <span className="font-semibold num text-[var(--h-mint)]">{activeAds}</span> live
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchAds}
-                className="h-8 gap-1.5 text-[12px] text-[var(--text-2)]"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2">
+              <button onClick={fetchAds} className="btn-halo-ghost btn-halo-sm">
+                <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Refresh
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleExport}
-                className="h-8 gap-1.5 text-[12px] text-[var(--text-2)]"
-              >
-                <Download className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={handleExport} className="btn-halo-ghost btn-halo-sm">
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Export
-              </Button>
+              </button>
               {canEdit && (
-                <Button
-                  size="sm"
+                <button
                   onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
-                  className="btn-velvet h-8 gap-1.5 px-3 text-[12px]"
+                  className="btn-halo btn-halo-sm"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create Ad
-                </Button>
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Create ad
+                </button>
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* Performance overview */}
-        <div className="space-y-3">
-          <h2 className="velvet-section-title">Performance overview</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            <MetricCard
-              label="Total Ads"
-              value={totalAds}
-              tone="violet"
-              icon={<TrendingUp className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Active Ads"
-              value={activeAds}
-              tone="accent"
-              icon={<Play className="h-4 w-4" />}
-            />
-            <div className="metric-card relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-pink-500 to-rose-500" />
-              <div className="relative z-[1]">
-                <div className="metric-label flex items-center gap-1.5">
-                  <Eye className="h-3 w-3 text-pink-500" />
-                  Impressions
-                </div>
-                <div className="space-y-1 mt-1.5">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
-                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{formatCount(totalTargetImpressions)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
-                    <span className="text-[13px] font-semibold tabular-nums text-emerald-600">{formatCount(totalLiveImpressions)}</span>
-                  </div>
-                </div>
+        {/* Performance overview — one vivid hero + a compact stat bar, not six cloned cards.
+            The hero's color follows performance: green once ads are hitting target,
+            iris while there isn't enough data to judge yet, red when falling well short. */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-5 items-stretch">
+          <div
+            className={`halo-mesh ${
+              totalTargetImpressions === 0 || totalLiveImpressions === 0
+                ? 'halo-mesh-iris'
+                : liveCTR >= targetCTR
+                ? 'halo-mesh-mint'
+                : liveCTR >= targetCTR / 2
+                ? 'halo-mesh-iris'
+                : 'halo-mesh-coral'
+            } halo-rise relative flex flex-col justify-between overflow-hidden rounded-[var(--h-r-card)] p-5 lg:col-span-2`}
+            style={{ '--i': 0 } as React.CSSProperties}
+          >
+            <div className="halo-mesh-grain" aria-hidden="true" />
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-medium text-white/75">Live impressions</span>
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold">
+                {totalTargetImpressions > 0 ? Math.min(100, Math.round((totalLiveImpressions / totalTargetImpressions) * 100)) : 0}% of target
+              </span>
+            </div>
+            <div>
+              <p className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.03em]">
+                {formatCount(totalLiveImpressions)}
+              </p>
+              <p className="mt-1.5 text-[12.5px] text-white/60">
+                of {formatCount(totalTargetImpressions)} targeted · {liveCTR.toFixed(2)}% CTR vs {targetCTR.toFixed(2)}% target
+              </p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-white/80"
+                  style={{ width: `${totalTargetImpressions > 0 ? Math.min(100, (totalLiveImpressions / totalTargetImpressions) * 100) : 0}%` }}
+                />
               </div>
             </div>
-            <div className="metric-card relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 to-purple-500" />
-              <div className="relative z-[1]">
-                <div className="metric-label flex items-center gap-1.5">
-                  <MousePointerClick className="h-3 w-3 text-violet-500" />
-                  Clicks
-                </div>
-                <div className="space-y-1 mt-1.5">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
-                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{formatCount(totalTargetClicks)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
-                    <span className="text-[13px] font-semibold tabular-nums text-emerald-600">{formatCount(totalLiveClicks)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="metric-card relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500 to-orange-500" />
-              <div className="relative z-[1]">
-                <div className="metric-label flex items-center gap-1.5">
-                  <TrendingUp className="h-3 w-3 text-amber-500" />
-                  CTR
-                </div>
-                <div className="space-y-1 mt-1.5">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Target</span>
-                    <span className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">{targetCTR.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-3)]">Live</span>
-                    <span className={`text-[13px] font-semibold tabular-nums ${liveCTR >= targetCTR ? 'text-emerald-600' : 'text-amber-600'}`}>{liveCTR.toFixed(2)}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <MetricCard
-              label="Landing"
-              value={totalLiveLandingCount}
-              tone="plum"
-              icon={<Zap className="h-4 w-4" />}
-            />
+          </div>
+
+          <div className="halo-card halo-rise grid grid-cols-2 content-center divide-y divide-[var(--h-line)] sm:grid-cols-4 sm:divide-y-0 sm:divide-x sm:divide-[var(--h-line)] lg:col-span-3" style={{ '--i': 1 } as React.CSSProperties}>
+            <StatItem label="Total ads" value={formatCount(totalAds)} icon={<TrendingUp className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Active ads" value={formatCount(activeAds)} icon={<Play className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Live clicks" value={formatCount(totalLiveClicks)} icon={<MousePointerClick className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Live landings" value={formatCount(totalLiveLandingCount)} icon={<Zap className="h-4 w-4" strokeWidth={2} />} />
           </div>
         </div>
 
@@ -870,33 +847,33 @@ export function AdList() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col sm:flex-row sm:items-center gap-3"
+          transition={{ duration: 0.3, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          className="halo-glass rounded-[var(--h-r-lg)] p-3 sticky top-0 z-10 flex flex-col sm:flex-row sm:items-center gap-3"
         >
           <div className="relative flex-1 sm:max-w-md">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-3)]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--h-ink-3)] pointer-events-none" strokeWidth={1.75} />
             <Input
-              placeholder="Search ads by name..."
-              className="pl-8 h-9 border-[var(--line)] bg-[var(--bg-panel)] text-[12.5px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+              placeholder="Search ads by name…"
+              className="halo-field halo-search h-9 text-[12.5px]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center">
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-[var(--text-3)] hover:text-[var(--indigo-500)] hover:bg-[var(--bg-tint)] rounded-full p-1 transition-all duration-200"
+                  className="btn-halo-ghost btn-halo-icon btn-halo-sm"
                 >
                   <span className="sr-only">Clear search</span>
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </button>
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[var(--text-3)]" />
+            <Filter className="h-4 w-4 text-[var(--h-ink-3)]" strokeWidth={1.75} />
             <Select
               value={statusFilter}
               onValueChange={(value) => {
@@ -909,7 +886,7 @@ export function AdList() {
                 setSearchParams(newSearchParams);
               }}
             >
-              <SelectTrigger className="w-40 h-9 bg-[var(--bg-panel)] border-[var(--line)] text-[12.5px] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]">
+              <SelectTrigger className="halo-field w-40 h-9 text-[12.5px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -923,7 +900,7 @@ export function AdList() {
           </div>
 
           {(searchQuery || statusFilter !== 'all') && (
-            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-3)]">
+            <span className="halo-badge halo-badge-iris">
               {filteredAds.length} {filteredAds.length === 1 ? 'result' : 'results'}
             </span>
           )}
@@ -933,15 +910,20 @@ export function AdList() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-3 px-4 bg-amber-50/80 dark:bg-amber-900/20 rounded-xl border border-amber-200/80 dark:border-amber-700/50"
+            className="halo-card p-4 flex items-start gap-3"
           >
-            <div className="text-amber-700 dark:text-amber-300 font-medium text-sm">
-              No ads found {searchQuery && `matching "${searchQuery}"`}
-              {statusFilter !== 'all' && ` with status "${statusOptions.find(opt => opt.value === statusFilter)?.label}"`}
+            <span className="halo-chip" style={{ background: 'var(--h-warn-soft)', color: 'var(--h-amber)' }}>
+              <Filter size={16} strokeWidth={1.75} />
+            </span>
+            <div>
+              <div className="text-[var(--h-ink)] font-medium text-sm">
+                No ads found {searchQuery && `matching "${searchQuery}"`}
+                {statusFilter !== 'all' && ` with status "${statusOptions.find(opt => opt.value === statusFilter)?.label}"`}
+              </div>
+              <p className="halo-subtitle mt-0.5">
+                Try adjusting your filters or create a new ad
+              </p>
             </div>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-              Try adjusting your filters or create a new ad
-            </p>
           </motion.div>
         )}
 
@@ -949,64 +931,85 @@ export function AdList() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
         >
-          {/* Enhanced Desktop Table View */}
-          <div className="hidden lg:block velvet-surface overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table className="min-w-full">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block halo-card overflow-hidden">
+            <div className="halo-panel-head halo-panel-head-mesh">
+              <div className="halo-mesh-grain" aria-hidden="true" />
+              <div className="halo-panel-head-title">
+                <span className="halo-chip"><Rows3 size={16} strokeWidth={1.75} /></span>
+                <h3 className="halo-heading">Ad list</h3>
+              </div>
+              <span className="halo-badge num">{filteredAds.length} ads</span>
+            </div>
+            <div className="halo-scroll-x">
+              <Table className="halo-table min-w-full">
                 <TableHeader>
-                  <TableRow className="border-b border-[var(--line)] hover:bg-transparent bg-[var(--bg-panel-2)]">
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[100px] px-4">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[100px] px-4">
                       Creative
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] px-3">
+                    <TableHead className="w-[120px]">
                       Status
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[180px] px-3">
+                    <TableHead className="w-[180px]">
                       Name
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[140px] px-3">
+                    <TableHead className="w-[140px]">
                       Slot
                     </TableHead>
                     {/* Target group */}
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
-                      Target Impr.
+                    <TableHead className="col-num w-[120px]">
+                      Target impr.
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
-                      Target Clicks
+                    <TableHead className="col-num w-[120px]">
+                      Target clicks
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[110px] text-center px-3">
+                    <TableHead className="w-[110px] text-center">
                       Target CTR
                     </TableHead>
                     {/* Live group */}
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
-                      Live Impr.
+                    <TableHead className="col-num w-[120px]">
+                      Live impr.
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
-                      Live Clicks
+                    <TableHead className="col-num w-[120px]">
+                      Live clicks
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[110px] text-center px-3">
+                    <TableHead className="w-[110px] text-center">
                       Live CTR
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[120px] text-right px-3">
-                      Live Landing
+                    <TableHead className="col-num w-[120px]">
+                      Live landing
                     </TableHead>
-                    <TableHead className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-3)] w-[80px] text-center px-3">
+                    <TableHead className="w-[80px] text-center">
                       Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAds.length === 0 ? (
-                    <TableRow>
+                    <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={12} className="h-32 text-center">
-                        <div className="text-gray-500 dark:text-gray-400 p-6">
-                          <span className="font-medium text-lg">
+                        <div className="flex flex-col items-center justify-center gap-2 py-6">
+                          <span className="halo-chip-lg"><ImageIcon size={20} strokeWidth={1.75} /></span>
+                          <span className="halo-heading">
                             {searchQuery
                               ? `No ads found matching "${searchQuery}"`
-                              : "No ads found. Create your first ad to get started."}
+                              : 'No ads yet'}
                           </span>
+                          <p className="halo-subtitle">
+                            {searchQuery ? 'Try a different search term' : 'Create your first ad to get started'}
+                          </p>
+                          {!searchQuery && canEdit && (
+                            <button
+                              onClick={() => navigate(`/campaigns/${campaignId}/ads/new`)}
+                              className="btn-halo btn-halo-sm mt-2"
+                            >
+                              <Plus size={14} strokeWidth={1.75} />
+                              Create ad
+                            </button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1028,19 +1031,15 @@ export function AdList() {
                             backgroundColor: theme === 'dark' ? 'rgba(99, 76, 230, 0.08)' : 'rgba(99, 76, 230, 0.04)'
                           }}
                           onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}`)}
-                          className="group velvet-row-hover transition-colors duration-150 border-[var(--line)] cursor-pointer"
+                          className="group cursor-pointer"
                         >
                           <TableCell className="p-3">
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                              className="h-14 w-20 flex items-center justify-center overflow-hidden bg-[var(--bg-panel-2)] rounded-lg border border-[var(--line)] shadow-[var(--shadow-1)] group-hover:border-[var(--line-violet)] group-hover:shadow-[var(--shadow-2)] transition-all duration-200"
-                            >
+                            <div className="h-14 w-20 flex items-center justify-center overflow-hidden halo-inset">
                               {ad.creativeUrl ? (
                                 isVideo ? (
                                   <video
                                     src={getCacheBustedUrl(ad.creativeUrl)}
-                                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
+                                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
                                     muted
                                     onClick={(e) => e.stopPropagation()}
                                   />
@@ -1048,7 +1047,7 @@ export function AdList() {
                                   <img
                                     src={getCacheBustedUrl(ad.creativeUrl)}
                                     alt="Ad creative"
-                                    className="h-full w-full object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
+                                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       if (!target.dataset.fallback) {
@@ -1059,29 +1058,31 @@ export function AdList() {
                                   />
                                 )
                               ) : (
-                                <div className="flex flex-col items-center justify-center text-[var(--text-3)]">
-                                  <ImageIcon className="h-4 w-4 mb-1" />
-                                  <span className="text-[10px] font-semibold">No Media</span>
+                                <div className="flex flex-col items-center justify-center text-[var(--h-ink-3)]">
+                                  <ImageIcon className="h-4 w-4 mb-1" strokeWidth={1.75} />
+                                  <span className="text-[10px] font-semibold">No media</span>
                                 </div>
                               )}
-                            </motion.div>
+                            </div>
                           </TableCell>
                           <TableCell className="p-3">
-                            <StatusPill
-                              status={ad.status === 1 ? 'live' : ad.status === 0 ? 'paused' : ad.status === -1 ? 'archived' : 'muted'}
-                              label={ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
-                              size="sm"
-                            />
+                            <span className="inline-flex items-center gap-1.5">
+                              <StatusPill
+                                status={ad.status === 1 ? 'live' : ad.status === 0 ? 'paused' : ad.status === -1 ? 'archived' : 'muted'}
+                                label={ad.status === 1 ? 'Live' : ad.status === 0 ? 'Paused' : ad.status === -1 ? 'Archived' : 'Unknown'}
+                                size="sm"
+                              />
+                            </span>
                           </TableCell>
-                          <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
-                            <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors">{ad.name}</span>
+                          <TableCell className="p-3">
+                            <span className="text-[13px] font-semibold tracking-[-0.005em] text-[var(--h-ink)] truncate max-w-32 group-hover:text-[var(--h-iris-600)] transition-colors">{ad.name}</span>
                           </TableCell>
-                          <TableCell className="text-slate-700 dark:text-slate-300 font-semibold p-3">
+                          <TableCell className="p-3">
                             {ad.slotName && (
                               <div className="flex flex-col space-y-1">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="text-[13px] font-semibold tracking-[-0.005em] truncate max-w-32 group-hover:text-[var(--indigo-500)] transition-colors cursor-help">{ad.slotName}</span>
+                                    <span className="text-[13px] font-semibold tracking-[-0.005em] text-[var(--h-ink-2)] truncate max-w-32 group-hover:text-[var(--h-iris-600)] transition-colors cursor-help">{ad.slotName}</span>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="max-w-none">
                                     <div className="flex flex-col gap-1">
@@ -1094,74 +1095,65 @@ export function AdList() {
                                   </TooltipContent>
                                 </Tooltip>
                                 {ad.slotWidth && ad.slotHeight && (
-                                  <span className="w-fit self-start text-[10.5px] text-[var(--text-3)] bg-[var(--bg-panel-2)] border border-[var(--line)] px-2 py-0.5 rounded-md font-medium tabular-nums whitespace-nowrap">
+                                  <span className="w-fit self-start halo-badge num whitespace-nowrap">
                                     {Math.round(Number(ad.slotWidth))} × {Math.round(Number(ad.slotHeight))} px
                                   </span>
                                 )}
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
+                          <TableCell className="col-num p-3">
                             {formatCount(ad.impressionTarget)}
                           </TableCell>
-                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
+                          <TableCell className="col-num p-3">
                             {formatCount(ad.clickTarget)}
                           </TableCell>
                           <TableCell className="text-center p-3">
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              transition={{ type: "spring", stiffness: 400 }}
-                            >
-                              <span className="bg-[var(--bg-tint)] text-[var(--indigo-500)] px-2 py-0.5 rounded-md text-[10.5px] font-semibold border border-[var(--line-violet)]">
-                                {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2)}%` : '0.00%'}
-                              </span>
-                            </motion.div>
+                            <span className="halo-badge halo-badge-iris num">
+                              {ad.impressionTarget > 0 ? `${((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2)}%` : '0.00%'}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
+                          <TableCell className="col-num p-3">
                             {formatCount(adMetrics[ad.adId]?.impressions)}
                           </TableCell>
-                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
+                          <TableCell className="col-num p-3">
                             {formatCount(adMetrics[ad.adId]?.clicks)}
                           </TableCell>
                           <TableCell className="text-center p-3">
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              transition={{ type: "spring", stiffness: 400 }}
-                            >
-                              <span className="bg-[var(--bg-tint)] text-[var(--indigo-500)] px-2 py-0.5 rounded-md text-[10.5px] font-semibold tabular-nums border border-[var(--line-violet)]">
-                                {adMetrics[ad.adId] && adMetrics[ad.adId].impressions > 0
-                                  ? `${((adMetrics[ad.adId].clicks / adMetrics[ad.adId].impressions) * 100).toFixed(2)}%`
-                                  : '0.00%'}
-                              </span>
-                            </motion.div>
+                            {(() => {
+                              const targetCtrPct = ad.impressionTarget > 0 ? (ad.clickTarget / ad.impressionTarget) * 100 : 0;
+                              const liveImpr = adMetrics[ad.adId]?.impressions ?? 0;
+                              const liveCtrPct = liveImpr > 0 ? ((adMetrics[ad.adId]?.clicks ?? 0) / liveImpr) * 100 : 0;
+                              const tone = liveImpr === 0 ? '' : liveCtrPct >= targetCtrPct ? 'halo-badge-pos' : liveCtrPct >= targetCtrPct / 2 ? 'halo-badge-warn' : 'halo-badge-neg';
+                              return (
+                                <span className={`halo-badge num ${tone}`}>
+                                  {liveCtrPct.toFixed(2)}%
+                                </span>
+                              );
+                            })()}
                           </TableCell>
-                          <TableCell className="text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right p-3">
+                          <TableCell className="col-num p-3">
                             {formatCount(adMetrics[ad.adId]?.landingCount)}
                           </TableCell>
-                          <TableCell className="text-center p-3">
+                          <TableCell className="text-center p-3" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <div>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                  </Button>
-                                </div>
+                                <button
+                                  className="btn-halo-ghost btn-halo-icon btn-halo-sm opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity"
+                                >
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+                                </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                              <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     navigate(`/campaigns/${campaignId}/ads/${ad.adId}`);
                                   }}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                  <Eye className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                  <span className="text-gray-700 dark:text-gray-300 font-medium">View Details</span>
+                                  <Eye className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                                  <span>View details</span>
                                 </DropdownMenuItem>
                                 {canEdit && (
                                   <>
@@ -1170,30 +1162,28 @@ export function AdList() {
                                         e.stopPropagation();
                                         navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`);
                                       }}
-                                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                     >
-                                      <Edit className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                      <span className="text-gray-700 dark:text-gray-300 font-medium">Edit</span>
+                                      <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                                      <span>Edit</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleCloneAd(ad.adId);
                                       }}
-                                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                     >
-                                      <Copy className="mr-2 h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                      <span className="text-gray-700 dark:text-gray-300 font-medium">Clone</span>
+                                      <Copy className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                                      <span>Clone</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleArchiveAd(ad.adId);
                                       }}
-                                      className="hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                                      className="text-[var(--h-coral)] focus:text-[var(--h-coral)] focus:bg-[var(--h-neg-soft)]"
                                     >
-                                      <Archive className="mr-2 h-4 w-4" />
-                                      <span className="font-medium">Archive</span>
+                                      <Archive className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                                      <span>Archive</span>
                                     </DropdownMenuItem>
                                     {ad.status === 1 ? (
                                       <DropdownMenuItem
@@ -1201,10 +1191,9 @@ export function AdList() {
                                           e.stopPropagation();
                                           handleStatusChange(ad.adId, 0);
                                         }}
-                                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >
-                                        <Pause className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
-                                        <span className="text-gray-700 dark:text-gray-300 font-medium">Pause</span>
+                                        <Pause className="mr-2 h-4 w-4 text-[var(--h-amber)]" strokeWidth={1.75} />
+                                        <span>Pause</span>
                                       </DropdownMenuItem>
                                     ) : (
                                       <DropdownMenuItem
@@ -1212,10 +1201,9 @@ export function AdList() {
                                           e.stopPropagation();
                                           handleStatusChange(ad.adId, 1);
                                         }}
-                                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                       >
-                                        <Play className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                                        <span className="text-gray-700 dark:text-gray-300 font-medium">Activate</span>
+                                        <Play className="mr-2 h-4 w-4 text-[var(--h-mint)]" strokeWidth={1.75} />
+                                        <span>Activate</span>
                                       </DropdownMenuItem>
                                     )}
                                   </>
@@ -1233,16 +1221,18 @@ export function AdList() {
           </div>
 
           {/* Mobile Card View */}
-          <div className="lg:hidden space-y-4">
+          <div className="lg:hidden space-y-3">
             {filteredAds.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
-                  <span className="font-medium">
-                    {searchQuery
-                      ? `No ads found matching "${searchQuery}"`
-                      : "No ads found. Create your first ad to get started."}
-                  </span>
-                </div>
+              <div className="halo-card text-center py-12">
+                <span className="halo-chip-lg mx-auto"><ImageIcon size={20} strokeWidth={1.75} /></span>
+                <p className="halo-heading mt-3">
+                  {searchQuery
+                    ? `No ads found matching "${searchQuery}"`
+                    : 'No ads yet'}
+                </p>
+                <p className="halo-subtitle mt-1">
+                  {searchQuery ? 'Try a different search term' : 'Create your first ad to get started'}
+                </p>
               </div>
             ) : (
               filteredAds.map((ad, index) => (
@@ -1258,7 +1248,7 @@ export function AdList() {
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal({ isOpen: false })}
         onConfirm={confirmArchiveAd}
-        title="Archive Ad"
+        title="Archive ad"
         message="Are you sure you want to archive this ad? This action cannot be undone."
         itemName={confirmationModal.adName}
         itemType="ad"

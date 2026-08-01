@@ -1,4 +1,4 @@
-import { Filter, X, Calendar, Users, Monitor, ChevronDown } from 'lucide-react';
+import { Filter, X, Calendar, Users, Monitor, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useFilters } from '@/context/FilterContext';
@@ -8,6 +8,27 @@ import { PLATFORM_OPTIONS } from '@/utils/platform';
 
 const genderOptions = ['Male', 'Female'];
 const platforms = PLATFORM_OPTIONS.map(p => p.label);
+
+function CheckboxRow({
+  label, checked, onChange,
+}: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-[var(--h-tint)] transition-colors">
+      <span
+        className="flex h-4 w-4 items-center justify-center rounded flex-shrink-0 transition-colors"
+        style={{
+          background: checked ? 'var(--h-iris-500)' : 'transparent',
+          border: checked ? 'none' : '1px solid var(--h-line-2)',
+        }}
+        onClick={(e) => { e.preventDefault(); onChange(!checked); }}
+      >
+        {checked && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+      </span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+      <span className="text-sm text-[var(--h-ink-2)] truncate">{label}</span>
+    </label>
+  );
+}
 
 export function FilterDropdown() {
   const { filters, updateFilters, resetFilters } = useFilters();
@@ -23,12 +44,15 @@ export function FilterDropdown() {
 
   const handleFilterChange = (filterType: keyof typeof filters, value: string, checked: boolean) => {
     const currentValues = filters[filterType] as string[];
-    const newValues = checked 
+    const newValues = checked
       ? [...currentValues, value]
       : currentValues.filter(v => v !== value);
-    
+
     updateFilters({ [filterType]: newValues });
   };
+
+  const activeCount =
+    filters.campaigns.length + filters.platforms.length + filters.gender.length;
 
   return (
     <DropdownMenu>
@@ -36,56 +60,54 @@ export function FilterDropdown() {
         <Button
           variant="outline"
           size="sm"
-          className="flex items-center justify-center space-x-2 h-9 sm:h-8"
+          className="rounded-[999px] border-0 bg-[var(--h-surface)] shadow-[var(--h-sh-1)] hover:shadow-[var(--h-sh-2)] flex items-center justify-center gap-2 h-9 sm:h-8"
         >
-          <Filter className="h-4 w-4" />
+          <Filter className="h-4 w-4 text-[var(--h-iris-600)]" strokeWidth={1.75} />
           <span className="text-sm">Filters</span>
-          <ChevronDown className="h-4 w-4" />
+          {activeCount > 0 && <span className="halo-badge halo-badge-iris">{activeCount}</span>}
+          <ChevronDown className="h-4 w-4" strokeWidth={1.75} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
-        className="w-96 max-h-96 overflow-y-auto p-4"
+      <DropdownMenuContent
+        align="end"
+        className="halo-card w-96 max-h-96 overflow-y-auto p-4 border-0"
+        style={{ boxShadow: 'var(--h-sh-3)' }}
         sideOffset={8}
       >
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-              <Filter className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-              Apply Filters
+            <h3 className="halo-heading flex items-center gap-2" style={{ fontSize: 15 }}>
+              <span className="halo-chip">
+                <Filter className="w-4 h-4" strokeWidth={1.75} />
+              </span>
+              Apply filters
             </h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <button
               onClick={resetFilters}
-              className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="btn-halo-ghost btn-halo-sm hover:text-[var(--h-coral)] hover:bg-[var(--h-neg-soft)]"
             >
-              <X className="w-4 h-4 mr-1" />
-              Clear All
-            </Button>
+              <X className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Clear all
+            </button>
           </div>
 
           {/* Filters Grid */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-5">
             {/* Date Range */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h4 className="font-medium text-gray-900 dark:text-white">Date Range</h4>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[var(--h-mint)]" strokeWidth={1.75} />
+                <h4 className="halo-label">Date range</h4>
               </div>
-              
+
               <div className="space-y-3">
                 {/* Period Type Toggle */}
-                <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <div className="halo-segment w-full">
                   {['Daily', 'Weekly', 'Monthly'].map((period) => (
                     <button
                       key={period}
-                      className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
-                        filters.periodType === period.toLowerCase()
-                          ? 'bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
+                      className={`halo-segment-item flex-1 ${filters.periodType === period.toLowerCase() ? 'is-active' : ''}`}
                       onClick={() => updateFilters({ periodType: period.toLowerCase() })}
                     >
                       {period}
@@ -100,7 +122,8 @@ export function FilterDropdown() {
                     const [from, to] = e.target.value.split('-');
                     updateFilters({ dateRange: { from, to } });
                   }}
-                  className="w-full text-sm h-8 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-md px-2"
+                  className="halo-field w-full"
+                  style={{ height: '2rem' }}
                 >
                   <option value={`${new Date().toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
                     Today
@@ -109,24 +132,24 @@ export function FilterDropdown() {
                     Yesterday
                   </option>
                   <option value={`${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                    Last 7 Days
+                    Last 7 days
                   </option>
                   <option value={`${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
-                    Previous 7 Days
+                    Previous 7 days
                   </option>
                   <option value={`${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                    Last 30 Days
+                    Last 30 days
                   </option>
                   <option value={`${new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`}>
-                    Previous 30 Days
+                    Previous 30 days
                   </option>
                   <option value={`${new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}-${new Date().toISOString().split('T')[0]}`}>
-                    Last 90 Days
+                    Last 90 days
                   </option>
                 </select>
 
                 {/* Selected Date Range Display */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border">
+                <div className="halo-inset text-xs text-[var(--h-ink-2)] px-2 py-1">
                   {new Date(filters.dateRange.from).toLocaleDateString()} - {new Date(filters.dateRange.to).toLocaleDateString()}
                 </div>
               </div>
@@ -134,108 +157,73 @@ export function FilterDropdown() {
 
             {/* Campaigns */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Monitor className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <h4 className="font-medium text-gray-900 dark:text-white">Campaigns</h4>
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-[var(--h-info)]" strokeWidth={1.75} />
+                <h4 className="halo-label">Campaigns</h4>
               </div>
-              
-              <div className="space-y-2 max-h-32 overflow-y-auto">
+
+              <div className="space-y-1 max-h-32 overflow-y-auto scrollbar-thin">
                 {campaigns.slice(0, 4).map((campaign: any) => (
-                  <label
+                  <CheckboxRow
                     key={campaign.campaignId}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.campaigns.includes(campaign.campaignId.toString())}
-                      onChange={(e) => handleFilterChange('campaigns', campaign.campaignId.toString(), e.target.checked)}
-                      className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
-                      style={{
-                        accentColor: '#9333ea'
-                      }}
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                      {campaign.brandName}
-                    </span>
-                  </label>
+                    label={campaign.brandName}
+                    checked={filters.campaigns.includes(campaign.campaignId.toString())}
+                    onChange={(checked) => handleFilterChange('campaigns', campaign.campaignId.toString(), checked)}
+                  />
                 ))}
               </div>
             </div>
 
             {/* Platforms */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Monitor className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <h4 className="font-medium text-gray-900 dark:text-white">Platforms</h4>
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-[var(--h-iris-500)]" strokeWidth={1.75} />
+                <h4 className="halo-label">Platforms</h4>
               </div>
-              
-              <div className="space-y-2">
+
+              <div className="space-y-1">
                 {platforms.map((platform) => (
-                  <label
+                  <CheckboxRow
                     key={platform}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.platforms.includes(platform)}
-                      onChange={(e) => handleFilterChange('platforms', platform, e.target.checked)}
-                      className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
-                      style={{
-                        accentColor: '#9333ea'
-                      }}
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {platform}
-                    </span>
-                  </label>
+                    label={platform}
+                    checked={filters.platforms.includes(platform)}
+                    onChange={(checked) => handleFilterChange('platforms', platform, checked)}
+                  />
                 ))}
               </div>
             </div>
 
             {/* Gender */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <h4 className="font-medium text-gray-900 dark:text-white">Gender</h4>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--h-iris-500)]" strokeWidth={1.75} />
+                <h4 className="halo-label">Gender</h4>
               </div>
-              
-              <div className="space-y-2">
+
+              <div className="space-y-1">
                 {genderOptions.map((gender) => (
-                  <label
+                  <CheckboxRow
                     key={gender}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.gender.includes(gender)}
-                      onChange={(e) => handleFilterChange('gender', gender, e.target.checked)}
-                      className="w-4 h-4 text-purple-600 bg-white dark:bg-white border-gray-300 dark:border-gray-400 rounded focus:ring-purple-500 focus:ring-2"
-                      style={{
-                        accentColor: '#9333ea'
-                      }}
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {gender}
-                    </span>
-                  </label>
+                    label={gender}
+                    checked={filters.gender.includes(gender)}
+                    onChange={(checked) => handleFilterChange('gender', gender, checked)}
+                  />
                 ))}
               </div>
             </div>
           </div>
 
           {/* Quick Filter Buttons */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h4 className="font-medium text-gray-900 dark:text-white">Quick Filters</h4>
+          <div className="pt-4 border-t border-[var(--h-line)]">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="halo-dot text-[var(--h-iris-500)]" />
+              <h4 className="halo-label">Quick filters</h4>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
-                onClick={() => updateFilters({ 
-                  dateRange: { 
+              <button
+                className="btn-halo-outline btn-halo-sm"
+                onClick={() => updateFilters({
+                  dateRange: {
                     from: new Date().toISOString().split('T')[0],
                     to: new Date().toISOString().split('T')[0]
                   },
@@ -243,47 +231,41 @@ export function FilterDropdown() {
                 })}
               >
                 Today
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
-                onClick={() => updateFilters({ 
-                  dateRange: { 
+              </button>
+              <button
+                className="btn-halo-outline btn-halo-sm"
+                onClick={() => updateFilters({
+                  dateRange: {
                     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     to: new Date().toISOString().split('T')[0]
                   },
                   periodType: 'weekly'
                 })}
               >
-                This Week
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
-                onClick={() => updateFilters({ 
-                  dateRange: { 
+                This week
+              </button>
+              <button
+                className="btn-halo-outline btn-halo-sm"
+                onClick={() => updateFilters({
+                  dateRange: {
                     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     to: new Date().toISOString().split('T')[0]
                   },
                   periodType: 'monthly'
                 })}
               >
-                This Month
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-8 text-xs hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:border-purple-600 dark:hover:text-purple-300"
+                This month
+              </button>
+              <button
+                className="btn-halo-outline btn-halo-sm"
                 onClick={() => updateFilters({ platforms: ['Mobile'] })}
               >
-                Mobile Only
-              </Button>
+                Mobile only
+              </button>
             </div>
           </div>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-} 
+}

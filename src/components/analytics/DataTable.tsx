@@ -1,5 +1,4 @@
-import { memo, ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { memo, ReactNode, useMemo } from 'react';
 import { formatCount, formatSmartPercent } from '@/lib/format';
 
 interface TableColumn {
@@ -18,6 +17,8 @@ interface DataTableProps {
   columns: TableColumn[];
   maxRows?: number;
 }
+
+const RANK_BADGE_CLASS = ['halo-badge-warn', 'halo-badge', 'halo-badge-iris', 'halo-badge-iris'];
 
 export const DataTable = memo<DataTableProps>(({
   title,
@@ -44,40 +45,50 @@ export const DataTable = memo<DataTableProps>(({
     return String(value || '—');
   };
 
-  const getRankBadge = (index: number) => {
-    if (index === 0) return 'bg-[rgba(201,138,31,0.12)] text-[var(--gold-500)] border-0';
-    if (index === 1) return 'bg-[var(--bg-panel-2)] text-[var(--text-2)] border-0';
-    if (index === 2) return 'bg-[var(--bg-tint-2)] text-[var(--plum-500)] border-0';
-    return 'bg-[var(--bg-tint)] text-[var(--indigo-500)] border-0';
-  };
+  const getRankBadge = (index: number) => RANK_BADGE_CLASS[Math.min(index, RANK_BADGE_CLASS.length - 1)];
 
   const displayData = data.slice(0, maxRows);
 
+  /* Share-of-column-max for the first numeric column — the fast-scan bar. */
+  const numericColKey = useMemo(
+    () => columns.find((c) => c.format === 'number' || c.format === 'compact')?.key,
+    [columns]
+  );
+  const colMax = useMemo(() => {
+    if (!numericColKey) return 0;
+    return displayData.reduce((max, row) => Math.max(max, Number(row[numericColKey]) || 0), 0);
+  }, [displayData, numericColKey]);
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="space-y-2">
+        {title && <h3 className="halo-heading">{title}</h3>}
+        <div className="halo-card p-8 flex flex-col items-center justify-center text-center gap-1.5">
+          <p className="halo-heading" style={{ fontSize: 13 }}>No data yet</p>
+          <p className="halo-subtitle">Try a different date range or filter</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      {title && (
-        <h3 className="text-[12.5px] font-semibold tracking-tight text-[var(--text-1)]">
-          {title}
-        </h3>
-      )}
+      {title && <h3 className="halo-heading">{title}</h3>}
 
-      <div className="velvet-surface overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-full text-sm">
+      <div className="halo-card overflow-hidden">
+        <div className="overflow-x-auto halo-scroll-x">
+          <table className="halo-table">
             <thead>
-              <tr className="border-b border-[var(--line)] bg-[var(--bg-panel-2)]">
-                <th className="px-2.5 py-1.5 text-left text-[9.5px] font-semibold text-[var(--text-3)] uppercase tracking-wider w-12">
-                  #
-                </th>
+              <tr>
+                <th style={{ width: 40 }}>#</th>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className={`px-2.5 py-1.5 text-[9.5px] font-semibold text-[var(--text-3)] uppercase tracking-wider ${
-                      column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
-                    }`}
+                    className={column.align === 'right' ? 'col-num' : ''}
+                    style={{ textAlign: column.align === 'center' ? 'center' : column.align === 'right' ? 'right' : 'left' }}
                   >
                     <span className="inline-flex items-center gap-1">
-                      {column.icon && <span className="text-[var(--indigo-500)] opacity-80">{column.icon}</span>}
+                      {column.icon && <span className="text-[var(--h-iris-600)] opacity-80">{column.icon}</span>}
                       {column.label}
                     </span>
                   </th>
@@ -86,38 +97,56 @@ export const DataTable = memo<DataTableProps>(({
             </thead>
             <tbody>
               {displayData.map((row, index) => (
-                <tr
-                  key={index}
-                  className="velvet-row-hover border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--bg-panel-2)] transition-colors"
-                >
-                  <td className="px-2.5 py-1.5 whitespace-nowrap">
-                    <Badge
-                      variant="outline"
-                      className={`${getRankBadge(index)} font-semibold text-[9.5px] px-1.5 py-0`}
-                    >
+                <tr key={index}>
+                  <td>
+                    <span className={`halo-badge ${getRankBadge(index)}`} style={{ minWidth: 20, justifyContent: 'center' }}>
                       {index + 1}
-                    </Badge>
+                    </span>
                   </td>
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={`px-2.5 py-1.5 whitespace-nowrap text-[11.5px] text-[var(--text-1)] ${
-                        column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
-                      }`}
-                    >
-                      {column.format === 'url' ? (
-                        <div className="max-w-xs">
-                          <div className="truncate font-mono text-[10.5px] bg-[var(--bg-panel-2)] px-1.5 py-0.5 rounded border border-[var(--line)]">
-                            {formatValue(row[column.key], column.format, column.percentDecimals)}
+                  {columns.map((column) => {
+                    const isNumeric = column.format === 'number' || column.format === 'compact';
+                    const showShareBar = isNumeric && column.key === numericColKey && colMax > 0;
+                    const share = showShareBar ? Math.max(4, (Number(row[column.key]) || 0) / colMax * 100) : 0;
+                    return (
+                      <td
+                        key={column.key}
+                        className={column.align === 'right' || isNumeric ? 'col-num' : ''}
+                        style={{
+                          position: 'relative',
+                          textAlign: column.align === 'center' ? 'center' : (column.align === 'right' || isNumeric) ? 'right' : 'left',
+                        }}
+                      >
+                        {showShareBar && (
+                          <span
+                            aria-hidden
+                            style={{
+                              position: 'absolute',
+                              inset: '4px 0',
+                              right: 0,
+                              width: `${share}%`,
+                              background: 'var(--h-tint)',
+                              borderRadius: 4,
+                              zIndex: 0,
+                            }}
+                          />
+                        )}
+                        {column.format === 'url' ? (
+                          <div className="max-w-xs" style={{ position: 'relative', zIndex: 1 }}>
+                            <div className="halo-inset truncate font-mono text-[10.5px] px-1.5 py-0.5">
+                              {formatValue(row[column.key], column.format, column.percentDecimals)}
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <span className={column.format === 'number' || column.format === 'compact' ? 'font-semibold tabular-nums' : column.format === 'percentage' ? 'font-semibold tabular-nums text-[var(--indigo-500)]' : ''}>
-                          {formatValue(row[column.key], column.format, column.percentDecimals)}
-                        </span>
-                      )}
-                    </td>
-                  ))}
+                        ) : (
+                          <span
+                            className={isNumeric ? 'num font-semibold' : column.format === 'percentage' ? 'num font-semibold text-[var(--h-iris-600)]' : ''}
+                            style={{ position: 'relative', zIndex: 1 }}
+                          >
+                            {formatValue(row[column.key], column.format, column.percentDecimals)}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -125,8 +154,8 @@ export const DataTable = memo<DataTableProps>(({
         </div>
 
         {data.length > maxRows && (
-          <div className="px-2.5 py-1 bg-[var(--bg-panel-2)] border-t border-[var(--line)]">
-            <p className="text-[9.5px] text-[var(--text-3)] text-center">
+          <div className="px-3 py-2 border-t border-[var(--h-line)]">
+            <p className="halo-subtitle text-center">
               Showing top {maxRows} of {data.length}
             </p>
           </div>

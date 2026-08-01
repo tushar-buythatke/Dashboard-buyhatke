@@ -1,3 +1,20 @@
+const HALO_FAMILIES = ['iris', 'cyan', 'mint', 'amber', 'coral', 'violet'] as const;
+export type HaloFamily = (typeof HALO_FAMILIES)[number];
+
+/**
+ * Deterministically maps a name (brand, campaign, ad) to one of the six
+ * Halo color families, so the same name always gets the same color and a
+ * table full of rows reads as varied rather than monochrome.
+ */
+export function familyForString(input: string): HaloFamily {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return HALO_FAMILIES[Math.abs(hash) % HALO_FAMILIES.length];
+}
+
 /**
  * Full integer count formatting (comma-separated, no K/M/B/T abbreviations).
  * Use for impressions, clicks, landings, conversions, targets, etc.

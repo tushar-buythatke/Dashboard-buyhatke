@@ -4,6 +4,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatChartValue, formatChartAxis } from '@/lib/format';
+import { useTheme } from '@/context/ThemeContext';
+import {
+  useHaloChartPalette, seriesColor, haloGradientId, haloGridProps, haloXAxisProps,
+  haloYAxisProps, haloBarProps, haloBarCursor, HaloBarGradient, HaloTooltip, HaloChartEmpty,
+} from './chartTheme';
 
 interface GroupedBarChartProps {
   data: any[];
@@ -15,65 +20,6 @@ interface GroupedBarChartProps {
   animated?: boolean;
 }
 
-const COLORS = [
-  '#7c6feb', '#c462a0', '#38bdf8', '#2dd4bf',
-  '#fbbf24', '#a99df5', '#e879a0', '#634ce6',
-];
-
-const CustomTooltip = memo(({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  const sorted = [...payload].sort((a: any, b: any) => (b.value || 0) - (a.value || 0));
-  const total = sorted.reduce((sum: number, e: any) => sum + (e.value || 0), 0);
-
-  return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-panel)]/98 backdrop-blur-2xl shadow-[var(--shadow-velvet)] px-3 py-2.5 min-w-[190px] max-w-[260px]">
-      <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[var(--line)]">
-        <span className="text-[11px] font-semibold text-[var(--text-1)]">{label}</span>
-        <span className="text-[9.5px] font-medium text-[var(--text-3)] tabular-nums">
-          Σ {formatChartValue(total)}
-        </span>
-      </div>
-      <div className="space-y-1">
-        {sorted.slice(0, 6).map((entry: any, i: number) => {
-          const pct = total > 0 ? ((entry.value || 0) / total * 100).toFixed(1) : '0';
-          return (
-            <div key={i} className="flex items-center justify-between gap-3 leading-none py-0.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="h-2 w-2 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: entry.color,
-                    boxShadow: `0 0 5px ${entry.color}40`,
-                  }}
-                />
-                <span className="text-[11px] text-[var(--text-2)] truncate">
-                  {entry.dataKey || entry.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9.5px] text-[var(--text-3)] tabular-nums w-8 text-right">
-                  {pct}%
-                </span>
-                <span className="text-[11px] font-semibold tabular-nums text-[var(--text-1)] min-w-[48px] text-right">
-                  {formatChartValue(entry.value, entry.dataKey)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        {sorted.length > 6 && (
-          <div className="text-[9.5px] text-[var(--text-3)] text-center pt-1 border-t border-[var(--line)]">
-            +{sorted.length - 6} more
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});
-CustomTooltip.displayName = 'GroupedBarTooltip';
-
-const COMBINED_COLOR = '#6b5ce7';
-
 export const GroupedBarChart = memo<GroupedBarChartProps>(({
   data,
   title,
@@ -83,6 +29,8 @@ export const GroupedBarChart = memo<GroupedBarChartProps>(({
   showGrid = true,
   animated = true
 }) => {
+  const { theme } = useTheme();
+  const palette = useHaloChartPalette(theme);
   const [showCombined, setShowCombined] = useState(false);
   const uniqueId = useMemo(() => Math.random().toString(36).slice(2, 8), []);
 
@@ -95,78 +43,66 @@ export const GroupedBarChart = memo<GroupedBarChartProps>(({
     });
   }, [data, showCombined, seriesKeys]);
 
+  const colorMap = useMemo(
+    () => new Map(seriesKeys.map((key, index) => [key, seriesColor(palette, index)])),
+    [seriesKeys, palette]
+  );
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="space-y-3">
+        <h3 className="halo-heading">{title}</h3>
+        <HaloChartEmpty height={height} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="velvet-section-title flex-shrink-0">{title}</div>
+        <h3 className="halo-heading flex-shrink-0">{title}</h3>
         <button
           onClick={() => setShowCombined(prev => !prev)}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all duration-200 flex-shrink-0 ${
+          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 flex-shrink-0 ${
             showCombined
-              ? 'bg-[var(--violet-500)] text-white shadow-[0_0_8px_rgba(99,76,230,0.3)]'
-              : 'text-[var(--violet-500)] hover:bg-[var(--bg-tint)]'
+              ? 'bg-[var(--h-iris-500)] text-white'
+              : 'text-[var(--h-iris-600)] hover:bg-[var(--h-tint)]'
           }`}
         >
           <span className="inline-block h-1.5 w-3 rounded-sm" style={{
-            background: showCombined
-              ? 'white'
-              : 'linear-gradient(90deg, var(--violet-400), var(--pink-400))',
+            background: showCombined ? '#fff' : 'var(--h-g-spectrum)',
           }} />
           Combined
         </button>
       </div>
-      <div className="h-[360px] w-full">
+      <div style={{ height }} className="w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -8, bottom: 8 }}>
             <defs>
               {seriesKeys.map((key, index) => (
-                <linearGradient key={key} id={`gb-${uniqueId}-${index}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.92} />
-                  <stop offset="50%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.72} />
-                  <stop offset="100%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.45} />
-                </linearGradient>
+                <HaloBarGradient
+                  key={key}
+                  id={haloGradientId('gbar', uniqueId, index)}
+                  color={seriesColor(palette, index)}
+                />
               ))}
-              <linearGradient id={`combined-gb-${uniqueId}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COMBINED_COLOR} stopOpacity={0.92} />
-                <stop offset="50%" stopColor={COMBINED_COLOR} stopOpacity={0.72} />
-                <stop offset="100%" stopColor={COMBINED_COLOR} stopOpacity={0.45} />
-              </linearGradient>
+              <HaloBarGradient id={haloGradientId('gbar-c', uniqueId)} color={palette.series[0]} />
             </defs>
 
-            {showGrid && (
-              <CartesianGrid
-                strokeDasharray="0"
-                stroke="var(--line)"
-                strokeOpacity={0.5}
-                vertical={false}
-              />
-            )}
+            {showGrid && <CartesianGrid {...haloGridProps} />}
 
-            <XAxis
-              dataKey={xAxisKey}
-              stroke="var(--line)"
-              fontSize={10}
-              fontWeight={500}
-              axisLine={false}
-              tickLine={false}
-              dy={6}
-              tick={{ fill: 'var(--text-3)' }}
-            />
-
-            <YAxis
-              stroke="var(--line)"
-              fontSize={10}
-              fontWeight={500}
-              axisLine={false}
-              tickLine={false}
-              dx={-6}
-              tickFormatter={(v) => formatChartAxis(v)}
-              tick={{ fill: 'var(--text-3)' }}
-            />
+            <XAxis dataKey={xAxisKey} {...haloXAxisProps} />
+            <YAxis tickFormatter={(v) => formatChartAxis(v)} {...haloYAxisProps} />
 
             <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ fill: 'var(--bg-tint)', opacity: 0.5, radius: 6 }}
+              content={(props) => (
+                <HaloTooltip
+                  {...props}
+                  valueFormatter={(value, entry) => formatChartValue(value as number, String(entry.dataKey))}
+                  colorForEntry={(entry) => colorMap.get(String(entry.dataKey)) || palette.series[0]}
+                />
+              )}
+              cursor={haloBarCursor}
               wrapperStyle={{ outline: 'none' }}
             />
 
@@ -174,23 +110,21 @@ export const GroupedBarChart = memo<GroupedBarChartProps>(({
               <Bar
                 key={key}
                 dataKey={key}
-                fill={`url(#gb-${uniqueId}-${index})`}
-                animationDuration={animated ? 900 : 0}
-                animationEasing="ease-out"
-                radius={[5, 5, 0, 0]}
-                maxBarSize={28}
+                fill={`url(#${haloGradientId('gbar', uniqueId, index)})`}
+                animationDuration={animated ? 600 : 0}
+                isAnimationActive={animated}
+                {...haloBarProps}
               />
             ))}
             {showCombined && (
               <Bar
                 dataKey="__combined"
-                fill={`url(#combined-gb-${uniqueId})`}
+                fill={`url(#${haloGradientId('gbar-c', uniqueId)})`}
                 name="Combined Total"
-                animationDuration={animated ? 900 : 0}
-                animationEasing="ease-out"
-                radius={[5, 5, 0, 0]}
-                maxBarSize={28}
+                animationDuration={animated ? 600 : 0}
+                isAnimationActive={animated}
                 opacity={0.6}
+                {...haloBarProps}
               />
             )}
           </BarChart>

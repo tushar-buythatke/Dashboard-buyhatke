@@ -3,12 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { whitelistService, WhitelistUser } from '@/services/whitelistService';
-import { Button } from '@/components/ui/button';
-import { VelvetLoader } from '@/components/ui/velvet-loader';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Shield, UserPlus, UserMinus, Search, RefreshCw, Users, ShieldCheck, Eye } from 'lucide-react';
@@ -88,249 +83,173 @@ export function AdminPanel() {
     if (!isAdmin) return null;
 
     return (
-        <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-slate-800 dark:to-gray-900 transition-all duration-300 relative overflow-hidden">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-amber-400/10 to-orange-400/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-full blur-3xl" />
-            </div>
-
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50 px-4 sm:px-6 py-6 sm:py-8 relative"
-            >
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-600/5 via-orange-600/5 to-red-600/5" />
-                <div className="max-w-7xl mx-auto relative">
-                    <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between">
-                        <div className="flex items-center space-x-4 sm:space-x-6">
-                            <div>
-                                <h1 className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
-                                    Admin Panel
-                                </h1>
-                                <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm sm:text-base font-medium">
-                                    Manage user access and whitelist permissions
-                                </p>
-                            </div>
-                        </div>
-
-                        <Button
-                            variant="ghost"
-                            size="sm"
+        <div className="halo-page">
+            <div className="space-y-5">
+                <PageHeader
+                    eyebrow="Administration"
+                    title="Admin panel"
+                    subhead="Manage who can access and edit BuyHatke ads dashboard."
+                    actions={
+                        <button
+                            className="btn-halo-outline"
                             onClick={fetchUsers}
                             disabled={loading}
-                            className="group relative overflow-hidden bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:scale-105 transition-all duration-300 h-11 px-4"
                         >
-                            <RefreshCw className={`h-4 w-4 text-amber-600 dark:text-amber-400 transition-transform duration-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                            <span className="ml-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
-                                {loading ? 'Loading...' : 'Refresh'}
-                            </span>
-                        </Button>
+                            <RefreshCw strokeWidth={1.75} className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            {loading ? 'Loading' : 'Refresh'}
+                        </button>
+                    }
+                />
+
+                {/* Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="halo-card halo-rail p-5 flex items-center justify-between">
+                        <div>
+                            <div className="halo-eyebrow mb-2">Total users</div>
+                            <div className="halo-metric num">{users.length}</div>
+                        </div>
+                        <div className="halo-chip">
+                            <Users strokeWidth={1.75} size={18} />
+                        </div>
+                    </div>
+                    <div className="halo-card halo-rail p-5 flex items-center justify-between">
+                        <div>
+                            <div className="halo-eyebrow mb-2">Whitelisted</div>
+                            <div className="halo-metric num">{whitelistedCount}</div>
+                        </div>
+                        <div className="halo-chip" style={{ background: 'var(--h-pos-soft)', color: 'var(--h-mint)' }}>
+                            <ShieldCheck strokeWidth={1.75} size={18} />
+                        </div>
+                    </div>
+                    <div className="halo-card halo-rail p-5 flex items-center justify-between">
+                        <div>
+                            <div className="halo-eyebrow mb-2">View only</div>
+                            <div className="halo-metric num">{viewOnlyCount}</div>
+                        </div>
+                        <div className="halo-chip" style={{ background: 'var(--h-surface-3)', color: 'var(--h-ink-2)' }}>
+                            <Eye strokeWidth={1.75} size={18} />
+                        </div>
                     </div>
                 </div>
-            </motion.div>
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 relative z-10">
-                <div className="space-y-6 sm:space-y-8">
-                    {/* Stats Cards */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                        className="grid grid-cols-1 sm:grid-cols-3 gap-6"
-                    >
-                        <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-indigo-400/10 to-purple-400/20" />
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center space-x-2 mb-2">
-                                        <Users className="h-5 w-5 text-blue-600" />
-                                        <p className="text-blue-700 dark:text-blue-400 text-sm font-bold">Total Users</p>
-                                    </div>
-                                    <p className="text-3xl font-black text-blue-800 dark:text-blue-300">{users.length}</p>
-                                </div>
-                                <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl shadow-lg shadow-blue-500/30">
-                                    <Users className="h-6 w-6 text-white" />
-                                </div>
-                            </div>
+                {/* Search */}
+                <div className="halo-card p-5">
+                    <div className="halo-panel-head-title mb-4">
+                        <div className="halo-chip">
+                            <Search strokeWidth={1.75} size={16} />
                         </div>
+                        <div className="halo-heading">Search users</div>
+                    </div>
+                    <div className="relative">
+                        <Search strokeWidth={1.75} size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
+                        <input
+                            placeholder="Search by username..."
+                            className="halo-field halo-search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
 
-                        <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                            <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 via-emerald-400/10 to-teal-400/20" />
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center space-x-2 mb-2">
-                                        <ShieldCheck className="h-5 w-5 text-green-600" />
-                                        <p className="text-green-700 dark:text-green-400 text-sm font-bold">Whitelisted</p>
-                                    </div>
-                                    <p className="text-3xl font-black text-green-800 dark:text-green-300">{whitelistedCount}</p>
-                                </div>
-                                <div className="p-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg shadow-green-500/30">
-                                    <ShieldCheck className="h-6 w-6 text-white" />
-                                </div>
+                {/* Users table */}
+                <div className="halo-card overflow-hidden">
+                    <div className="halo-panel-head halo-panel-head-mesh">
+                        <div className="halo-mesh-grain" aria-hidden="true" />
+                        <div className="halo-panel-head-title">
+                            <div className="halo-chip">
+                                <Shield strokeWidth={1.75} size={16} />
                             </div>
+                            <div className="halo-heading">User management</div>
                         </div>
+                        <span className="halo-badge num">{filteredUsers.length} users</span>
+                    </div>
 
-                        <div className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-400/20 via-slate-400/10 to-zinc-400/20" />
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center space-x-2 mb-2">
-                                        <Eye className="h-5 w-5 text-gray-600" />
-                                        <p className="text-gray-700 dark:text-gray-400 text-sm font-bold">View Only</p>
-                                    </div>
-                                    <p className="text-3xl font-black text-gray-800 dark:text-gray-300">{viewOnlyCount}</p>
-                                </div>
-                                <div className="p-4 bg-gradient-to-r from-gray-500 to-slate-500 rounded-2xl shadow-lg shadow-gray-500/30">
-                                    <Eye className="h-6 w-6 text-white" />
-                                </div>
+                    <div className="halo-scroll-x">
+                        {loading ? (
+                            <div className="p-5 space-y-3">
+                                {[0, 1, 2, 3, 4].map((i) => (
+                                    <div key={i} className="halo-skeleton h-12 w-full" />
+                                ))}
                             </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Search */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.3 }}
-                        className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-white/20 dark:border-gray-700/50 shadow-xl"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-gray-50/50 via-amber-50/30 to-orange-50/50 dark:from-gray-800/50 dark:via-amber-900/20 dark:to-orange-900/20" />
-                        <div className="relative z-10">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <Search className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Search Users</h2>
-                                <div className="flex-1 h-px bg-gradient-to-r from-amber-500/20 to-transparent" />
-                            </div>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                                    <Search className="text-amber-500 h-4 w-4" />
+                        ) : filteredUsers.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="halo-chip-lg mx-auto mb-4">
+                                    <Users strokeWidth={1.75} size={20} />
                                 </div>
-                                <Input
-                                    placeholder="Search by username..."
-                                    className="pl-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 border-gray-200/50 dark:border-gray-600/50 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 h-12 rounded-xl font-semibold transition-all duration-300"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
+                                <div className="halo-heading mb-1">No users found</div>
+                                <p className="halo-subtitle">Try a different search term.</p>
                             </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Users Table */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                        className="relative overflow-hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-2xl"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-orange-50/20 to-red-50/30 dark:from-amber-900/20 dark:via-orange-900/10 dark:to-red-900/20" />
-
-                        {/* Table Header */}
-                        <div className="relative z-10 bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-800/80 dark:to-gray-700/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-600/50 p-4">
-                            <div className="flex items-center space-x-3">
-                                <Shield className="w-5 h-5 text-amber-500" />
-                                <h3 className="text-lg font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
-                                    User Management
-                                </h3>
-                                <div className="flex-1 h-px bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20" />
-                                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold px-3 py-1">
-                                    {filteredUsers.length} users
-                                </Badge>
-                            </div>
-                        </div>
-
-                        <div className="relative z-10 overflow-x-auto">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-16">
-                                    <div className="flex flex-col items-center gap-3">
-                                      <VelvetLoader size={28} label="Loading users" />
-                                    </div>
-                                </div>
-                            ) : filteredUsers.length === 0 ? (
-                                <div className="text-center py-16">
-                                    <div className="text-gray-500 dark:text-gray-400 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 inline-block border border-gray-200/50">
-                                        <span className="font-bold text-lg">No users found</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-gradient-to-r from-gray-50/60 to-gray-100/60 dark:from-gray-800/60 dark:to-gray-700/60 border-b border-gray-200/30 dark:border-gray-600/30">
-                                            <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4">User ID</TableHead>
-                                            <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4">Username</TableHead>
-                                            <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-center">Status</TableHead>
-                                            <TableHead className="text-gray-800 dark:text-gray-200 font-bold text-sm p-4 text-center">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredUsers.map((u, index) => (
-                                            <motion.tr
-                                                key={u.id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.2, delay: index * 0.02 }}
-                                                className="group border-b border-gray-200/30 dark:border-gray-700/30 hover:bg-gradient-to-r hover:from-amber-50/40 hover:to-orange-50/40 dark:hover:from-amber-900/10 dark:hover:to-orange-900/10 transition-colors duration-200"
-                                            >
-                                                <TableCell className="p-4 font-mono text-sm text-gray-600 dark:text-gray-400">
-                                                    #{u.id}
-                                                </TableCell>
-                                                <TableCell className="p-4">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 flex items-center justify-center text-white font-bold text-xs">
-                                                            {u.username.slice(0, 2).toUpperCase()}
-                                                        </div>
-                                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{u.username}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="p-4 text-center">
-                                                    {u.isWhitelisted ? (
-                                                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border border-green-200 dark:border-green-700 font-bold px-3 py-1">
-                                                            <ShieldCheck className="h-3 w-3 mr-1" />
-                                                            Editor
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-600 font-bold px-3 py-1">
-                                                            <Eye className="h-3 w-3 mr-1" />
-                                                            View Only
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="p-4 text-center">
-                                                    <Button
-                                                        size="sm"
-                                                        variant={u.isWhitelisted ? 'destructive' : 'default'}
-                                                        disabled={actionLoading === u.id}
-                                                        onClick={() => handleToggleWhitelist(u)}
-                                                        className={`font-semibold transition-all duration-300 ${u.isWhitelisted
-                                                                ? 'bg-red-500 hover:bg-red-600 text-white'
-                                                                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
-                                                            }`}
+                        ) : (
+                            <table className="halo-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th className="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredUsers.map((u, index) => (
+                                        <motion.tr
+                                            key={u.id}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.2, delay: index * 0.02 }}
+                                        >
+                                            <td>
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-none"
+                                                        style={{ background: 'var(--h-g-iris)', color: '#fff' }}
                                                     >
-                                                        {actionLoading === u.id ? (
-                                                            <RefreshCw className="h-4 w-4 animate-spin" />
-                                                        ) : u.isWhitelisted ? (
-                                                            <>
-                                                                <UserMinus className="h-4 w-4 mr-1" />
-                                                                Remove
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <UserPlus className="h-4 w-4 mr-1" />
-                                                                Whitelist
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                </TableCell>
-                                            </motion.tr>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </div>
-                    </motion.div>
+                                                        {u.username.slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-medium" style={{ color: 'var(--h-ink)' }}>{u.username}</div>
+                                                        <div className="text-xs num" style={{ color: 'var(--h-ink-3)' }}>#{u.id}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {u.isWhitelisted ? (
+                                                    <span className="halo-badge halo-badge-pos">
+                                                        <ShieldCheck strokeWidth={1.75} size={12} />
+                                                        Editor
+                                                    </span>
+                                                ) : (
+                                                    <span className="halo-badge">
+                                                        <Eye strokeWidth={1.75} size={12} />
+                                                        View only
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="text-right">
+                                                <button
+                                                    disabled={actionLoading === u.id}
+                                                    onClick={() => handleToggleWhitelist(u)}
+                                                    className={u.isWhitelisted ? 'btn-halo-danger btn-halo-sm' : 'btn-halo-soft btn-halo-sm'}
+                                                >
+                                                    {actionLoading === u.id ? (
+                                                        <span className="halo-spinner" />
+                                                    ) : u.isWhitelisted ? (
+                                                        <>
+                                                            <UserMinus strokeWidth={1.75} size={14} />
+                                                            Remove
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserPlus strokeWidth={1.75} size={14} />
+                                                            Whitelist
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

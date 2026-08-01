@@ -1,25 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Calendar, TrendingUp, Filter, BarChart3, Tag, Plane, MapPin, Eye, DollarSign, Inbox, X, Sparkles, SlidersHorizontal } from 'lucide-react';
-import { NoiseButton } from '@/components/ui/noise-button';
+import { Download, RefreshCw, Calendar, TrendingUp, Filter, BarChart3, Tag, Plane, MapPin, Eye, CheckCircle2, Inbox, X, Sparkles, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VelvetLoader } from '@/components/ui/velvet-loader';
-import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FilterSidebar } from '@/components/analytics/FilterSidebar';
 import { TrendChart, type ChartType } from '@/components/analytics/TrendChart';
-import { GroupedBarChart } from '@/components/analytics/GroupedBarChart';
 import { ComboChart } from '@/components/analytics/ComboChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { BreakdownModal } from '@/components/analytics/BreakdownModal';
-import { FilterDropdown } from '@/components/analytics/FilterDropdown';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
 import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
 import { DateRangePicker } from '@/components/analytics/DateRangePicker';
 import { useFilters } from '@/context/FilterContext';
+import { useSpotlight } from '@/hooks/useSpotlight';
 import { PLATFORM_OPTIONS } from '@/utils/platform';
 import { DataTable } from '@/components/analytics/DataTable';
 
@@ -199,6 +193,9 @@ export default function Analytics() {
   // Loading states
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  // HALO: additive-only UI state — captures the last fetch error for the styled
+  // error banner. Does not alter fetching, caching, or handler behaviour.
+  const [dataFetchError, setDataFetchError] = useState<string | null>(null);
 
   const slotLabelCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -346,6 +343,7 @@ export default function Analytics() {
   const fetchDropdownData = async () => {
     try {
       setLoading(true);
+      setDataFetchError(null);
       const [campaignsResult, slotsResult, sitesResult] = await Promise.all([
         analyticsService.getCampaigns(),
         analyticsService.getSlots(),
@@ -365,7 +363,9 @@ export default function Analytics() {
       }
     } catch (error) {
       console.error('Error fetching dropdown data:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to load dropdown data');
+      setDataFetchError(message);
     } finally {
       setLoading(false);
     }
@@ -380,6 +380,7 @@ export default function Analytics() {
 
     try {
       setDataLoading(true);
+      setDataFetchError(null);
 
       // Use date range from context (DateRangePicker) with safety check
       const dateRange = filters.dateRange || {
@@ -920,7 +921,9 @@ export default function Analytics() {
 
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      toast.error(`Failed to load analytics data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to load analytics data: ${message}`);
+      setDataFetchError(message);
 
       // Reset data to safe defaults on error
       setMetricsData(getDefaultMetrics());
@@ -1160,8 +1163,13 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-[var(--bg-canvas)] flex items-center justify-center">
-        <VelvetLoader size={36} label="Loading Analytics" />
+      <div className="halo-page">
+        <div className="mb-5 space-y-2">
+          <div className="halo-skeleton h-2.5 w-20" />
+          <div className="halo-skeleton h-8 w-64" />
+          <div className="halo-skeleton h-4 w-96" />
+        </div>
+        <AnalyticsSkeleton />
       </div>
     );
   }
@@ -1173,49 +1181,54 @@ export default function Analytics() {
     selectedExactAdNames.length +
     selectedStartsWithAdNames.length;
 
-  return (
-    <div className="w-full">
-      <div className="max-w-[1480px] mx-auto px-4 sm:px-5 py-4 sm:py-5 space-y-3.5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="velvet-section-title !my-0 !before:hidden">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-3)]">Analytics</p>
-            <h1 className="page-display mt-1">
-              <span className="velvet-header-gradient">Advanced</span>{' '}
-              <span className="page-display-serif gradient-text">analytics</span>
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn-velvet-ghost h-9"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="btn-velvet-ghost h-9"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export CSV
-            </button>
-          </div>
-        </div>
+  const headerActions = (
+    <>
+      <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        Refresh
+      </Button>
+      <Button size="sm" onClick={handleExport}>
+        <Download className="h-3.5 w-3.5" />
+        Export CSV
+      </Button>
+    </>
+  );
 
-        <div className="velvet-surface p-3 sm:p-3.5">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5 items-end">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
-                View type
-              </label>
+  return (
+    <div className="halo-page">
+      <PageHeader
+        eyebrow="Analytics"
+        title="Advanced analytics"
+        subhead="Break performance down by campaign, slot, ad, or marketplace across any date range."
+        actions={headerActions}
+      />
+
+      <div className="mt-5 space-y-5">
+        {dataFetchError && (
+          <div className="halo-card p-5 flex items-start gap-3" role="alert">
+            <div className="halo-chip flex-none" style={{ background: 'var(--h-neg-soft)', color: 'var(--h-coral)' }}>
+              <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="halo-heading">Couldn't load analytics data</p>
+              <p className="halo-subtitle mt-0.5">{dataFetchError} — check your filters and connection, then try again.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchAnalyticsData} disabled={dataLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${dataLoading ? 'animate-spin' : ''}`} />
+              Retry
+            </Button>
+          </div>
+        )}
+
+        <div className="halo-card halo-rail p-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5 items-end">
+            <div className="space-y-1.5">
+              <label className="halo-label">View type</label>
               <Select value={activeView} onValueChange={(value) => setActiveView(value as 'campaign' | 'slot' | 'ad' | 'pos')}>
-                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                <SelectTrigger>
                   <SelectValue placeholder="Select view" />
                 </SelectTrigger>
-                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                <SelectContent>
                   <SelectItem value="campaign">Campaign</SelectItem>
                   <SelectItem value="slot">Slots</SelectItem>
                   <SelectItem value="ad">Ads</SelectItem>
@@ -1224,24 +1237,18 @@ export default function Analytics() {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
-                Date range
-              </label>
-              <div className="velvet-focus relative z-50">
-                <DateRangePicker />
-              </div>
+            <div className="space-y-1.5">
+              <label className="halo-label">Date range</label>
+              <DateRangePicker />
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
-                Grouping
-              </label>
+            <div className="space-y-1.5">
+              <label className="halo-label">Grouping</label>
               <Select value={dataGrouping} onValueChange={(value) => setDataGrouping(value as '1d' | '7d' | '30d')}>
-                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                <SelectContent>
                   <SelectItem value="1d">Daily (1d)</SelectItem>
                   <SelectItem value="7d">Weekly (7d)</SelectItem>
                   <SelectItem value="30d">Monthly (30d)</SelectItem>
@@ -1249,15 +1256,13 @@ export default function Analytics() {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
-                Chart type
-              </label>
+            <div className="space-y-1.5">
+              <label className="halo-label">Chart type</label>
               <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
-                <SelectTrigger className="velvet-focus h-9 w-full text-[12.5px] border-[var(--line)] bg-[var(--bg-panel-2)]">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[60] border-[var(--line)] bg-[var(--bg-panel)]">
+                <SelectContent>
                   <SelectItem value="line">Line</SelectItem>
                   <SelectItem value="bar">Bar</SelectItem>
                   <SelectItem value="area">Area</SelectItem>
@@ -1265,20 +1270,12 @@ export default function Analytics() {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-medium uppercase tracking-wider text-[var(--text-3)]">
-                &nbsp;
-              </label>
-              <button
+            <div className="space-y-1.5">
+              <Button
                 type="button"
                 onClick={fetchAnalyticsData}
                 disabled={dataLoading}
-                className="w-full h-9 rounded-[10px] font-medium text-[12.5px] text-white inline-flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{
-                  background: 'linear-gradient(135deg, #634ce6 0%, #7c6feb 50%, #9b8af0 100%)',
-                  boxShadow: '0 6px 20px -6px rgba(99, 76, 230, 0.45), 0 2px 6px rgba(15, 12, 40, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18)',
-                  border: '1px solid rgba(99, 76, 230, 0.3)',
-                }}
+                className="w-full"
               >
                 {dataLoading ? (
                   <>
@@ -1291,28 +1288,23 @@ export default function Analytics() {
                     Fetch results
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="mt-2.5 pt-2.5 border-t border-[var(--line)] flex items-center justify-end gap-2 flex-wrap">
+          <div className="mt-4 pt-4 flex items-center justify-end gap-2 flex-wrap" style={{ borderTop: '1px solid var(--h-line)' }}>
             <button
               type="button"
               onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-              className={`velvet-focus h-8 px-3 inline-flex items-center gap-1.5 rounded-md border transition-all duration-200 text-[12px] font-medium ${
-                isFilterExpanded
-                  ? 'bg-[var(--bg-tint)] border-[var(--line-violet)] text-[var(--indigo-500)]'
-                  : 'bg-[var(--bg-panel-2)] border-[var(--line)] text-[var(--text-2)] hover:text-[var(--indigo-500)] hover:border-[var(--line-violet)] hover:bg-[var(--bg-tint)]'
-              }`}
+              className={isFilterExpanded ? 'halo-segment-item is-active' : 'halo-segment-item'}
+              style={{ background: isFilterExpanded ? 'var(--h-tint-2)' : 'var(--h-surface-3)', color: isFilterExpanded ? 'var(--h-iris-600)' : undefined }}
             >
-              <Filter className="h-3.5 w-3.5" />
-              Advanced Filters
+              <Filter className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Advanced filters
               {filterCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--violet-500)] text-white text-[10px] font-semibold">
-                  {filterCount}
-                </span>
+                <span className="halo-badge halo-badge-iris">{filterCount}</span>
               )}
-              <span className={`text-[var(--text-3)] text-[10px] transition-transform duration-200 ${isFilterExpanded ? 'rotate-180' : ''}`}>▾</span>
+              <span className={`transition-transform duration-200 ${isFilterExpanded ? 'rotate-180' : ''}`} style={{ color: 'var(--h-ink-3)', fontSize: '10px' }}>▾</span>
             </button>
           </div>
         </div>
@@ -1322,16 +1314,16 @@ export default function Analytics() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="velvet-surface-inset p-2.5 flex items-center gap-2.5"
+          className="halo-inset p-3 flex items-center gap-2.5"
         >
-          <span className="live-dot" />
-          <p className="text-[12px] text-[var(--text-2)]">
-            <span className="font-semibold text-[var(--text-1)]">Auto-selection:</span> When no specific {
+          <span className="halo-dot halo-dot-live" style={{ color: 'var(--h-mint)' }} />
+          <p className="text-xs" style={{ color: 'var(--h-ink-2)' }}>
+            <span className="font-semibold" style={{ color: 'var(--h-ink)' }}>Auto-selection:</span> When no specific {
               activeView === 'campaign' ? 'campaigns' :
                 activeView === 'slot' ? 'slots' :
                   activeView === 'pos' ? 'marketplaces' :
                     'ads'
-            } are selected, we fetch data for <span className="font-semibold text-[var(--text-1)]">all available {
+            } are selected, we fetch data for <span className="font-semibold" style={{ color: 'var(--h-ink)' }}>all available {
               activeView === 'campaign' ? `${campaigns.length} campaigns` :
                 activeView === 'slot' ? `${filteredSlots.length} slots` :
                   activeView === 'pos' ? `${sites.length} marketplaces` :
@@ -1349,26 +1341,24 @@ export default function Analytics() {
             animate={{ height: 'auto', opacity: 1, y: 0 }}
             exit={{ height: 0, opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
-            className="velvet-surface velvet-micro-shadow rounded-2xl"
+            className="halo-card overflow-hidden"
           >
-            <div className="p-3 sm:p-3.5">
-              <div className="velvet-section-title mb-3 !my-0">
-                <h3 className="text-[12px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
-                  <SlidersHorizontal className="h-3 w-3 text-[var(--indigo-500)]" />
-                  Advanced filters
-                </h3>
+            <div className="p-5">
+              <div className="halo-eyebrow mb-3 flex items-center gap-1.5">
+                <SlidersHorizontal className="h-3 w-3" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
+                Advanced filters
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Campaign Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                  <label className="halo-label flex items-center gap-2">
                     Campaigns
                     {selectedCampaigns.length === 0 && campaigns.length > 0 && (
-                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {campaigns.length}</span>
+                      <span className="halo-badge">Auto · All {campaigns.length}</span>
                     )}
                   </label>
-                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                  <div className="halo-inset p-2">
                     <MultiSelectDropdown
                       label=""
                       options={campaigns.map(campaign => ({ value: campaign.campaignId, label: campaign.brandName }))}
@@ -1381,13 +1371,13 @@ export default function Analytics() {
 
                 {/* Platform Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                  <label className="halo-label flex items-center gap-2">
                     Platform
                     {selectedPlatforms.length === 0 && (
-                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">All</span>
+                      <span className="halo-badge">All</span>
                     )}
                   </label>
-                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                  <div className="halo-inset p-2">
                     <MultiSelectDropdown
                       options={PLATFORM_OPTIONS}
                       selectedValues={selectedPlatforms}
@@ -1400,13 +1390,13 @@ export default function Analytics() {
 
                 {/* Slots Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                  <label className="halo-label flex items-center gap-2">
                     Slots
                     {selectedSlots.length === 0 && slots.length > 0 && (
-                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {filteredSlots.length}</span>
+                      <span className="halo-badge">Auto · All {filteredSlots.length}</span>
                     )}
                   </label>
-                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                  <div className="halo-inset p-2">
                     <MultiSelectDropdown
                       options={filteredSlots.map(s => ({ value: s.slotId, label: getSlotDisplayLabel(s) }))}
                       selectedValues={selectedSlots}
@@ -1419,13 +1409,13 @@ export default function Analytics() {
 
                 {/* Marketplaces Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-medium text-[var(--text-2)] flex items-center gap-2">
+                  <label className="halo-label flex items-center gap-2">
                     Marketplaces
                     {selectedPOS.length === 0 && sites.length > 0 && (
-                      <span className="velvet-chip text-[9.5px] py-0 px-1.5">Auto · All {sites.length}</span>
+                      <span className="halo-badge">Auto · All {sites.length}</span>
                     )}
                   </label>
-                  <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                  <div className="halo-inset p-2">
                     <MultiSelectDropdown
                       options={sites.map(s => ({ value: s.posId, label: `${s.name} (${s.posId})`, image: s.image }))}
                       selectedValues={selectedPOS}
@@ -1439,13 +1429,13 @@ export default function Analytics() {
                 {/* Ad Names Filter - Show when campaigns are selected */}
                 {selectedCampaigns.length > 0 && (
                   <div className="md:col-span-2 lg:col-span-4 space-y-1.5">
-                    <label className="block text-[11px] font-medium text-[var(--text-2)]">
+                    <label className="halo-label">
                       Ad names (starts with / exact)
                     </label>
-                    <div className="velvet-surface-inset p-2 hover:border-[var(--line-violet)] transition-colors">
+                    <div className="halo-inset p-2">
                       {adNamesLoading ? (
                         <div className="flex items-center justify-center py-3">
-                          <VelvetLoader size={20} label="Loading ad names" />
+                          <span className="halo-spinner" />
                         </div>
                       ) : adNameOptions.length > 0 ? (
                         <AdNameFilterDropdown
@@ -1459,12 +1449,12 @@ export default function Analytics() {
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center py-4 text-center gap-1.5">
-                          <div className="h-7 w-7 rounded-lg bg-[var(--bg-panel-2)] border border-[var(--line)] flex items-center justify-center">
-                            <Inbox className="h-3.5 w-3.5 text-[var(--text-3)]" strokeWidth={1.5} />
+                          <div className="halo-chip">
+                            <Inbox className="h-3.5 w-3.5" strokeWidth={1.75} />
                           </div>
                           <div>
-                            <p className="text-[11.5px] font-medium text-[var(--text-2)]">No ads found</p>
-                            <p className="text-[10px] text-[var(--text-3)] mt-0.5 max-w-[220px]">
+                            <p className="halo-label" style={{ color: 'var(--h-ink-2)' }}>No ads found</p>
+                            <p className="halo-subtitle mt-0.5 max-w-[220px]">
                               Create some ads in the selected campaigns to enable ad-level filtering
                             </p>
                           </div>
@@ -1478,34 +1468,31 @@ export default function Analytics() {
               {/* Active filter chips — dismissable, or dashed empty state */}
               <div className="mt-4">
                 {activeFilterChips.length === 0 ? (
-                  <div className="velvet-chip-track-empty">
-                    <Sparkles className="h-3 w-3 text-[var(--indigo-500)]" />
+                  <div className="halo-inset flex items-center gap-2 px-3 py-2.5 text-xs" style={{ color: 'var(--h-ink-3)' }}>
+                    <Sparkles className="h-3 w-3" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
                     <span>No filters applied — we&apos;ll fetch data for all available {activeView === 'campaign' ? 'campaigns' : activeView === 'slot' ? 'slots' : activeView === 'pos' ? 'marketplaces' : 'ads'}.</span>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-[var(--line)] bg-[var(--bg-panel-2)]">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] px-1.5">Active</span>
+                  <div className="halo-inset flex flex-wrap items-center gap-1.5 p-2">
+                    <span className="halo-eyebrow px-1.5">Active</span>
                     {activeFilterChips.map((chip) => (
-                      <span key={chip.id} className="velvet-filter-chip group">
-                        <span className="text-[9.5px] uppercase tracking-wider text-[var(--text-3)] font-semibold">{chip.group}</span>
-                        <span className="text-[var(--text-1)] max-w-[180px] truncate">{chip.label}</span>
+                      <span key={chip.id} className="halo-badge group gap-1.5">
+                        <span className="halo-eyebrow" style={{ fontSize: '9px' }}>{chip.group}</span>
+                        <span className="max-w-[180px] truncate" style={{ color: 'var(--h-ink)' }}>{chip.label}</span>
                         <button
                           type="button"
                           onClick={chip.onRemove}
-                          className="velvet-filter-chip-remove"
+                          className="inline-flex items-center justify-center rounded-full transition-colors"
+                          style={{ width: '14px', height: '14px', color: 'var(--h-ink-3)' }}
                           aria-label={`Remove ${chip.group} filter ${chip.label}`}
                         >
                           <X className="h-2.5 w-2.5" strokeWidth={2.5} />
                         </button>
                       </span>
                     ))}
-                    <button
-                      type="button"
-                      onClick={clearAllFilters}
-                      className="ml-auto text-[10.5px] font-medium text-[var(--text-3)] hover:text-[var(--neg)] px-2 py-1 rounded-md hover:bg-[var(--neg-soft)] transition-colors duration-200"
-                    >
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="ml-auto">
                       Clear all
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1514,41 +1501,40 @@ export default function Analytics() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-5 pt-2">
-        <div className="space-y-3">
+        <div className="space-y-5">
           {/* Performance Summary */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="velvet-surface velvet-micro-shadow p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md flex items-center justify-center">
-                  <TrendingUp className="h-3.5 w-3.5 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="halo-chip">
+                  <TrendingUp className="h-4 w-4" strokeWidth={1.75} />
                 </div>
 
                 <div>
-                  <h3 className="text-[14px] sm:text-[15px] font-semibold text-[var(--text-1)] tracking-tight">
+                  <h3 className="halo-heading">
                     {activeView === 'slot' ? 'Slot-wise' : activeView === 'campaign' ? 'Campaign-wise' : activeView === 'ad' ? 'Ad-wise' : 'POS-wise'} analytics
                   </h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10.5px] text-[var(--text-3)] font-medium">
+                  <div className="flex items-center gap-1.5 mt-0.5 halo-subtitle">
+                    <span>
                       {dataGrouping === '1d' ? 'Daily (1d)' : dataGrouping === '7d' ? 'Weekly (7d)' : 'Monthly (30d)'} grouping
                     </span>
-                    <span className="text-[var(--text-3)] opacity-40">·</span>
-                    <span className="text-[10.5px] text-[var(--text-3)] font-medium">Real-time data</span>
+                    <span>·</span>
+                    <span>Real-time data</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="velvet-chip">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--pos)] animate-pulse" />
-                  Live Data
+                <span className="halo-badge">
+                  <span className="halo-dot halo-dot-live" style={{ color: 'var(--h-mint)' }} />
+                  Live data
                 </span>
-                <span className="velvet-chip capitalize">
+                <span className="halo-badge capitalize">
                   {activeView} view
                 </span>
               </div>
@@ -1557,19 +1543,17 @@ export default function Analytics() {
 
           {/* Metrics Dashboard */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05, ease: 'easeOut' }}
-            className="velvet-surface p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
-            <div className="velvet-section-title mb-3">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--pos)]" />
-                <h2 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider">
-                  Key Metrics
-                </h2>
+                <span className="halo-dot" style={{ color: 'var(--h-mint)' }} />
+                <h2 className="halo-eyebrow">Key metrics</h2>
               </div>
-              <span className="velvet-chip text-[9.5px] py-0 px-1.5">Real-time</span>
+              <span className="halo-badge">Real-time</span>
             </div>
 
             {metricsData ? (
@@ -1579,49 +1563,39 @@ export default function Analytics() {
                 period={dataGrouping}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
-                <div className="h-10 w-10 rounded-full bg-[var(--bg-tint)] border border-[var(--line)] flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-[var(--text-3)]" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium text-[var(--text-2)]">No data available</p>
-                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5 max-w-[280px]">
-                    Configure filters and click "Fetch Results" to view analytics
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} />}
+                title="No data available"
+                subtitle='Configure filters and click "Fetch results" to view analytics.'
+              />
             )}
           </motion.div>
 
           {/* Analytics Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
-            className="velvet-surface p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
             {/* Data Grouping Info */}
-            <div className="velvet-section-title mb-3">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Calendar className="h-3 w-3 text-[var(--indigo-500)]" />
-                <span className="velvet-chip text-[10px] py-0 px-1.5">
-                  {dataGrouping === '1d' ? 'Daily intervals' :
-                    dataGrouping === '7d' ? 'Weekly intervals' :
-                      dataGrouping === '30d' ? 'Monthly intervals' :
-                        'Custom intervals'}
+            <div className="flex items-center gap-1.5 flex-wrap mb-3">
+              <Calendar className="h-3 w-3" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
+              <span className="halo-badge">
+                {dataGrouping === '1d' ? 'Daily intervals' :
+                  dataGrouping === '7d' ? 'Weekly intervals' :
+                    dataGrouping === '30d' ? 'Monthly intervals' :
+                      'Custom intervals'}
+              </span>
+              {trendData.length > 0 && (
+                <span className="halo-subtitle">
+                  · {trendData.reduce((sum, series) => sum + series.data.length, 0)} pts · {trendData.length} series
                 </span>
-                {trendData.length > 0 && (
-                  <span className="text-[10px] text-[var(--text-3)]">
-                    · {trendData.reduce((sum, series) => sum + series.data.length, 0)} pts · {trendData.length} series
-                  </span>
-                )}
-              </div>
+              )}
             </div>
 
             {dataLoading ? (
-              <div className="flex flex-col items-center justify-center py-10">
-                <VelvetLoader size={28} label="Loading chart data" />
-              </div>
+              <div className="halo-skeleton w-full" style={{ height: 400 }} />
             ) : (
               <div className="w-full">
                 {trendData && trendData.length > 0 ? (
@@ -1638,15 +1612,11 @@ export default function Analytics() {
                     chartType={chartType}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-10 gap-2">
-                    <BarChart3 className="h-8 w-8 text-[var(--text-3)]" strokeWidth={1.5} />
-                    <p className="text-[12px] font-medium text-[var(--text-2)] text-center">
-                      No trend data available yet
-                    </p>
-                    <p className="text-[10.5px] text-[var(--text-3)] text-center max-w-[260px]">
-                      Select filters and click Fetch results to view analytics
-                    </p>
-                  </div>
+                  <EmptyState
+                    icon={<BarChart3 className="h-4 w-4" strokeWidth={1.75} />}
+                    title="No trend data available yet"
+                    subtitle="Select filters and click Fetch results to view analytics"
+                  />
                 )}
               </div>
             )}
@@ -1654,10 +1624,10 @@ export default function Analytics() {
 
           {/* Clicks vs Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15, ease: 'easeOut' }}
-            className="velvet-surface p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
             <TrendChart
               series={trendData}
@@ -1674,10 +1644,10 @@ export default function Analytics() {
 
           {/* CTR vs Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
-            className="velvet-surface p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
             <TrendChart
               series={trendData}
@@ -1694,10 +1664,10 @@ export default function Analytics() {
 
           {/* Live Landings Over Time Chart */}
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
-            className="velvet-surface p-3 sm:p-3.5"
+            className="halo-card p-5"
           >
             {landingTrendData.length > 0 && landingTrendData[0]?.data?.length > 0 ? (
               <TrendChart
@@ -1710,40 +1680,32 @@ export default function Analytics() {
                 chartType={chartType}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
-                <div className="h-9 w-9 rounded-lg bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center">
-                  <Plane className="h-4 w-4 text-[var(--indigo-500)]" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <p className="text-[12px] font-semibold text-[var(--text-1)]">
-                    No landing trend data yet
-                  </p>
-                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5 max-w-[260px]">
-                    Select filters and click Fetch results to view landing analytics
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={<Plane className="h-4 w-4" strokeWidth={1.75} />}
+                title="No landing trend data yet"
+                subtitle="Select filters and click Fetch results to view landing analytics"
+              />
             )}
           </motion.div>
 
           {/* Data Tables Section */}
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-5">
             <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
-              className="velvet-surface p-3 sm:p-3.5"
+              className="halo-card p-5"
             >
-              <div className="velvet-section-title mb-3">
+              <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin className="h-3 w-3 text-[var(--indigo-500)]" />
+                  <h3 className="halo-heading flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
                     Top performing locations
                   </h3>
-                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">Cities and states ranked by impression volume</p>
+                  <p className="halo-subtitle mt-0.5">Cities and states ranked by impression volume</p>
                 </div>
                 {topLocations.length > 0 && (
-                  <span className="velvet-chip text-[9.5px] py-0 px-1.5">{topLocations.length} rows</span>
+                  <span className="halo-badge">{topLocations.length} rows</span>
                 )}
               </div>
 
@@ -1763,7 +1725,7 @@ export default function Analytics() {
                   { key: 'location', label: 'Location (City/State)', icon: <MapPin className="h-3 w-3" /> },
                   { key: 'impressions', label: 'Impressions', format: 'number', icon: <Eye className="h-3 w-3" />, align: 'right' },
                   { key: 'clicks', label: 'Clicks', format: 'number', align: 'right' },
-                  { key: 'conversions', label: 'Conversions', format: 'number', icon: <DollarSign className="h-3 w-3" />, align: 'right' }
+                  { key: 'conversions', label: 'Conversions', format: 'number', icon: <CheckCircle2 className="h-3 w-3" />, align: 'right' }
                 ]}
               />
             </motion.div>
@@ -1772,18 +1734,18 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
-              className="velvet-surface p-3 sm:p-3.5"
+              className="halo-card p-5"
             >
-              <div className="velvet-section-title mb-3">
+              <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
-                    <Tag className="h-3 w-3 text-[var(--indigo-500)]" />
+                  <h3 className="halo-heading flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
                     Ad slots performance
                   </h3>
-                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">Slots sorted by performance metrics</p>
+                  <p className="halo-subtitle mt-0.5">Slots sorted by performance metrics</p>
                 </div>
                 {topSlotsData.length > 0 && (
-                  <span className="velvet-chip text-[9.5px] py-0 px-1.5">{topSlotsData.length} rows</span>
+                  <span className="halo-badge">{topSlotsData.length} rows</span>
                 )}
               </div>
 
@@ -1817,25 +1779,25 @@ export default function Analytics() {
           {/* Slot performance overview — only when activeView === 'slot' */}
           {activeView === 'slot' && slotMetrics.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.25, ease: 'easeOut' }}
-              className="velvet-surface p-3 sm:p-3.5"
+              className="halo-card p-5"
             >
-              <div className="velvet-section-title mb-3">
+              <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--text-1)] uppercase tracking-wider flex items-center gap-1.5">
-                    <Tag className="h-3 w-3 text-[var(--indigo-500)]" />
+                  <h3 className="halo-heading flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
                     Slot performance overview
                   </h3>
-                  <p className="text-[10.5px] text-[var(--text-3)] mt-0.5">
+                  <p className="halo-subtitle mt-0.5">
                     Per-slot metrics for the {slotMetrics.length} {slotMetrics.length === 1 ? 'slot' : 'slots'} in the current selection
                   </p>
                 </div>
-                <span className="velvet-chip text-[9.5px] py-0 px-1.5">{slotMetrics.length} slots</span>
+                <span className="halo-badge">{slotMetrics.length} slots</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
                 {[...slotMetrics]
                   .sort((a, b) => (b.metrics.impressions + b.metrics.clicks) - (a.metrics.impressions + a.metrics.clicks))
                   .slice(0, 9)
@@ -1846,41 +1808,41 @@ export default function Analytics() {
                     return (
                       <div
                         key={s.slotId}
-                        className="velvet-surface-inset p-2.5 hover:border-[var(--line-violet)] transition-colors group"
+                        className="halo-inset p-3"
                       >
-                        <div className="flex items-start gap-2 mb-1.5">
-                          <div className="h-6 w-6 rounded-md bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center flex-shrink-0">
-                            <Tag className="h-3 w-3 text-[var(--indigo-500)]" strokeWidth={1.5} />
+                        <div className="flex items-start gap-2 mb-2">
+                          <div className="halo-chip flex-none" style={{ width: '1.5rem', height: '1.5rem' }}>
+                            <Tag className="h-3 w-3" strokeWidth={1.75} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[12px] font-semibold text-[var(--text-1)] truncate" title={s.slotName}>
+                            <p className="halo-label truncate" style={{ color: 'var(--h-ink)' }} title={s.slotName}>
                               {s.slotName}
                             </p>
-                            <p className="text-[9.5px] text-[var(--text-3)] uppercase tracking-wider">Slot #{s.slotId}</p>
+                            <p className="halo-eyebrow">Slot #{s.slotId}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-1.5">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Impressions</p>
-                            <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
+                            <p className="halo-eyebrow">Impressions</p>
+                            <p className="num text-sm font-semibold" style={{ color: 'var(--h-ink)' }}>
                               {formatCount(s.metrics.impressions)}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Clicks</p>
-                            <p className="text-[13px] font-semibold tabular-nums text-[var(--text-1)]">
+                            <p className="halo-eyebrow">Clicks</p>
+                            <p className="num text-sm font-semibold" style={{ color: 'var(--h-ink)' }}>
                               {formatCount(s.metrics.clicks)}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">CTR</p>
-                            <p className="text-[12.5px] font-semibold tabular-nums text-[var(--indigo-500)]">
+                            <p className="halo-eyebrow">CTR</p>
+                            <p className="num text-sm font-semibold" style={{ color: 'var(--h-iris-500)' }}>
                               {formatSmartPercent(ctr)}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Landings</p>
-                            <p className="text-[13px] font-semibold tabular-nums text-[var(--pink-500)]">
+                            <p className="halo-eyebrow">Landings</p>
+                            <p className="num text-sm font-semibold" style={{ color: 'var(--h-violet)' }}>
                               {formatCount(s.metrics.landingCount)}
                             </p>
                           </div>
@@ -1893,12 +1855,12 @@ export default function Analytics() {
           )}
 
           {/* Combo Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
             <motion.div
-              initial={{ opacity: 0, x: -10, scale: 0.98 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
-              className="velvet-surface p-3 sm:p-3.5"
+              className="halo-card p-5"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ?
@@ -1914,16 +1876,16 @@ export default function Analytics() {
                 lineKey="clicks"
                 barName="Impressions"
                 lineName="Clicks"
-                barColor="#634ce6"
-                lineColor="#d94684"
+                barColor="var(--h-iris-500)"
+                lineColor="var(--h-coral)"
               />
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, x: 10, scale: 0.98 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.35, ease: 'easeOut' }}
-              className="velvet-surface p-3 sm:p-3.5"
+              className="halo-card p-5"
             >
               <ComboChart
                 data={trendData.length > 0 && trendData[0]?.data ?
@@ -1939,38 +1901,27 @@ export default function Analytics() {
                 lineKey="ctr"
                 barName="Impressions"
                 lineName="CTR (%)"
-                barColor="#634ce6"
-                lineColor="#fbbf24"
+                barColor="var(--h-iris-500)"
+                lineColor="var(--h-amber)"
               />
             </motion.div>
           </div>
 
           {/* Demographic and Platform Analytics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-5 xl:grid-cols-4 items-stretch">
             {[
               { data: breakdownData.gender, title: 'Gender' },
               { data: breakdownData.age, title: 'Age' },
               { data: breakdownData.platform, title: 'Platform' },
               { data: breakdownData.location, title: 'Location' },
             ].map(({ data, title }, idx) => (
-              <motion.div
+              <BreakdownTile
                 key={title}
-                role="button"
-                tabIndex={0}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.4 + idx * 0.05 }}
+                index={idx}
                 onClick={() => setBreakdownModal({ open: true, title, data })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setBreakdownModal({ open: true, title, data });
-                  }
-                }}
-                className="velvet-surface velvet-micro-shadow p-3 text-left cursor-pointer transition-all duration-300 hover:shadow-[var(--shadow-velvet)] hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500"
               >
                 <BreakdownPieChart data={data} title={title} />
-              </motion.div>
+              </BreakdownTile>
             ))}
           </div>
 
@@ -1981,7 +1932,7 @@ export default function Analytics() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.6 }}
-              className="velvet-surface p-3"
+              className="halo-card p-5"
             >
               <BreakdownPieChart
                 data={breakdownData.age || []}
@@ -1991,7 +1942,6 @@ export default function Analytics() {
           )}
         </div>
       </div>
-      </div>
 
       <BreakdownModal
         open={breakdownModal.open}
@@ -1999,6 +1949,81 @@ export default function Analytics() {
         title={breakdownModal.title}
         data={breakdownModal.data}
       />
+    </div>
+  );
+}
+
+/* ============================================================
+   Local presentational helpers
+   ============================================================ */
+
+function EmptyState({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+      <div className="halo-chip">{icon}</div>
+      <div>
+        <p className="halo-label" style={{ color: 'var(--h-ink-2)' }}>{title}</p>
+        <p className="halo-subtitle mt-0.5 max-w-[280px]">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownTile({
+  index,
+  onClick,
+  children,
+}: {
+  index: number;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const spotlight = useSpotlight();
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      {...spotlight}
+      style={{ '--i': Math.min(index, 10) } as CSSProperties}
+      className="halo-card halo-card-interactive halo-spotlight halo-rise p-5 text-left cursor-pointer focus:outline-none"
+    >
+      {children}
+    </div>
+  );
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="halo-card p-5 h-[140px]">
+        <div className="halo-skeleton h-full w-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-5 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="halo-card p-5 h-[104px] flex flex-col justify-between">
+            <div className="halo-skeleton h-3 w-16" />
+            <div className="halo-skeleton h-7 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="halo-card p-5">
+        <div className="halo-skeleton h-[400px] w-full" />
+      </div>
     </div>
   );
 }

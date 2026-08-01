@@ -92,29 +92,23 @@ export function VelvetEmptyState({
         {/* Soft glow halo behind the icon */}
         <div
           className="absolute inset-0 rounded-inherit blur-md"
-          style={{ background: 'radial-gradient(circle, var(--violet-500) 0%, transparent 70%)', opacity: 0.18 }}
+          style={{ background: 'radial-gradient(circle, var(--h-iris-500) 0%, transparent 70%)', opacity: 0.18 }}
           aria-hidden
         />
         <div
           className={cn(
-            'relative flex items-center justify-center border',
+            'halo-chip relative flex items-center justify-center',
             sizing.iconWrap
           )}
-          style={{
-            background:
-              'linear-gradient(135deg, color-mix(in srgb, var(--violet-500) 10%, var(--bg-panel)) 0%, var(--bg-panel-2) 100%)',
-            borderColor: 'var(--line-violet)',
-            boxShadow: '0 4px 12px -2px rgba(99, 76, 230, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
-          }}
         >
-          {customIcon ?? (IconComponent && <IconComponent className={cn(sizing.icon, 'text-[var(--indigo-500)]')} strokeWidth={1.5} />)}
+          {customIcon ?? (IconComponent && <IconComponent className={cn(sizing.icon)} strokeWidth={1.75} />)}
         </div>
       </div>
 
-      <p className={cn('text-[var(--text-1)] leading-tight', sizing.title)}>{title}</p>
+      <p className={cn('halo-heading leading-tight', sizing.title)}>{title}</p>
 
       {subtitle && (
-        <p className={cn('text-[var(--text-3)] leading-relaxed mx-auto', sizing.subtitle)}>
+        <p className={cn('halo-subtitle mx-auto', sizing.subtitle)}>
           {subtitle}
         </p>
       )}

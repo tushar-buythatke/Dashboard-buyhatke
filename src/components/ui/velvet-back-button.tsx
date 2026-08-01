@@ -20,15 +20,13 @@ export const VelvetBackButton = React.forwardRef<
       ref={ref}
       onClick={onClick}
       type="button"
-      className={cn('velvet-back', className)}
+      className={cn('btn-halo-ghost btn-halo-sm', className)}
       {...props}
     >
-      <span className="velvet-back-icon" aria-hidden>
-        <ArrowLeft className="h-3 w-3" strokeWidth={2.25} />
+      <span aria-hidden className="inline-flex items-center justify-center">
+        <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
       </span>
-      <span className="velvet-back-label">
-        <span className="velvet-back-label-text">{label}</span>
-      </span>
+      <span>{label}</span>
     </button>
   );
 });

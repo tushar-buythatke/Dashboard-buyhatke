@@ -110,7 +110,7 @@ export const MultiSelectDropdown = ({
   return (
     <>
       {label && (
-        <label className="block text-[11px] font-medium text-[var(--text-2)] mb-1.5">
+        <label className="block text-[11px] font-medium text-[var(--h-ink-2)] mb-1.5">
           {label}
         </label>
       )}
@@ -120,70 +120,73 @@ export const MultiSelectDropdown = ({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="velvet-focus w-full min-h-[34px] py-1.5 px-3 flex items-center justify-between gap-2 rounded-lg border border-slate-200/80 dark:border-[var(--line)] bg-white/70 dark:bg-[var(--bg-panel-2)] text-left text-[13px] text-[var(--text-1)] hover:border-[var(--line-violet)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full min-h-[34px] py-1.5 px-3.5 flex items-center justify-between gap-2 rounded-[999px] bg-[var(--h-surface)] text-left text-[13px] text-[var(--h-ink)] shadow-[var(--h-sh-1)] hover:shadow-[var(--h-sh-2)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <div className="flex-1 flex flex-wrap gap-1 min-w-0">
+        <div className="flex-1 flex flex-wrap items-center gap-1 min-w-0">
           {selectedValues.length === 0 ? (
-            <span className="text-[var(--text-3)] truncate">{placeholder}</span>
+            <span className="text-[var(--h-ink-3)] truncate">{placeholder}</span>
           ) : (
-            <div className="flex flex-wrap gap-1 max-w-full">
-              {getSelectedLabels().slice(0, 2).map((lbl, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1 rounded-md bg-[var(--bg-tint)] border border-[var(--line-violet)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--indigo-500)]"
-                >
-                  <span className="max-w-[120px] truncate">{lbl}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveSelection(selectedValues[index]);
-                    }}
-                    className="opacity-60 hover:opacity-100 transition-opacity"
+            <>
+              <span className="halo-badge halo-badge-iris">{selectedValues.length}</span>
+              <div className="flex flex-wrap gap-1 max-w-full min-w-0">
+                {getSelectedLabels().slice(0, 2).map((lbl, index) => (
+                  <span
+                    key={index}
+                    className="halo-badge halo-badge-iris"
                   >
-                    <X className="h-2.5 w-2.5" strokeWidth={2.5} />
-                  </button>
-                </span>
-              ))}
-              {selectedValues.length > 2 && (
-                <span className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--text-2)]">
-                  +{selectedValues.length - 2}
-                </span>
-              )}
-            </div>
+                    <span className="max-w-[120px] truncate">{lbl}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveSelection(selectedValues[index]);
+                      }}
+                      className="opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-2.5 w-2.5" strokeWidth={2.5} />
+                    </button>
+                  </span>
+                ))}
+                {selectedValues.length > 2 && (
+                  <span className="halo-badge">
+                    +{selectedValues.length - 2}
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
-        <ChevronDown className={`h-3.5 w-3.5 text-[var(--text-3)] flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-3.5 w-3.5 text-[var(--h-ink-3)] flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} strokeWidth={1.75} />
       </button>
 
       {isOpen && menuPosition && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
-          style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width }}
-          className="fixed z-[9999] velvet-panel velvet-micro-shadow rounded-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+          style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, boxShadow: 'var(--h-sh-3)' }}
+          className="halo-card fixed z-[9999] overflow-hidden border-0 animate-in fade-in-0 zoom-in-95 duration-150"
         >
           {/* Search input */}
-          <div className="p-2 border-b border-[var(--line)]">
+          <div className="p-2 border-b border-[var(--h-line)]">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-3)] pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--h-ink-3)] pointer-events-none" strokeWidth={1.75} />
               <input
                 type="text"
                 placeholder="Search…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 autoFocus
-                className="w-full pl-8 pr-3 py-1.5 text-[13px] rounded-md border border-slate-200/80 dark:border-[var(--line)] bg-white/80 dark:bg-[var(--bg-panel-2)] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:outline-none transition-all duration-200"
+                className="halo-field w-full pl-8"
               />
             </div>
           </div>
 
           {/* Action buttons */}
           {selectedValues.length > 0 && (
-            <div className="px-2 py-1.5 border-b border-[var(--line)] bg-[var(--bg-panel-2)]">
+            <div className="px-2 py-1.5 border-b border-[var(--h-line)]">
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="text-[11px] font-medium text-[var(--text-3)] hover:text-[var(--neg)] inline-flex items-center gap-1 transition-colors"
+                className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-coral)] inline-flex items-center gap-1 transition-colors"
               >
                 <X className="h-3 w-3" strokeWidth={2.5} />
                 Clear all ({selectedValues.length})
@@ -194,7 +197,7 @@ export const MultiSelectDropdown = ({
           {/* Options list */}
           <div className="max-h-[280px] overflow-y-auto scrollbar-thin">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-6 text-[12px] text-[var(--text-3)] text-center">
+              <div className="px-3 py-6 text-[12px] text-[var(--h-ink-3)] text-center">
                 No matches
               </div>
             ) : (
@@ -208,17 +211,17 @@ export const MultiSelectDropdown = ({
                     className={`
                       flex items-center gap-2 px-2.5 py-1.5 cursor-pointer transition-colors text-[13px]
                       ${isSelected
-                        ? 'bg-[var(--bg-tint)] text-[var(--indigo-500)]'
-                        : 'hover:bg-[var(--bg-panel-2)] text-[var(--text-1)]'
+                        ? 'bg-[var(--h-tint)] text-[var(--h-iris-600)]'
+                        : 'hover:bg-[var(--h-surface-2)] text-[var(--h-ink)]'
                       }
                       ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                     `}
                   >
                     <div className={`
-                      w-3.5 h-3.5 border rounded flex items-center justify-center flex-shrink-0
+                      w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0
                       ${isSelected
-                        ? 'bg-[var(--violet-500)] border-[var(--violet-500)]'
-                        : 'border-[var(--line)]'
+                        ? 'bg-[var(--h-iris-500)]'
+                        : 'border border-[var(--h-line-2)]'
                       }
                     `}>
                       {isSelected && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
@@ -234,7 +237,7 @@ export const MultiSelectDropdown = ({
           </div>
 
           {maxSelections && (
-            <div className="px-2.5 py-1.5 border-t border-[var(--line)] bg-[var(--bg-panel-2)] text-[10.5px] text-[var(--text-3)]">
+            <div className="px-2.5 py-1.5 border-t border-[var(--h-line)] text-[10.5px] text-[var(--h-ink-3)]">
               {selectedValues.length} of {maxSelections} selected
             </div>
           )}

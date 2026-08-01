@@ -1,0 +1,1668 @@
+/* ============================================================
+   HALO — BuyHatke Ads Dashboard Design System (2026)
+   Airy, lit canvas · weightless floating cards · pill controls
+   One electric accent (Iris) doing all the talking.
+
+   Read this file top-to-bottom before styling anything.
+   Rules:
+     1. Cards have NO border in light mode. Depth = light, not lines.
+     2. Every control that is pressable is a pill (999px).
+     3. Every number uses .num (tabular figures, tight tracking).
+     4. Never hardcode a hex in a component. Use these tokens.
+     5. Spacing is an 8px grid. 4px only inside dense chips.
+   ============================================================ */
+
+/* =========================
+   LIGHT — the default
+   ========================= */
+:root {
+  /* Canvas: cool paper, never stark white, never cream */
+  --h-void: #e8e9ef;
+  --h-canvas: #f1f2f7;
+  --h-canvas-2: #f7f8fb;
+
+  /* Surfaces: cards float on the canvas */
+  --h-surface: #ffffff;
+  --h-surface-2: #f7f8fb;
+  --h-surface-3: #eef0f6;
+  --h-surface-inset: #f4f5f9;
+
+  /* Tint washes — for selected rows, icon chips, soft buttons */
+  --h-tint: rgba(91, 75, 255, 0.06);
+  --h-tint-2: rgba(91, 75, 255, 0.11);
+  --h-tint-3: rgba(91, 75, 255, 0.16);
+
+  /* Lines — used sparingly: dividers, inputs, table rules. Not cards. */
+  --h-line: rgba(14, 16, 40, 0.07);
+  --h-line-2: rgba(14, 16, 40, 0.12);
+  --h-line-accent: rgba(91, 75, 255, 0.22);
+
+  /* Ink — exactly three levels, plus inverse */
+  --h-ink: #0b0b14;
+  --h-ink-2: #565a70;
+  --h-ink-3: #8f93a8;
+  --h-ink-inv: #ffffff;
+
+  /* Iris — the hero */
+  --h-iris-50: #f0eeff;
+  --h-iris-100: #e2ddff;
+  --h-iris-200: #c7bfff;
+  --h-iris-300: #a99dff;
+  --h-iris-400: #8878ff;
+  --h-iris-500: #5b4bff;
+  --h-iris-600: #4a37f0;
+  --h-iris-700: #3b28cf;
+
+  /* Spectrum partners — used only in gradients, charts, and signals */
+  --h-cyan: #00bfe0;
+  --h-cyan-soft: rgba(0, 191, 224, 0.12);
+  --h-mint: #10c78f;
+  --h-mint-soft: rgba(16, 199, 143, 0.12);
+  --h-amber: #f5a524;
+  --h-amber-soft: rgba(245, 165, 36, 0.14);
+  --h-coral: #ff4a5e;
+  --h-coral-soft: rgba(255, 74, 94, 0.11);
+  --h-violet: #9b5bff;
+
+  /* Semantic aliases — always use these in logic-driven UI */
+  --h-pos: var(--h-mint);
+  --h-pos-soft: var(--h-mint-soft);
+  --h-neg: var(--h-coral);
+  --h-neg-soft: var(--h-coral-soft);
+  --h-warn: var(--h-amber);
+  --h-warn-soft: var(--h-amber-soft);
+  --h-info: var(--h-cyan);
+  --h-info-soft: var(--h-cyan-soft);
+
+  /* Gradients */
+  --h-g-iris: linear-gradient(135deg, #6d5cff 0%, #4a37f0 100%);
+  --h-g-spectrum: linear-gradient(90deg, #5b4bff 0%, #9b5bff 34%, #00bfe0 68%, #10c78f 100%);
+  --h-g-rail: linear-gradient(90deg, transparent 0%, var(--h-iris-400) 22%, var(--h-cyan) 55%, transparent 100%);
+  --h-g-sheen: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 48%, transparent 62%);
+  --h-g-aurora:
+    radial-gradient(ellipse 64% 46% at 10% -8%, rgba(217, 100, 190, 0.15), transparent 64%),
+    radial-gradient(ellipse 60% 46% at 14% -4%, rgba(91, 75, 255, 0.19), transparent 62%),
+    radial-gradient(ellipse 50% 42% at 94% 2%, rgba(0, 191, 224, 0.17), transparent 60%),
+    radial-gradient(ellipse 55% 46% at 66% 104%, rgba(16, 199, 143, 0.12), transparent 62%),
+    radial-gradient(ellipse 70% 50% at 60% 102%, rgba(155, 91, 255, 0.1), transparent 64%);
+
+  /* Elevation — soft, wide, low-opacity. This is the whole look. */
+  --h-sh-1: 0 1px 2px rgba(14, 16, 40, 0.04);
+  --h-sh-2: 0 1px 2px rgba(14, 16, 40, 0.04), 0 8px 20px -10px rgba(14, 16, 40, 0.1);
+  --h-sh-3: 0 1px 3px rgba(14, 16, 40, 0.05), 0 16px 40px -16px rgba(14, 16, 40, 0.14);
+  --h-sh-4: 0 2px 6px rgba(14, 16, 40, 0.06), 0 28px 60px -22px rgba(14, 16, 40, 0.2);
+  --h-sh-iris: 0 6px 20px -6px rgba(74, 55, 240, 0.42);
+  --h-sh-iris-lg: 0 10px 30px -8px rgba(74, 55, 240, 0.5);
+  --h-ring: 0 0 0 3px rgba(91, 75, 255, 0.16);
+
+  /* Type */
+  --h-font-display: 'Bricolage Grotesque', 'Inter Tight', system-ui, sans-serif;
+  --h-font: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --h-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Motion — nothing over 260ms */
+  --h-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --h-ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --h-t-fast: 130ms;
+  --h-t: 190ms;
+  --h-t-slow: 260ms;
+
+  /* Shape */
+  --h-r-xs: 8px;
+  --h-r-sm: 10px;
+  --h-r: 14px;
+  --h-r-lg: 20px;
+  --h-r-card: 22px;
+  --h-r-xl: 28px;
+  --h-r-pill: 999px;
+
+  /* Layout */
+  --h-header-h: 60px;
+  --h-sidebar-w: 232px;
+  --h-sidebar-w-collapsed: 72px;
+  --h-page-max: 1560px;
+}
+
+/* =========================
+   DARK — cool graphite, same electric iris
+   ========================= */
+.dark {
+  --h-void: #06070c;
+  --h-canvas: #0a0b11;
+  --h-canvas-2: #0f1017;
+
+  --h-surface: #15161f;
+  --h-surface-2: #1b1d28;
+  --h-surface-3: #232532;
+  --h-surface-inset: #101119;
+
+  --h-tint: rgba(136, 120, 255, 0.09);
+  --h-tint-2: rgba(136, 120, 255, 0.15);
+  --h-tint-3: rgba(136, 120, 255, 0.22);
+
+  --h-line: rgba(255, 255, 255, 0.07);
+  --h-line-2: rgba(255, 255, 255, 0.13);
+  --h-line-accent: rgba(136, 120, 255, 0.3);
+
+  --h-ink: #f2f3f8;
+  --h-ink-2: #a2a6bd;
+  --h-ink-3: #6e7288;
+  --h-ink-inv: #0b0b14;
+
+  --h-iris-500: #7a68ff;
+  --h-iris-600: #6a56ff;
+  --h-iris-400: #9b8dff;
+  --h-iris-300: #b5abff;
+  --h-iris-100: rgba(122, 104, 255, 0.16);
+  --h-iris-50: rgba(122, 104, 255, 0.09);
+
+  --h-cyan: #22d3ee;
+  --h-mint: #2ee0a5;
+  --h-amber: #fbbf3f;
+  --h-coral: #ff6274;
+
+  --h-g-iris: linear-gradient(135deg, #7a68ff 0%, #5b41f5 100%);
+  --h-g-aurora:
+    radial-gradient(ellipse 64% 46% at 10% -8%, rgba(217, 100, 190, 0.16), transparent 64%),
+    radial-gradient(ellipse 60% 46% at 14% -4%, rgba(122, 104, 255, 0.24), transparent 62%),
+    radial-gradient(ellipse 50% 42% at 94% 2%, rgba(34, 211, 238, 0.16), transparent 60%),
+    radial-gradient(ellipse 55% 46% at 66% 104%, rgba(46, 224, 165, 0.13), transparent 62%),
+    radial-gradient(ellipse 70% 50% at 60% 102%, rgba(155, 91, 255, 0.13), transparent 64%);
+  --h-g-sheen: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.14) 48%, transparent 62%);
+
+  /* In dark, cards DO get a hairline — otherwise they dissolve */
+  --h-sh-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --h-sh-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --h-sh-3: 0 1px 3px rgba(0, 0, 0, 0.5), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+  --h-sh-4: 0 2px 6px rgba(0, 0, 0, 0.5), 0 28px 60px -22px rgba(0, 0, 0, 0.8);
+  --h-ring: 0 0 0 3px rgba(122, 104, 255, 0.26);
+}
+
+/* ============================================================
+   ACCENT THEMES
+   The brand accent (everything that reads var(--h-iris-*)) is
+   swappable via [data-accent] on <html> — buttons, focus rings,
+   the active nav pill, links, and badge tints all re-theme with
+   zero component changes, since they never hardcode a hex.
+   Default is "iris" (no attribute needed). "coral" and "mint"
+   remap the same variable names onto a different hue.
+   ============================================================ */
+[data-accent='coral'] {
+  --h-iris-50: #fff1f0;
+  --h-iris-100: #ffe1de;
+  --h-iris-200: #ffc2bd;
+  --h-iris-300: #ff9d95;
+  --h-iris-400: #ff7268;
+  --h-iris-500: #f2453f;
+  --h-iris-600: #d92e2e;
+  --h-iris-700: #b31f24;
+  --h-g-iris: linear-gradient(135deg, #ff7268 0%, #d92e2e 100%);
+  --h-tint: rgba(242, 69, 63, 0.06);
+  --h-tint-2: rgba(242, 69, 63, 0.11);
+  --h-tint-3: rgba(242, 69, 63, 0.16);
+  --h-line-accent: rgba(242, 69, 63, 0.22);
+  --h-sh-iris: 0 6px 20px -6px rgba(217, 46, 46, 0.42);
+  --h-sh-iris-lg: 0 10px 30px -8px rgba(217, 46, 46, 0.5);
+  --h-ring: 0 0 0 3px rgba(242, 69, 63, 0.16);
+}
+
+[data-accent='mint'] {
+  --h-iris-50: #eafff6;
+  --h-iris-100: #d3ffec;
+  --h-iris-200: #a3f7d6;
+  --h-iris-300: #6fe8bf;
+  --h-iris-400: #34cf9e;
+  --h-iris-500: #0ea975;
+  --h-iris-600: #0a8a60;
+  --h-iris-700: #076e4c;
+  --h-g-iris: linear-gradient(135deg, #34cf9e 0%, #0a8a60 100%);
+  --h-tint: rgba(14, 169, 117, 0.07);
+  --h-tint-2: rgba(14, 169, 117, 0.12);
+  --h-tint-3: rgba(14, 169, 117, 0.17);
+  --h-line-accent: rgba(14, 169, 117, 0.24);
+  --h-sh-iris: 0 6px 20px -6px rgba(10, 138, 96, 0.42);
+  --h-sh-iris-lg: 0 10px 30px -8px rgba(10, 138, 96, 0.5);
+  --h-ring: 0 0 0 3px rgba(14, 169, 117, 0.16);
+}
+
+[data-accent='pink'] {
+  --h-iris-50: #fff0f7;
+  --h-iris-100: #ffdcee;
+  --h-iris-200: #ffb8dd;
+  --h-iris-300: #ff8ec8;
+  --h-iris-400: #f665ac;
+  --h-iris-500: #e8408f;
+  --h-iris-600: #cc2c76;
+  --h-iris-700: #a81f60;
+  --h-g-iris: linear-gradient(135deg, #f665ac 0%, #cc2c76 100%);
+  --h-tint: rgba(232, 64, 143, 0.06);
+  --h-tint-2: rgba(232, 64, 143, 0.11);
+  --h-tint-3: rgba(232, 64, 143, 0.16);
+  --h-line-accent: rgba(232, 64, 143, 0.22);
+  --h-sh-iris: 0 6px 20px -6px rgba(204, 44, 118, 0.42);
+  --h-sh-iris-lg: 0 10px 30px -8px rgba(204, 44, 118, 0.5);
+  --h-ring: 0 0 0 3px rgba(232, 64, 143, 0.16);
+}
+
+[data-accent='blue'] {
+  --h-iris-50: #eaf5ff;
+  --h-iris-100: #d3ebff;
+  --h-iris-200: #a3d6ff;
+  --h-iris-300: #6cbdff;
+  --h-iris-400: #369eff;
+  --h-iris-500: #0d7fe6;
+  --h-iris-600: #0a63b8;
+  --h-iris-700: #084d8f;
+  --h-g-iris: linear-gradient(135deg, #369eff 0%, #0a63b8 100%);
+  --h-tint: rgba(13, 127, 230, 0.06);
+  --h-tint-2: rgba(13, 127, 230, 0.11);
+  --h-tint-3: rgba(13, 127, 230, 0.16);
+  --h-line-accent: rgba(13, 127, 230, 0.22);
+  --h-sh-iris: 0 6px 20px -6px rgba(10, 99, 184, 0.42);
+  --h-sh-iris-lg: 0 10px 30px -8px rgba(10, 99, 184, 0.5);
+  --h-ring: 0 0 0 3px rgba(13, 127, 230, 0.16);
+}
+
+.dark[data-accent='coral'] {
+  --h-iris-300: #ffb0a8;
+  --h-iris-400: #ff8f85;
+  --h-iris-500: #ff6b5f;
+  --h-iris-600: #f2453f;
+  --h-iris-100: rgba(255, 114, 104, 0.16);
+  --h-iris-50: rgba(255, 114, 104, 0.09);
+  --h-g-iris: linear-gradient(135deg, #ff8f85 0%, #e0362f 100%);
+  --h-ring: 0 0 0 3px rgba(255, 114, 104, 0.26);
+}
+
+.dark[data-accent='mint'] {
+  --h-iris-300: #7ef0cf;
+  --h-iris-400: #45dcac;
+  --h-iris-500: #16c184;
+  --h-iris-600: #0ea975;
+  --h-iris-100: rgba(52, 207, 158, 0.16);
+  --h-iris-50: rgba(52, 207, 158, 0.09);
+  --h-g-iris: linear-gradient(135deg, #45dcac 0%, #0a8a60 100%);
+  --h-ring: 0 0 0 3px rgba(52, 207, 158, 0.26);
+}
+
+.dark[data-accent='pink'] {
+  --h-iris-300: #ffb3dc;
+  --h-iris-400: #ff8ac6;
+  --h-iris-500: #f660a8;
+  --h-iris-600: #e8408f;
+  --h-iris-100: rgba(246, 101, 172, 0.16);
+  --h-iris-50: rgba(246, 101, 172, 0.09);
+  --h-g-iris: linear-gradient(135deg, #ff8ac6 0%, #cc2c76 100%);
+  --h-ring: 0 0 0 3px rgba(246, 101, 172, 0.26);
+}
+
+.dark[data-accent='blue'] {
+  --h-iris-300: #a3d6ff;
+  --h-iris-400: #6cbdff;
+  --h-iris-500: #3ea0f2;
+  --h-iris-600: #0d7fe6;
+  --h-iris-100: rgba(54, 158, 255, 0.16);
+  --h-iris-50: rgba(54, 158, 255, 0.09);
+  --h-g-iris: linear-gradient(135deg, #6cbdff 0%, #0a63b8 100%);
+  --h-ring: 0 0 0 3px rgba(54, 158, 255, 0.26);
+}
+
+/* ============================================================
+   LEGACY BRIDGE
+   The old velvet tokens are remapped onto Halo so every existing
+   `var(--text-1)` / `var(--bg-panel)` reference adopts the new
+   system immediately. Do NOT use these in new code — they exist
+   only so the migration can proceed surface-by-surface.
+   Delete this block once `grep -r "var(--bg-panel\|var(--text-\|
+   var(--violet-\|var(--line" src` returns nothing.
+   ============================================================ */
+:root,
+.dark {
+  --bg-void: var(--h-void);
+  --bg-canvas: var(--h-canvas);
+  --bg-canvas-2: var(--h-canvas-2);
+  --bg-panel: var(--h-surface);
+  --bg-panel-2: var(--h-surface-2);
+  --bg-panel-3: var(--h-surface-3);
+  --bg-tint: var(--h-tint);
+  --bg-tint-2: var(--h-tint-2);
+
+  --line: var(--h-line);
+  --line-strong: var(--h-line-2);
+  --line-violet: var(--h-line-accent);
+
+  --text-1: var(--h-ink);
+  --text-2: var(--h-ink-2);
+  --text-3: var(--h-ink-3);
+  --text-inv: var(--h-ink-inv);
+
+  --violet-300: var(--h-iris-300);
+  --violet-400: var(--h-iris-400);
+  --violet-500: var(--h-iris-500);
+  --violet-600: var(--h-iris-600);
+  --violet-700: var(--h-iris-700);
+  --violet-800: var(--h-iris-700);
+  --indigo-400: var(--h-iris-400);
+  --indigo-500: var(--h-iris-500);
+  --indigo-600: var(--h-iris-600);
+  --plum-300: var(--h-iris-200);
+  --plum-400: var(--h-violet);
+  --plum-500: var(--h-violet);
+  --plum-600: var(--h-violet);
+  --pink-400: var(--h-violet);
+  --pink-500: var(--h-coral);
+  --blue-400: var(--h-cyan);
+  --blue-500: var(--h-cyan);
+  --gold-400: var(--h-amber);
+  --gold-500: var(--h-amber);
+
+  --pos: var(--h-pos);
+  --pos-soft: var(--h-pos-soft);
+  --neg: var(--h-neg);
+  --neg-soft: var(--h-neg-soft);
+  --warn: var(--h-warn);
+  --info: var(--h-info);
+
+  --g-brand: var(--h-g-iris);
+  --g-button: var(--h-g-iris);
+  --g-button-hover: var(--h-g-iris);
+  --g-accent: var(--h-g-spectrum);
+  --g-text: var(--h-g-spectrum);
+
+  --shadow-1: var(--h-sh-1);
+  --shadow-2: var(--h-sh-2);
+  --shadow-3: var(--h-sh-3);
+  --shadow-velvet: var(--h-sh-3);
+  --shadow-velvet-lg: var(--h-sh-4);
+  --shadow-ring: var(--h-ring);
+
+  --font-sans: var(--h-font);
+  --font-serif: var(--h-font-display);
+  --font-mono: var(--h-font-mono);
+
+  --ease-out: var(--h-ease);
+  --dur-fast: var(--h-t-fast);
+  --dur-base: var(--h-t);
+  --dur-slow: var(--h-t-slow);
+
+  --header-h: var(--h-header-h);
+  --sidebar-w: var(--h-sidebar-w);
+  --radius-sm: var(--h-r-sm);
+  --radius: var(--h-r);
+  --radius-lg: var(--h-r-lg);
+  --radius-xl: var(--h-r-xl);
+}
+
+/* ============================================================
+   BACKDROP — the lit canvas
+   One fixed layer. Never repeat this per-page.
+   ============================================================ */
+.halo-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--h-canvas);
+}
+
+.halo-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--h-g-aurora);
+}
+
+/* Fine grain — stops the flat-white deadness. Kept at 2.5%. */
+.halo-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dark .halo-backdrop::after {
+  opacity: 0.04;
+}
+
+/* ============================================================
+   SURFACES
+   ============================================================ */
+
+/* The workhorse. Floating white card, no border in light mode. */
+.halo-card {
+  position: relative;
+  background: var(--h-surface);
+  border-radius: var(--h-r-card);
+  box-shadow: var(--h-sh-2);
+  transition: box-shadow var(--h-t) var(--h-ease), transform var(--h-t) var(--h-ease);
+}
+
+.dark .halo-card {
+  border: 1px solid var(--h-line);
+  /* A hairline border alone reads flat on near-black. A faint inset top
+     highlight plus a slightly deeper shadow gives the card a defined,
+     lit edge instead of dissolving into the canvas. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), var(--h-sh-2);
+}
+
+/* Raised variant for hero/primary panels */
+.halo-card-raised {
+  box-shadow: var(--h-sh-3);
+}
+
+/* Inset variant — for wells, code blocks, nested groups */
+.halo-inset {
+  background: var(--h-surface-inset);
+  border-radius: var(--h-r);
+  border: 1px solid var(--h-line);
+}
+
+/* Glass — for overlays, sticky bars, floating nav */
+.halo-glass {
+  background: color-mix(in srgb, var(--h-surface) 72%, transparent);
+  /* Kept modest on purpose — this class sits on sticky/fixed toolbars,
+     where a large blur radius is repainted every scroll frame. */
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid var(--h-line);
+}
+
+/* The top navbar reads better lighter — more of the aurora backdrop shows
+   through behind it than on a dense sticky filter toolbar. */
+.halo-glass-nav {
+  background: color-mix(in srgb, var(--h-surface) 45%, transparent);
+  border-color: color-mix(in srgb, var(--h-line) 60%, transparent);
+}
+
+/* Interactive card: lift + deepen on hover */
+.halo-card-interactive {
+  cursor: pointer;
+}
+
+.halo-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--h-sh-3);
+}
+
+.halo-card-interactive:active {
+  transform: translateY(0);
+  transition-duration: var(--h-t-fast);
+}
+
+/* ------------------------------------------------------------
+   SIGNATURE 1 — the spectrum rail
+   A hairline gradient at the top edge of a surface. This is the
+   one recurring flourish that ties the whole product together.
+   Use on: metric cards, panel headers, modals, page headers.
+   ------------------------------------------------------------ */
+.halo-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 1.5px;
+  border-radius: var(--h-r-pill);
+  background: var(--h-g-rail);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* Full-bleed, top-edge variant — same flowing spectrum treatment as
+   `.halo-rail-full`, but for cards with no separate panel-head strip, where
+   the flowing line needs to sit right at the card's own top edge. */
+.halo-rail-top-full::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--h-g-spectrum);
+  background-size: 220% 100%;
+  animation: halo-flow 10s ease-in-out infinite;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* Full-bleed variant for panel headers and table heads — the same flowing
+   spectrum gradient as the nav's active pill, sized down to a hairline. */
+.halo-rail-full::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--h-g-spectrum);
+  background-size: 220% 100%;
+  animation: halo-flow 10s ease-in-out infinite;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   SIGNATURE 2 — cursor spotlight
+   Set --mx/--my from JS (see useSpotlight hook) for follow;
+   without JS it still gives a soft top-left bloom on hover.
+   ------------------------------------------------------------ */
+.halo-spotlight {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.halo-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity var(--h-t-slow) var(--h-ease);
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(91, 75, 255, 0.1),
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+.dark .halo-spotlight::after {
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(136, 120, 255, 0.16),
+    transparent 62%
+  );
+}
+
+.halo-spotlight:hover::after {
+  opacity: 1;
+}
+
+.halo-spotlight > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+/* Page title — the only place the display face gets to be big */
+.halo-title {
+  font-family: var(--h-font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.2vw, 1.95rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--h-ink);
+}
+
+.halo-subtitle {
+  font-size: 0.8125rem;
+  color: var(--h-ink-3);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+/* Section / panel heading */
+.halo-heading {
+  font-family: var(--h-font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  letter-spacing: -0.02em;
+  color: var(--h-ink);
+}
+
+/* Eyebrow — tiny uppercase label above a group */
+.halo-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--h-ink-3);
+}
+
+/* Field / column label */
+.halo-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--h-ink-2);
+  letter-spacing: -0.005em;
+}
+
+/* Every number in the product. Tabular so columns align. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+  letter-spacing: -0.02em;
+}
+
+/* Hero metric value */
+.halo-metric {
+  font-family: var(--h-font);
+  font-weight: 650;
+  font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--h-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gradient text — reserve for one word per page, max */
+.halo-gradient-text {
+  background: var(--h-g-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================
+   BUTTONS — all pills
+   ============================================================ */
+.btn-halo,
+.btn-halo-soft,
+.btn-halo-ghost,
+.btn-halo-outline,
+.btn-halo-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border-radius: var(--h-r-pill);
+  font-family: var(--h-font);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--h-t) var(--h-ease), box-shadow var(--h-t) var(--h-ease),
+    transform var(--h-t-fast) var(--h-ease), color var(--h-t) var(--h-ease),
+    border-color var(--h-t) var(--h-ease);
+}
+
+.btn-halo:active,
+.btn-halo-soft:active,
+.btn-halo-ghost:active,
+.btn-halo-outline:active,
+.btn-halo-danger:active {
+  transform: scale(0.97);
+}
+
+.btn-halo:disabled,
+.btn-halo-soft:disabled,
+.btn-halo-ghost:disabled,
+.btn-halo-outline:disabled,
+.btn-halo-danger:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Primary — solid iris with a sheen sweep on hover */
+.btn-halo {
+  position: relative;
+  overflow: hidden;
+  background: var(--h-g-iris);
+  color: #fff;
+  box-shadow: var(--h-sh-iris);
+}
+
+.btn-halo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--h-g-sheen);
+  transform: translateX(-120%);
+  transition: transform 620ms var(--h-ease);
+  pointer-events: none;
+}
+
+.btn-halo:hover {
+  box-shadow: var(--h-sh-iris-lg);
+}
+
+.btn-halo:hover::after {
+  transform: translateX(120%);
+}
+
+/* Soft — tinted iris, for secondary actions that still matter */
+.btn-halo-soft {
+  background: var(--h-tint-2);
+  color: var(--h-iris-600);
+}
+
+.dark .btn-halo-soft {
+  color: var(--h-iris-300);
+}
+
+.btn-halo-soft:hover {
+  background: var(--h-tint-3);
+}
+
+/* Outline — neutral, bordered */
+.btn-halo-outline {
+  background: var(--h-surface);
+  color: var(--h-ink-2);
+  border-color: var(--h-line-2);
+  box-shadow: var(--h-sh-1);
+}
+
+.btn-halo-outline:hover {
+  color: var(--h-ink);
+  border-color: var(--h-line-accent);
+  box-shadow: var(--h-sh-2);
+}
+
+/* Ghost — lowest emphasis */
+.btn-halo-ghost {
+  background: transparent;
+  color: var(--h-ink-2);
+}
+
+.btn-halo-ghost:hover {
+  background: var(--h-tint);
+  color: var(--h-iris-600);
+}
+
+.dark .btn-halo-ghost:hover {
+  color: var(--h-iris-300);
+}
+
+/* Danger */
+.btn-halo-danger {
+  background: var(--h-neg-soft);
+  color: var(--h-coral);
+  border-color: color-mix(in srgb, var(--h-coral) 26%, transparent);
+}
+
+.btn-halo-danger:hover {
+  background: var(--h-coral);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 18px -6px rgba(255, 74, 94, 0.5);
+}
+
+/* Sizes */
+.btn-halo-sm {
+  height: 1.875rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+}
+
+.btn-halo-lg {
+  height: 2.625rem;
+  padding: 0 1.375rem;
+  font-size: 0.875rem;
+}
+
+.btn-halo-icon {
+  width: 2.25rem;
+  padding: 0;
+}
+
+.btn-halo-icon.btn-halo-sm {
+  width: 1.875rem;
+}
+
+/* ============================================================
+   FORM CONTROLS
+   ============================================================ */
+.halo-field {
+  width: 100%;
+  height: 2.375rem;
+  padding: 0 1.125rem;
+  border-radius: var(--h-r-pill);
+  background: var(--h-surface);
+  border: 1px solid var(--h-line-2);
+  color: var(--h-ink);
+  font-family: var(--h-font);
+  font-size: 0.8125rem;
+  letter-spacing: -0.005em;
+  transition: border-color var(--h-t) var(--h-ease), box-shadow var(--h-t) var(--h-ease),
+    background var(--h-t) var(--h-ease);
+}
+
+.halo-field::placeholder {
+  color: var(--h-ink-3);
+}
+
+.halo-field:hover {
+  border-color: var(--h-line-accent);
+}
+
+.halo-field:focus,
+.halo-field:focus-visible,
+.halo-field:focus-within {
+  outline: none;
+  border-color: var(--h-iris-500);
+  box-shadow: var(--h-ring);
+}
+
+.halo-field[aria-invalid='true'],
+.halo-field.is-invalid {
+  border-color: var(--h-coral);
+  box-shadow: 0 0 0 3px var(--h-neg-soft);
+}
+
+textarea.halo-field {
+  height: auto;
+  min-height: 5rem;
+  padding: 0.75rem 1.125rem;
+  line-height: 1.55;
+  resize: vertical;
+  /* A full pill radius on a tall multi-line box reads as a stadium, not a
+     field — cap it back to a normal rounded rect. */
+  border-radius: var(--h-r);
+}
+
+/* Search field — pill, with room for a leading icon */
+.halo-search {
+  border-radius: var(--h-r-pill);
+  padding-left: 2.25rem;
+  background: var(--h-surface);
+}
+
+/* ============================================================
+   PILLS, CHIPS, BADGES
+   ============================================================ */
+
+/* Segmented control / tab rail */
+.halo-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--h-r-pill);
+  background: var(--h-surface-3);
+}
+
+.dark .halo-segment {
+  background: var(--h-surface-2);
+}
+
+.halo-segment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.875rem;
+  padding: 0 0.875rem;
+  border-radius: var(--h-r-pill);
+  font-size: 0.78125rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  color: var(--h-ink-2);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--h-t) var(--h-ease), background var(--h-t) var(--h-ease),
+    box-shadow var(--h-t) var(--h-ease);
+}
+
+.halo-segment-item:hover {
+  color: var(--h-ink);
+}
+
+.halo-segment-item[data-state='active'],
+.halo-segment-item[aria-selected='true'],
+.halo-segment-item.is-active {
+  background: var(--h-surface);
+  color: var(--h-ink);
+  box-shadow: var(--h-sh-2);
+}
+
+/* Accent variant — the active pill is solid iris */
+.halo-segment-accent .halo-segment-item[data-state='active'],
+.halo-segment-accent .halo-segment-item[aria-selected='true'],
+.halo-segment-accent .halo-segment-item.is-active {
+  background: var(--h-g-iris);
+  color: #fff;
+  box-shadow: var(--h-sh-iris);
+}
+
+/* Badge — status and category markers */
+.halo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.375rem;
+  padding: 0 0.5625rem;
+  border-radius: var(--h-r-pill);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  background: var(--h-surface-3);
+  color: var(--h-ink-2);
+  white-space: nowrap;
+}
+
+.halo-badge-iris { background: var(--h-tint-2); color: var(--h-iris-600); }
+.halo-badge-pos  { background: var(--h-pos-soft); color: var(--h-mint); }
+.halo-badge-neg  { background: var(--h-neg-soft); color: var(--h-coral); }
+.halo-badge-warn { background: var(--h-warn-soft); color: var(--h-amber); }
+.halo-badge-info { background: var(--h-info-soft); color: var(--h-cyan); }
+
+.dark .halo-badge-iris { color: var(--h-iris-300); }
+
+/* Live status dot */
+.halo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.halo-dot-live {
+  box-shadow: 0 0 0 0 currentColor;
+  animation: halo-pulse 2s var(--h-ease) infinite;
+}
+
+/* Icon chip — tinted rounded square holding a lucide icon */
+.halo-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--h-r-sm);
+  background: var(--h-tint-2);
+  color: var(--h-iris-600);
+  flex: none;
+}
+
+.dark .halo-chip,
+.dark .halo-chip-lg {
+  color: var(--h-iris-300);
+}
+
+/* Self-sufficient: works whether or not `.halo-chip` is also applied.
+   (It's easy to reach for this size modifier on its own — many empty-state
+   icons across the app did exactly that and rendered with no background.) */
+.halo-chip-lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--h-r);
+  background: var(--h-tint-2);
+  color: var(--h-iris-600);
+  flex: none;
+}
+
+/* Avatar — a colored initial circle for table rows. Combine with
+   `.halo-chip-solid .halo-chip-{family}` for the gradient fill:
+   className="halo-avatar halo-chip-solid halo-chip-iris" */
+.halo-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  flex: none;
+  box-shadow: 0 2px 6px -2px rgba(14, 16, 40, 0.3);
+}
+
+/* ------------------------------------------------------------
+   ACCENT FAMILIES
+   Color is how you tell one metric from another at a glance.
+   Each family gives a chip, a tint, a rail and a tile.
+   Assign a family per metric and keep it stable across the app —
+   impressions are always cyan, conversions always mint, etc.
+   ------------------------------------------------------------ */
+.halo-chip-iris   { background: rgba(91, 75, 255, 0.13);  color: #4a37f0; }
+.halo-chip-cyan   { background: rgba(0, 191, 224, 0.15);  color: #0192ad; }
+.halo-chip-mint   { background: rgba(16, 199, 143, 0.15); color: #069b6e; }
+.halo-chip-amber  { background: rgba(245, 165, 36, 0.18); color: #c47d06; }
+.halo-chip-coral  { background: rgba(255, 74, 94, 0.13);  color: #e02c42; }
+.halo-chip-violet { background: rgba(155, 91, 255, 0.14); color: #7c34e0; }
+
+.dark .halo-chip-iris   { background: rgba(122, 104, 255, 0.2);  color: #b5abff; }
+.dark .halo-chip-cyan   { background: rgba(34, 211, 238, 0.16);  color: #67e8f9; }
+.dark .halo-chip-mint   { background: rgba(46, 224, 165, 0.16);  color: #6ee7bf; }
+.dark .halo-chip-amber  { background: rgba(251, 191, 63, 0.16);  color: #fcd581; }
+.dark .halo-chip-coral  { background: rgba(255, 98, 116, 0.16);  color: #ff9aa7; }
+.dark .halo-chip-violet { background: rgba(155, 91, 255, 0.2);   color: #c9a6ff; }
+
+/* ------------------------------------------------------------
+   MESH — vivid, saturated hero surfaces
+   For the one card per screen that should look confident, not
+   polite: a real gradient mesh (not a 10% tint), white text,
+   used the way premium dashboards spend an accent card. Pick one
+   per screen, max. Everything else stays on white `.halo-card`.
+   ------------------------------------------------------------ */
+.halo-mesh {
+  position: relative;
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+  /* A crisp inner hairline stops a big gradient block from reading as a flat
+     CSS-demo rectangle, and a colored ambient glow underneath — matching
+     whichever accent is active — is what makes the card feel lit rather
+     than just recolored. Both themes had the hairline; only dark had the glow. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    var(--h-sh-3),
+    0 22px 46px -20px var(--halo-mesh-glow-light, rgba(74, 55, 240, 0.32));
+}
+
+.dark .halo-mesh {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    0 24px 56px -20px var(--halo-mesh-glow, rgba(91, 75, 255, 0.55));
+}
+
+/* The glow follows whichever accent is active — set on the root so it
+   applies wherever `.halo-mesh` is used, not just a specific mesh class. */
+[data-accent='coral'] { --halo-mesh-glow-light: rgba(217, 46, 46, 0.28); --halo-mesh-glow: rgba(255, 100, 90, 0.5); }
+[data-accent='mint']  { --halo-mesh-glow-light: rgba(10, 138, 96, 0.26); --halo-mesh-glow: rgba(20, 214, 150, 0.42); }
+[data-accent='pink']  { --halo-mesh-glow-light: rgba(204, 44, 118, 0.28); --halo-mesh-glow: rgba(255, 110, 180, 0.48); }
+[data-accent='blue']  { --halo-mesh-glow-light: rgba(10, 99, 184, 0.28); --halo-mesh-glow: rgba(80, 190, 255, 0.5); }
+
+.halo-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.halo-mesh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60% 90% at 12% -10%, rgba(255, 255, 255, 0.28), transparent 55%),
+    linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.08) 50%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Fine grain — keeps a big flat gradient from looking like a CSS demo */
+.halo-mesh-grain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* The brand hero gradient — built from the accent tokens (not hardcoded hex)
+   so it re-themes automatically with the accent switcher in the navbar.
+   Default accent ("iris") reads as blue → violet → magenta. */
+.halo-mesh-iris::before,
+.halo-panel-head-mesh::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, color-mix(in srgb, var(--h-iris-300) 85%, white 15%) 0%, transparent 55%),
+    radial-gradient(100% 130% at 0% 100%, var(--h-iris-700) 0%, transparent 60%),
+    linear-gradient(135deg, var(--h-iris-600) 0%, var(--h-iris-500) 55%, var(--h-iris-400) 100%);
+}
+
+.halo-mesh-coral::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, #ffb14d 0%, transparent 55%),
+    radial-gradient(100% 130% at 0% 100%, #c81d3f 0%, transparent 60%),
+    linear-gradient(135deg, #ff5470 0%, #e0293f 55%, #b3183a 100%);
+}
+
+.halo-mesh-mint::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, #7ef0d4 0%, transparent 55%),
+    radial-gradient(100% 130% at 0% 100%, #036b52 0%, transparent 60%),
+    linear-gradient(135deg, #12d99a 0%, #0a9d76 55%, #067057 100%);
+}
+
+.halo-mesh-ink::before {
+  background: radial-gradient(120% 140% at 0% 0%, #2a2c3d, #0b0b14 70%);
+}
+
+/* Bespoke per-accent hero gradients. The default (iris) formula above is
+   derived mathematically from the accent tokens via color-mix() — that
+   happens to look great for violet, but mechanically recoloring the same
+   ratios for pink/blue produced a flat, muddy result. These two are
+   hand-tuned instead: their own stops, their own mood. */
+
+/* Soft, dreamy blush — warm peachy-pink highlight easing into a rich rose
+   base. Airy rather than a saturated magenta block. */
+[data-accent='pink'] .halo-mesh-iris::before,
+[data-accent='pink'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(90% 130% at 100% 0%, #ffe3f3 0%, transparent 58%),
+    radial-gradient(80% 120% at 15% 10%, #ffc2e4 0%, transparent 50%),
+    radial-gradient(100% 140% at 0% 100%, #a81f60 0%, transparent 62%),
+    linear-gradient(135deg, #ffa8d6 0%, #f0509e 50%, #cc2c76 100%);
+}
+
+/* Sky-vivid blue with a cyan bloom and a faint iridescent kiss of pink —
+   the "sexy sky blue" quality, not a flat navy-to-purple blend. */
+/* Sunset orange-red — warm amber bloom into a vivid vermilion base, with
+   its own coral-toned glow beneath (see --halo-mesh-glow above), instead of
+   inheriting the iris formula's mechanical color-mix ratios. */
+[data-accent='coral'] .halo-mesh-iris::before,
+[data-accent='coral'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(90% 130% at 100% 0%, #ffe8c2 0%, transparent 58%),
+    radial-gradient(70% 100% at 12% 8%, rgba(255, 145, 120, 0.4) 0%, transparent 48%),
+    radial-gradient(100% 140% at 0% 100%, #8f1f2c 0%, transparent 62%),
+    linear-gradient(135deg, #ff8a5c 0%, #f2453f 50%, #c92e2e 100%);
+}
+
+/* Aegean water — bright turquoise-cyan throughout, no dark navy corner.
+   The previous version bottomed out at near-navy, which is exactly what
+   read as "muddy" — this one stays light and crisp end to end. */
+[data-accent='blue'] .halo-mesh-iris::before,
+[data-accent='blue'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(90% 130% at 100% 0%, #e0fbff 0%, transparent 60%),
+    radial-gradient(70% 100% at 12% 6%, rgba(255, 200, 240, 0.35) 0%, transparent 46%),
+    radial-gradient(100% 140% at 0% 100%, #0e9dc4 0%, transparent 65%),
+    linear-gradient(135deg, #6fe3ff 0%, #2cc4e8 45%, #159fd6 100%);
+}
+
+/* Dark mode: richer, more saturated stops with a sharper highlight —
+   the same var()-driven formula, tuned brighter against a near-black canvas
+   so it doesn't read flat and dull the way the light-mode ratios would. */
+.dark .halo-mesh-iris::before,
+.dark .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, color-mix(in srgb, var(--h-iris-300) 70%, white 25%) 0%, transparent 58%),
+    radial-gradient(100% 130% at 0% 100%, color-mix(in srgb, var(--h-iris-700) 80%, black 15%) 0%, transparent 62%),
+    linear-gradient(135deg, var(--h-iris-600) 0%, color-mix(in srgb, var(--h-iris-500) 85%, var(--h-iris-400) 15%) 55%, var(--h-iris-300) 100%);
+}
+
+.dark .halo-mesh-coral::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, #ffc57a 0%, transparent 58%),
+    radial-gradient(100% 130% at 0% 100%, #a3132f 0%, transparent 62%),
+    linear-gradient(135deg, #ff6b85 0%, #ef2c48 55%, #c41e3f 100%);
+}
+
+.dark .halo-mesh-mint::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, #9bffdf 0%, transparent 58%),
+    radial-gradient(100% 130% at 0% 100%, #024c3a 0%, transparent 62%),
+    linear-gradient(135deg, #1eeaa8 0%, #0cb381 55%, #067057 100%);
+}
+
+.dark[data-accent='coral'] .halo-mesh-iris::before,
+.dark[data-accent='coral'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(90% 130% at 100% 0%, #ffd9a3 0%, transparent 58%),
+    radial-gradient(70% 100% at 12% 8%, rgba(255, 158, 130, 0.35) 0%, transparent 50%),
+    radial-gradient(100% 140% at 0% 100%, #6e1420 0%, transparent 65%),
+    linear-gradient(135deg, #ff9d6e 0%, #f2453f 55%, #b3242a 100%);
+}
+
+.dark[data-accent='pink'] .halo-mesh-iris::before,
+.dark[data-accent='pink'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(90% 130% at 100% 0%, #ffcdea 0%, transparent 58%),
+    radial-gradient(80% 120% at 15% 10%, #ff9edb 0%, transparent 50%),
+    radial-gradient(100% 140% at 0% 100%, #8a1650 0%, transparent 65%),
+    linear-gradient(135deg, #ff8ac6 0%, #ee459c 55%, #c92e7e 100%);
+}
+
+.dark[data-accent='blue'] .halo-mesh-iris::before,
+.dark[data-accent='blue'] .halo-panel-head-mesh::before {
+  background:
+    radial-gradient(85% 120% at 100% 0%, #c3f0ff 0%, transparent 58%),
+    radial-gradient(70% 100% at 10% 8%, rgba(255, 173, 235, 0.32) 0%, transparent 50%),
+    radial-gradient(100% 130% at 0% 100%, #052c58 0%, transparent 65%),
+    linear-gradient(135deg, #6cd2ff 0%, #2f96eb 55%, #0a63b8 100%);
+}
+
+.dark .halo-mesh::after {
+  background:
+    radial-gradient(60% 90% at 12% -10%, rgba(255, 255, 255, 0.22), transparent 55%),
+    linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.1) 50%, transparent 60%);
+}
+
+.halo-mesh .halo-badge-glass {
+  background: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.halo-mesh .halo-badge-glass::after { background: none; }
+
+/* ------------------------------------------------------------
+   GLASS ICON BADGE
+   The rounder, softer icon container used on KPI cards and any
+   hero-level tile — a gradient fill, a bright inset highlight along
+   the top edge (the "glass" catch-light), and a colored ambient
+   shadow instead of a flat drop shadow. This is the icon treatment,
+   not `.halo-chip` (which stays for compact/dense contexts).
+   ------------------------------------------------------------ */
+.halo-badge-glass {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--h-r);
+  color: #fff;
+  flex: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.08);
+}
+
+.halo-badge-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.35) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.halo-badge-glass svg { position: relative; z-index: 1; }
+
+.halo-badge-glass.halo-chip-iris   { background: linear-gradient(150deg, #8878ff, #4a37f0); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(74, 55, 240, 0.55); }
+.halo-badge-glass.halo-chip-cyan   { background: linear-gradient(150deg, #5ddcf0, #0197b5); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(1, 151, 181, 0.5); }
+.halo-badge-glass.halo-chip-mint   { background: linear-gradient(150deg, #5fe0b8, #069b6e); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(6, 155, 110, 0.5); }
+.halo-badge-glass.halo-chip-amber  { background: linear-gradient(150deg, #ffca70, #e08c05); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(224, 140, 5, 0.5); }
+.halo-badge-glass.halo-chip-coral  { background: linear-gradient(150deg, #ff8f9c, #e02c42); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(224, 44, 66, 0.5); }
+.halo-badge-glass.halo-chip-violet { background: linear-gradient(150deg, #c39aff, #7c34e0); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -6px 10px rgba(0,0,0,.08), 0 10px 24px -10px rgba(124, 52, 224, 0.5); }
+
+.halo-badge-glass-lg { width: 3.25rem; height: 3.25rem; border-radius: var(--h-r-lg); }
+
+/* Solid chip — saturated fill, white icon. Highest-emphasis marker;
+   use on KPI cards and section heads, not in dense lists. */
+.halo-chip-solid {
+  color: #fff;
+  box-shadow: 0 4px 12px -3px rgba(14, 16, 40, 0.28);
+}
+
+.halo-chip-solid.halo-chip-iris   { background: linear-gradient(150deg, #7161ff, #4a37f0); }
+.halo-chip-solid.halo-chip-cyan   { background: linear-gradient(150deg, #22d3ee, #0197b5); }
+.halo-chip-solid.halo-chip-mint   { background: linear-gradient(150deg, #34dba6, #069b6e); }
+.halo-chip-solid.halo-chip-amber  { background: linear-gradient(150deg, #fbbf3f, #e08c05); }
+.halo-chip-solid.halo-chip-coral  { background: linear-gradient(150deg, #ff7285, #e02c42); }
+.halo-chip-solid.halo-chip-violet { background: linear-gradient(150deg, #b07dff, #7c34e0); }
+
+/* Soft tinted tile — a whole card in the family's color.
+   Use for KPI rows where each metric needs its own identity. */
+.halo-tile-iris   { background: linear-gradient(160deg, rgba(91, 75, 255, 0.1) 0%, rgba(91, 75, 255, 0.035) 100%); }
+.halo-tile-cyan   { background: linear-gradient(160deg, rgba(0, 191, 224, 0.12) 0%, rgba(0, 191, 224, 0.04) 100%); }
+.halo-tile-mint   { background: linear-gradient(160deg, rgba(16, 199, 143, 0.12) 0%, rgba(16, 199, 143, 0.04) 100%); }
+.halo-tile-amber  { background: linear-gradient(160deg, rgba(245, 165, 36, 0.15) 0%, rgba(245, 165, 36, 0.05) 100%); }
+.halo-tile-coral  { background: linear-gradient(160deg, rgba(255, 74, 94, 0.11) 0%, rgba(255, 74, 94, 0.035) 100%); }
+.halo-tile-violet { background: linear-gradient(160deg, rgba(155, 91, 255, 0.12) 0%, rgba(155, 91, 255, 0.04) 100%); }
+
+.dark .halo-tile-iris   { background: linear-gradient(160deg, rgba(122, 104, 255, 0.16) 0%, rgba(122, 104, 255, 0.04) 100%); }
+.dark .halo-tile-cyan   { background: linear-gradient(160deg, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0.03) 100%); }
+.dark .halo-tile-mint   { background: linear-gradient(160deg, rgba(46, 224, 165, 0.14) 0%, rgba(46, 224, 165, 0.03) 100%); }
+.dark .halo-tile-amber  { background: linear-gradient(160deg, rgba(251, 191, 63, 0.14) 0%, rgba(251, 191, 63, 0.03) 100%); }
+.dark .halo-tile-coral  { background: linear-gradient(160deg, rgba(255, 98, 116, 0.14) 0%, rgba(255, 98, 116, 0.03) 100%); }
+.dark .halo-tile-violet { background: linear-gradient(160deg, rgba(155, 91, 255, 0.16) 0%, rgba(155, 91, 255, 0.04) 100%); }
+
+/* Colored top rail — replaces the neutral spectrum on family cards */
+.halo-rail-iris::before   { background: linear-gradient(90deg, transparent, #5b4bff 35%, #8878ff 70%, transparent); opacity: 0.9; }
+.halo-rail-cyan::before   { background: linear-gradient(90deg, transparent, #00bfe0 35%, #5ddcf0 70%, transparent); opacity: 0.9; }
+.halo-rail-mint::before   { background: linear-gradient(90deg, transparent, #10c78f 35%, #5fe0b8 70%, transparent); opacity: 0.9; }
+.halo-rail-amber::before  { background: linear-gradient(90deg, transparent, #f5a524 35%, #ffca70 70%, transparent); opacity: 0.9; }
+.halo-rail-coral::before  { background: linear-gradient(90deg, transparent, #ff4a5e 35%, #ff8f9c 70%, transparent); opacity: 0.9; }
+.halo-rail-violet::before { background: linear-gradient(90deg, transparent, #9b5bff 35%, #c39aff 70%, transparent); opacity: 0.9; }
+
+/* Delta indicator — a tinted pill, not bare text. Reads instantly. */
+.halo-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: var(--h-r-pill);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.halo-delta-up {
+  color: #069b6e;
+  background: rgba(16, 199, 143, 0.15);
+}
+
+.halo-delta-down {
+  color: #e02c42;
+  background: rgba(255, 74, 94, 0.13);
+}
+
+.halo-delta-flat {
+  color: var(--h-ink-3);
+  background: var(--h-surface-3);
+}
+
+.dark .halo-delta-up { color: #6ee7bf; background: rgba(46, 224, 165, 0.16); }
+.dark .halo-delta-down { color: #ff9aa7; background: rgba(255, 98, 116, 0.16); }
+
+/* Bare variant when the pill would be too heavy (inside dense table rows) */
+.halo-delta-bare {
+  height: auto;
+  padding: 0;
+  background: none !important;
+  font-size: 0.75rem;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+/* Floating nav pill (top bar items, sidebar items) */
+.halo-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: var(--h-r-pill);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--h-ink-2);
+  white-space: nowrap;
+  transition: color var(--h-t) var(--h-ease), background var(--h-t) var(--h-ease);
+}
+
+.halo-nav-item:hover {
+  background: var(--h-tint);
+  color: var(--h-ink);
+}
+
+/* Active nav pill — flowing spectrum. The shiny bit. */
+.halo-nav-item-active {
+  color: #fff;
+  font-weight: 600;
+  background: var(--h-g-spectrum);
+  background-size: 240% 100%;
+  animation: halo-flow 9s ease-in-out infinite;
+  box-shadow: var(--h-sh-iris);
+}
+
+.halo-nav-item-active:hover {
+  color: #fff;
+  background: var(--h-g-spectrum);
+  background-size: 240% 100%;
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+.halo-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+
+.halo-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--h-surface);
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--h-ink-3);
+  border-bottom: 1px solid var(--h-line);
+  white-space: nowrap;
+}
+
+.halo-table tbody td {
+  padding: 0.875rem;
+  color: var(--h-ink-2);
+  border-bottom: 1px solid var(--h-line);
+  vertical-align: middle;
+  position: relative;
+}
+
+.halo-table tbody tr {
+  transition: background var(--h-t-fast) var(--h-ease);
+}
+
+/* A colored accent bar grows in on the first cell on hover — the row-level
+   equivalent of `.halo-rail`. Small, but it's what turns a plain data grid
+   into something with a bit of character. */
+.halo-table tbody td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.4em;
+  bottom: 0.4em;
+  width: 3px;
+  border-radius: var(--h-r-pill);
+  background: var(--h-iris-400);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition: opacity var(--h-t-fast) var(--h-ease), transform var(--h-t-fast) var(--h-ease);
+}
+
+.halo-table tbody tr:hover td:first-child::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.halo-table tbody tr:hover {
+  background: var(--h-tint);
+}
+
+.halo-table tbody tr:hover td {
+  color: var(--h-ink);
+}
+
+.halo-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.halo-table tbody tr[data-selected='true'] {
+  background: var(--h-tint-2);
+}
+
+/* Numeric column */
+.halo-table .col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--h-ink);
+  font-weight: 550;
+}
+
+/* ============================================================
+   PANEL HEADER — used at the top of every card that has a title
+   ============================================================ */
+.halo-panel-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.halo-panel-head-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+/* Mesh variant — the same gradient signature used on hero cards, sized down
+   to a panel header banner. Use on the header strip of a big list/table
+   card so it doesn't open with a flat white bar right under a vivid hero. */
+.halo-panel-head-mesh {
+  position: relative;
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--h-g-iris);
+}
+
+/* The gradient itself comes from the shared `.halo-mesh-iris::before` rules
+   above (each one also targets `.halo-panel-head-mesh::before`), so this
+   bar always matches the hero card — light/dark and every accent, in sync
+   automatically instead of needing its own copy that can drift out of date. */
+.halo-panel-head-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.halo-panel-head-mesh .halo-chip {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.halo-panel-head-mesh .halo-heading {
+  color: #fff;
+}
+
+.halo-panel-head-mesh .halo-badge {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+.halo-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--h-surface-3);
+  border-radius: var(--h-r-sm);
+}
+
+.halo-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--h-surface) 70%, transparent),
+    transparent
+  );
+  animation: halo-shimmer 1.6s infinite;
+}
+
+/* Spinner */
+.halo-spinner {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  border: 2px solid var(--h-tint-3);
+  border-top-color: var(--h-iris-500);
+  animation: halo-spin 700ms linear infinite;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes halo-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes halo-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes halo-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes halo-pulse {
+  0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  70% { box-shadow: 0 0 0 6px transparent; opacity: 0.85; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+}
+
+@keyframes halo-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Entrance — stagger with inline --i on children.
+   Capped at 450ms regardless of --i so a long, unbounded list (a table of
+   80 rows, say) can never turn the entrance into a multi-second crawl. */
+.halo-rise {
+  animation: halo-rise 380ms var(--h-ease) both;
+  animation-delay: min(calc(var(--i, 0) * 45ms), 450ms);
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+.halo-page {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--h-page-max);
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .halo-page { padding: 2rem; }
+}
+
+.halo-divider {
+  height: 1px;
+  background: var(--h-line);
+  border: none;
+}
+
+.halo-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* ============================================================
+   THEME SWITCH — instant, not staggered
+   Applied for one frame by ThemeContext when `.dark` is toggled.
+   Without this, every element's own color/background/shadow
+   transition fires independently, which reads as light→dark
+   "raining" across the screen instead of a single instant snap.
+   ============================================================ */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+  animation-duration: 0.01ms !important;
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .halo-card-interactive:hover {
+    transform: none;
+  }
+}

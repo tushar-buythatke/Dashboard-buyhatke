@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Copy, Play, Pause, Calendar, Target, Eye, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Edit, Copy, Play, Pause, Calendar, Flag, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket } from 'lucide-react';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
-import { Badge } from '@/components/ui/badge';
 import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
 import { toast } from 'sonner';
 import { Ad, Slot, ApiAd, mapApiAdToAd, CategoryPath } from '@/types';
@@ -15,8 +13,6 @@ import { normalizeAd, normalizeSlotList, isV2Active, resolveCatIds } from '@/uti
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
-import { PageHeader } from '@/components/ui/page-header';
-import { MetricCard } from '@/components/ui/metric-card';
 import { cn } from '@/lib/utils';
 import { formatCount } from '@/lib/format';
 
@@ -25,7 +21,7 @@ const PLACEHOLDER_IMAGE = 'https://eos.org/wp-content/uploads/2023/10/moon-2.jpg
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
-/** Velvet section panel — tinted icon chip + mono label header, gradient hairline via .velvet-panel */
+/** Halo section panel — tinted icon chip + heading, .halo-rail-full hairline */
 function SectionPanel({
   icon,
   title,
@@ -46,14 +42,12 @@ function SectionPanel({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: easeOut }}
-      className={cn('velvet-panel velvet-micro-shadow overflow-hidden', className)}
+      className={cn('halo-card overflow-hidden', className)}
     >
-      <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tint)] text-[var(--indigo-400)]">
-            {icon}
-          </span>
-          <h3 className="page-eyebrow !mb-0 !text-[11px] text-[var(--text-2)]">{title}</h3>
+      <div className="halo-panel-head halo-rail-full">
+        <div className="halo-panel-head-title">
+          <span className="halo-chip">{icon}</span>
+          <h3 className="halo-heading">{title}</h3>
         </div>
         {aside}
       </div>
@@ -62,12 +56,12 @@ function SectionPanel({
   );
 }
 
-/** Small labelled value used inside detail sections */
+/** Small labelled value used inside detail sections — definition-row style */
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
-      <div className="metric-label">{label}</div>
-      <div className="mt-1 text-sm font-semibold tracking-tight text-[var(--text-1)]">{children}</div>
+      <div className="halo-label">{label}</div>
+      <div className="mt-1 text-sm font-semibold tracking-tight text-[var(--h-ink)]">{children}</div>
     </div>
   );
 }
@@ -92,25 +86,25 @@ function CodeField({ label, value }: { label: string; value?: string }) {
 
   return (
     <div>
-      <div className="metric-label flex items-center gap-1.5">
-        <Code2 className="h-3 w-3" />
+      <div className="halo-label flex items-center gap-1.5">
+        <Code2 className="h-3 w-3" strokeWidth={1.75} />
         {label}
       </div>
-      <div className="panel-inset relative mt-1.5 group/code">
-        <p className="break-all font-mono text-[11.5px] leading-relaxed text-[var(--text-2)] pr-9 pl-3 py-2.5">
-          {hasValue ? value : <span className="text-[var(--text-3)] italic">Not configured</span>}
+      <div className="halo-inset relative mt-1.5 group/code">
+        <p className="break-all font-mono text-[11.5px] leading-relaxed text-[var(--h-ink-2)] pr-9 pl-3 py-2.5">
+          {hasValue ? value : <span className="text-[var(--h-ink-3)] italic">Not configured</span>}
         </p>
         {hasValue && (
           <button
             type="button"
             onClick={handleCopy}
             aria-label="Copy to clipboard"
-            className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md
-                       text-[var(--text-3)] opacity-0 group-hover/code:opacity-100
-                       hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]
+            className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-[var(--h-r-sm)]
+                       text-[var(--h-ink-3)] opacity-0 group-hover/code:opacity-100 group-focus-within/code:opacity-100
+                       hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-600)]
                        transition-all duration-200"
           >
-            {copied ? <Check className="h-3 w-3 text-[var(--pos)]" /> : <Copy className="h-3 w-3" />}
+            {copied ? <Check className="h-3 w-3 text-[var(--h-mint)]" /> : <Copy className="h-3 w-3" />}
           </button>
         )}
       </div>
@@ -118,12 +112,23 @@ function CodeField({ label, value }: { label: string; value?: string }) {
   );
 }
 
-/** Deep-violet category tag pill — for category filters and target tags. */
+/** Iris category tag pill — for category filters and target tags. */
 const tagPill =
-  'inline-flex items-center gap-1 rounded-full bg-purple-100/60 dark:bg-[var(--bg-tint)] px-2.5 py-1 text-[11.5px] font-medium text-purple-900 dark:text-[var(--indigo-400)] border border-purple-200/40 dark:border-[var(--line-violet)]';
+  'inline-flex items-center gap-1 rounded-[var(--h-r-pill)] bg-[var(--h-tint-2)] px-2.5 py-1 text-[11.5px] font-medium text-[var(--h-iris-600)] dark:text-[var(--h-iris-300)]';
 
-const chip =
-  'inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--bg-panel-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-1)]';
+
+/** A compact stat inside the inline stat-bar row. */
+function StatItem({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 p-4">
+      <span className="halo-chip h-9 w-9 rounded-[10px]">{icon}</span>
+      <div className="min-w-0">
+        <p className="truncate text-[12.5px] font-medium text-[var(--h-ink-2)]">{label}</p>
+        <p className="num mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--h-ink)]">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 export function AdDetail() {
   const { campaignId, adId } = useParams<{ campaignId: string; adId: string }>();
@@ -403,18 +408,31 @@ export function AdDetail() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-strong)] border-t-[var(--indigo-500)]" />
+      <div className="halo-page">
+        <div className="space-y-5">
+          <div className="halo-skeleton h-16 rounded-[var(--h-r-lg)]" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="halo-skeleton h-24 rounded-[var(--h-r-card)]" />
+            ))}
+          </div>
+          <div className="halo-skeleton h-48 rounded-[var(--h-r-card)]" />
+        </div>
       </div>
     );
   }
 
   if (error || !ad) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="panel border-[var(--neg)]/30 px-4 py-3 text-sm" role="alert">
-          <strong className="font-semibold text-[var(--neg)]">Error: </strong>
-          <span className="text-[var(--text-2)]">{error || 'Ad not found'}</span>
+      <div className="halo-page">
+        <div className="halo-card p-5 flex items-center gap-3" role="alert">
+          <span className="halo-chip" style={{ background: 'var(--h-neg-soft)', color: 'var(--h-coral)' }}>
+            <BarChart3 size={16} strokeWidth={1.75} />
+          </span>
+          <div>
+            <p className="halo-heading text-[var(--h-coral)]">{error || 'Ad not found'}</p>
+            <p className="halo-subtitle">Try going back and selecting the ad again.</p>
+          </div>
         </div>
       </div>
     );
@@ -429,141 +447,117 @@ export function AdDetail() {
       <StatusPill status="draft" label="Draft" />
     );
 
+  const targetCtr = ad.impressionTarget > 0 ? (ad.clickTarget / ad.impressionTarget) * 100 : 0;
+  const liveCtr = liveMetrics && liveMetrics.impressions > 0
+    ? (liveMetrics.clicks / liveMetrics.impressions) * 100
+    : 0;
+
   return (
-    <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
-      {/* Header */}
-      <PageHeader
-        crumbs={
-          <VelvetBackButton
-            label="Back to ads"
-            onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
-          />
-        }
-        eyebrow={`${campaign?.brandName || 'Campaign'} · Ad #${ad.adId}`}
-        title={ad.name}
-        actions={
+    <div className="halo-page">
+      <div className="space-y-5">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: easeOut }}
+          className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+        >
+          <div className="min-w-0">
+            <VelvetBackButton
+              label="Back to ads"
+              onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
+            />
+            <p className="halo-eyebrow mt-3">{campaign?.brandName || 'Campaign'} / Ad #{ad.adId}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5">
+              <h1 className="halo-title">{ad.name}</h1>
+              {statusBadge}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            {statusBadge}
             {canEdit && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => navigate(`/campaigns/${campaignId}/ads/${ad.adId}/edit`)}
-                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
+                  className="btn-halo-outline btn-halo-sm"
                 >
-                  <Edit className="h-3.5 w-3.5" />
+                  <Edit className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCloneAd}
-                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
-                >
-                  <Copy className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={handleCloneAd} className="btn-halo-outline btn-halo-sm">
+                  <Copy className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Clone
-                </Button>
+                </button>
               </>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
-            >
-              <Download className="h-3.5 w-3.5" />
+            <button onClick={handleExport} className="btn-halo-outline btn-halo-sm">
+              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
               Export
-            </Button>
+            </button>
             {canEdit &&
               (ad.status === 1 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => handleStatusChange(0)}
-                  className="h-8 gap-1.5 border-[var(--line)] text-xs text-[var(--warn)] hover:bg-[var(--bg-tint)]"
+                  className="btn-halo-outline btn-halo-sm text-[var(--h-amber)]"
                 >
-                  <Pause className="h-3.5 w-3.5" />
+                  <Pause className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Pause
-                </Button>
+                </button>
               ) : (
-                <Button
-                  size="sm"
-                  onClick={() => handleStatusChange(1)}
-                  className="btn-velvet h-8 gap-1.5 rounded-lg px-3 text-xs"
-                >
-                  <Play className="h-3.5 w-3.5" />
+                <button onClick={() => handleStatusChange(1)} className="btn-halo btn-halo-sm">
+                  <Play className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Activate
-                </Button>
+                </button>
               ))}
           </div>
-        }
-      />
+        </motion.div>
 
-      {/* Targets */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard
-          label="Impression target"
-          value={ad.impressionTarget}
-          tone="violet"
-          icon={<Eye className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Click target"
-          value={ad.clickTarget}
-          tone="accent"
-          icon={<MousePointerClick className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Target CTR"
-          value={
-            ad.impressionTarget > 0
-              ? ((ad.clickTarget / ad.impressionTarget) * 100).toFixed(2)
-              : '0.00'
-          }
-          unit="%"
-          tone="plum"
-          icon={<TrendingUp className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Priority"
-          value={ad.priority}
-          tone="accent"
-          icon={<BarChart3 className="h-4 w-4" />}
-        />
-      </div>
+        {/* Performance — one vivid hero (live vs target) + a compact stat bar.
+            Color follows performance: green on target, iris while data is thin, red when short. */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-5 items-stretch">
+          <div
+            className={`halo-mesh ${
+              ad.impressionTarget === 0 || (liveMetrics?.impressions ?? 0) === 0
+                ? 'halo-mesh-iris'
+                : liveCtr >= targetCtr
+                ? 'halo-mesh-mint'
+                : liveCtr >= targetCtr / 2
+                ? 'halo-mesh-iris'
+                : 'halo-mesh-coral'
+            } halo-rise relative flex flex-col justify-between overflow-hidden rounded-[var(--h-r-card)] p-5 lg:col-span-2`}
+            style={{ '--i': 0 } as React.CSSProperties}
+          >
+            <div className="halo-mesh-grain" aria-hidden="true" />
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-medium text-white/75">Live impressions</span>
+              <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium">
+                <span className="halo-dot halo-dot-live" />
+                since launch
+              </span>
+            </div>
+            <div>
+              <p className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.03em]">
+                {formatCount(liveMetrics?.impressions)}
+              </p>
+              <p className="mt-1.5 text-[12.5px] text-white/60">
+                of {formatCount(ad.impressionTarget)} targeted · {liveCtr.toFixed(2)}% CTR vs {targetCtr.toFixed(2)}% target
+              </p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-white/80"
+                  style={{ width: `${ad.impressionTarget > 0 ? Math.min(100, ((liveMetrics?.impressions ?? 0) / ad.impressionTarget) * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-      {/* Live Performance */}
-      <SectionPanel
-        icon={<TrendingUp className="h-3.5 w-3.5" />}
-        title="Live performance"
-        aside={
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-3)]">
-            <span className="live-dot" />
-            since launch
-          </span>
-        }
-        delay={0.06}
-      >
-        <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
-          <Field label="Impressions">
-            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.impressions)}</span>
-          </Field>
-          <Field label="Clicks">
-            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.clicks)}</span>
-          </Field>
-          <Field label="CTR">
-            <span className="text-lg tabular-nums">
-              {liveMetrics && liveMetrics.impressions > 0
-                ? `${((liveMetrics.clicks / liveMetrics.impressions) * 100).toFixed(2)}%`
-                : '0.00%'}
-            </span>
-          </Field>
-          <Field label="Landing">
-            <span className="text-lg tabular-nums">{formatCount(liveMetrics?.landingCount)}</span>
-          </Field>
+          <div className="halo-card halo-rise grid grid-cols-2 content-center divide-y divide-[var(--h-line)] sm:grid-cols-4 sm:divide-y-0 sm:divide-x sm:divide-[var(--h-line)] lg:col-span-3" style={{ '--i': 1 } as React.CSSProperties}>
+            <StatItem label="Live clicks" value={formatCount(liveMetrics?.clicks)} icon={<MousePointerClick className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Live landings" value={formatCount(liveMetrics?.landingCount)} icon={<Zap className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Click target" value={formatCount(ad.clickTarget)} icon={<Flag className="h-4 w-4" strokeWidth={2} />} />
+            <StatItem label="Priority" value={formatCount(ad.priority)} icon={<BarChart3 className="h-4 w-4" strokeWidth={2} />} />
+          </div>
         </div>
-      </SectionPanel>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Creative & Slot Details */}
@@ -578,8 +572,8 @@ export function AdDetail() {
             {/* Logo */}
             {ad.logo && (
               <div>
-                <div className="metric-label">Logo</div>
-                <div className="panel-inset mt-1.5 flex justify-center p-3">
+                <div className="halo-label">Logo</div>
+                <div className="halo-inset mt-1.5 flex justify-center p-3">
                   <img
                     src={getCacheBustedUrl(ad.logo)}
                     alt="Ad logo"
@@ -598,7 +592,7 @@ export function AdDetail() {
 
             {/* Creative Image/Video */}
             <div className="flex flex-col items-center gap-3">
-              <div className="panel-inset flex h-60 w-full max-w-sm items-center justify-center overflow-hidden p-2">
+              <div className="halo-inset flex h-60 w-full max-w-sm items-center justify-center overflow-hidden p-2">
                 {ad.creativeUrl ? (
                   (() => {
                     const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(ad.creativeUrl) || ad.creativeUrl.includes('video');
@@ -626,7 +620,7 @@ export function AdDetail() {
                     );
                   })()
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-[var(--text-3)]">
+                  <div className="flex flex-col items-center justify-center text-[var(--h-ink-3)]">
                     <ImageIcon className="mb-2 h-10 w-10 opacity-60" />
                     <span className="text-xs font-medium">No creative</span>
                   </div>
@@ -635,8 +629,8 @@ export function AdDetail() {
 
               {slot && (
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-[var(--text-1)]">{slot.name}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-[var(--text-3)]">
+                  <p className="text-sm font-semibold text-[var(--h-ink)]">{slot.name}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-[var(--h-ink-3)]">
                     {slot.width} × {slot.height} px · {getPlatformName(slot.platform)}
                   </p>
                 </div>
@@ -644,41 +638,41 @@ export function AdDetail() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="panel-inset p-3.5">
-                <div className="metric-label flex items-center gap-1.5">
+              <div className="halo-inset p-3.5">
+                <div className="halo-label flex items-center gap-1.5">
                   <Settings className="h-3 w-3" />
                   Serve strategy
                 </div>
-                <p className="mt-1.5 text-[13px] font-medium text-[var(--text-1)]">
+                <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink)]">
                   {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
                 </p>
               </div>
-              <div className="panel-inset p-3.5">
-                <div className="metric-label flex items-center gap-1.5">
+              <div className="halo-inset p-3.5">
+                <div className="halo-label flex items-center gap-1.5">
                   <Zap className="h-3 w-3" />
                   Model type
                 </div>
-                <p className="mt-1.5 text-[13px] font-medium text-[var(--text-1)]">
+                <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink)]">
                   {ad.isModelType === 1 ? 'Model type ad' : 'Standard ad'}
                 </p>
               </div>
             </div>
 
             {ad.isTestPhase === 1 && (
-              <div className="panel-inset flex items-center gap-2 border-[var(--line-violet)] p-3.5">
-                <span className="live-dot" />
-                <p className="text-[13px] font-medium text-[var(--text-1)]">This ad is in test phase</p>
+              <div className="halo-inset flex items-center gap-2 border-[var(--h-line-accent)] p-3.5">
+                <span className="halo-dot halo-dot-live" style={{ color: 'var(--h-iris-500)' }} />
+                <p className="text-[13px] font-medium text-[var(--h-ink)]">This ad is in test phase</p>
               </div>
             )}
 
             {/* Coupon Code — shown when serveStrategy=2 and couponCode is set */}
             {ad.serveStrategy === 2 && ad.couponCode && (
-              <div className="panel-inset p-3.5 mt-3">
-                <div className="metric-label flex items-center gap-1.5">
+              <div className="halo-inset p-3.5 mt-3">
+                <div className="halo-label flex items-center gap-1.5">
                   <Ticket className="h-3 w-3" />
                   Coupon Code
                 </div>
-                <p className="mt-1.5 font-mono text-[13px] font-semibold text-[var(--text-1)]">
+                <p className="mt-1.5 font-mono text-[13px] font-semibold text-[var(--h-ink)]">
                   {ad.couponCode}
                 </p>
               </div>
@@ -698,13 +692,13 @@ export function AdDetail() {
             <Field label="End date">{formatDate(ad.endDate)}</Field>
             <Field label="Start time">
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                <Clock className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                 {formatTime(ad.startTime)}
               </span>
             </Field>
             <Field label="End time">
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                <Clock className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                 {formatTime(ad.endTime)}
               </span>
             </Field>
@@ -714,15 +708,15 @@ export function AdDetail() {
 
       {/* Targeting Details */}
       <SectionPanel
-        icon={<Target className="h-3.5 w-3.5" />}
+        icon={<Users className="h-3.5 w-3.5" />}
         title="Targeting & audience"
         delay={0.18}
       >
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Demographics */}
           <div className="space-y-4">
-            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-              <Users className="h-3.5 w-3.5 text-[var(--text-3)]" />
+            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+              <Users className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
               Demographics
             </h4>
             <div className="space-y-4">
@@ -733,11 +727,11 @@ export function AdDetail() {
 
           {/* Price Range */}
           <div className="space-y-4">
-            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-              <Banknote className="h-3.5 w-3.5 text-[var(--text-3)]" />
+            <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+              <Banknote className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
               Price range
             </h4>
-            <p className="text-sm font-semibold tabular-nums text-[var(--text-1)]">
+            <p className="text-sm font-semibold num text-[var(--h-ink)]">
               ₹{ad.priceRangeMin.toLocaleString()} – ₹{ad.priceRangeMax.toLocaleString()}
             </p>
           </div>
@@ -761,15 +755,15 @@ export function AdDetail() {
 
             return (
               <div className="space-y-4">
-                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                  <MapPin className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                  <MapPin className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                   Locations
                 </h4>
                 <div className="space-y-2">
                   {rows.map((row) => (
                     <div key={row.key} className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
-                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
+                      <span className="text-[13px] text-[var(--h-ink)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--h-ink-3)]">P{row.priority}</span>
                     </div>
                   ))}
                 </div>
@@ -791,10 +785,10 @@ export function AdDetail() {
 
               return (
                 <div className="space-y-4 md:col-span-2 lg:col-span-3">
-                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                     Categories
-                    <span className="font-mono text-[11px] font-normal text-[var(--text-3)]">
+                    <span className="font-mono text-[11px] font-normal text-[var(--h-ink-3)]">
                       {categoryPath.selections.length} selected
                     </span>
                   </h4>
@@ -803,7 +797,7 @@ export function AdDetail() {
                     {categoryPath.selections.map((selection, index) => (
                       <div
                         key={`${selection.selected.catId}-${index}`}
-                        className="panel-inset p-3"
+                        className="halo-inset p-3"
                       >
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {selection.path.map((cat, idx) => (
@@ -811,14 +805,14 @@ export function AdDetail() {
                               <span
                                 className={cn(
                                   idx === selection.path.length - 1
-                                    ? 'rounded-md bg-[var(--bg-tint)] px-2 py-0.5 font-semibold text-[var(--indigo-400)]'
-                                    : 'text-[var(--text-2)]'
+                                    ? 'rounded-md bg-[var(--h-tint)] px-2 py-0.5 font-semibold text-[var(--h-iris-500)]'
+                                    : 'text-[var(--h-ink-2)]'
                                 )}
                               >
                                 {String(cat.catName)}
                               </span>
                               {idx < selection.path.length - 1 && (
-                                <ChevronRight className="h-3 w-3 text-[var(--text-3)]" />
+                                <ChevronRight className="h-3 w-3 text-[var(--h-ink-3)]" />
                               )}
                             </React.Fragment>
                           ))}
@@ -834,8 +828,8 @@ export function AdDetail() {
 
               return (
                 <div className="space-y-4 md:col-span-2 lg:col-span-3">
-                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                     Categories
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -859,10 +853,10 @@ export function AdDetail() {
 
               return (
                 <div className="space-y-4 md:col-span-2 lg:col-span-3">
-                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                     Categories
-                    <span className="font-mono text-[11px] font-normal text-[var(--text-3)]">
+                    <span className="font-mono text-[11px] font-normal text-[var(--h-ink-3)]">
                       {lnCategories.length} selected
                     </span>
                   </h4>
@@ -882,25 +876,23 @@ export function AdDetail() {
                   </div>
 
                   {hasMoreCategories && (
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       onClick={() => setShowAllCategories(!showAllCategories)}
-                      className="h-7 text-xs text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
+                      className="btn-halo-ghost btn-halo-sm"
                     >
                       {showAllCategories ? (
                         <>
                           Show less
-                          <ChevronRight className="ml-1 h-3.5 w-3.5 -rotate-90" />
+                          <ChevronRight className="ml-1 h-3.5 w-3.5 -rotate-90" strokeWidth={1.75} />
                         </>
                       ) : (
                         <>
                           Show {lnCategories.length - INITIAL_DISPLAY_COUNT} more
-                          <ChevronRight className="ml-1 h-3.5 w-3.5 rotate-90" />
+                          <ChevronRight className="ml-1 h-3.5 w-3.5 rotate-90" strokeWidth={1.75} />
                         </>
                       )}
-                    </Button>
+                    </button>
                   )}
                 </div>
               );
@@ -911,8 +903,8 @@ export function AdDetail() {
 
               return (
                 <div className="space-y-4 md:col-span-2 lg:col-span-3">
-                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                    <Tag className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                  <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                    <Tag className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                     Categories
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -946,15 +938,15 @@ export function AdDetail() {
 
             return (
               <div className="space-y-4">
-                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                  <Globe className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                  <Globe className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                   Sites
                 </h4>
                 <div className="space-y-2">
                   {rows.map((row) => (
                     <div key={row.key} className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
-                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
+                      <span className="text-[13px] text-[var(--h-ink)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--h-ink-3)]">P{row.priority}</span>
                     </div>
                   ))}
                 </div>
@@ -981,15 +973,15 @@ export function AdDetail() {
 
             return (
               <div className="space-y-4">
-                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-1)]">
-                  <Target className="h-3.5 w-3.5 text-[var(--text-3)]" />
+                <h4 className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--h-ink)]">
+                  <Tag className="h-3.5 w-3.5 text-[var(--h-ink-3)]" />
                   Brand targets
                 </h4>
                 <div className="space-y-2">
                   {rows.map((row) => (
                     <div key={row.key} className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] text-[var(--text-1)]">{row.name}</span>
-                      <span className="font-mono text-[11px] text-[var(--text-3)]">P{row.priority}</span>
+                      <span className="text-[13px] text-[var(--h-ink)]">{row.name}</span>
+                      <span className="font-mono text-[11px] text-[var(--h-ink-3)]">P{row.priority}</span>
                     </div>
                   ))}
                 </div>
@@ -1046,8 +1038,8 @@ export function AdDetail() {
           title="Other details"
           delay={0.26}
         >
-          <div className="panel-inset relative group/json p-4">
-            <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--text-2)] pr-9">
+          <div className="halo-inset relative group/json p-4">
+            <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--h-ink-2)] pr-9">
               {JSON.stringify(ad.otherDetails, null, 2).replace(/\\\\n/g, '\\n')}
             </pre>
             <button
@@ -1062,8 +1054,8 @@ export function AdDetail() {
               }}
               aria-label="Copy JSON"
               className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md
-                         text-[var(--text-3)] opacity-0 group-hover/json:opacity-100
-                         hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]
+                         text-[var(--h-ink-3)] opacity-0 group-hover/json:opacity-100
+                         hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-500)]
                          transition-all duration-200"
             >
               <Copy className="h-3 w-3" />
@@ -1071,9 +1063,9 @@ export function AdDetail() {
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             {Object.entries(ad.otherDetails).map(([key, value]) => (
-              <div key={key} className="panel-inset p-3.5">
-                <div className="metric-label">{key}</div>
-                <p className="mt-1 whitespace-pre-wrap break-words text-[13px] font-medium text-[var(--text-1)]">
+              <div key={key} className="halo-inset p-3.5">
+                <div className="halo-label">{key}</div>
+                <p className="mt-1 whitespace-pre-wrap break-words text-[13px] font-medium text-[var(--h-ink)]">
                   {typeof value === 'object' ? JSON.stringify(value, null, 2).replace(/\\\\n/g, '\n') : String(value).replace(/\\n/g, '\n')}
                 </p>
               </div>
@@ -1081,6 +1073,7 @@ export function AdDetail() {
           </div>
         </SectionPanel>
       )}
+      </div>
     </div>
   );
 }

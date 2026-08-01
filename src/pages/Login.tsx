@@ -55,28 +55,27 @@ export default function Login() {
 
   if (isAuthenticated && user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--h-canvas)' }}>
+        <div className="halo-backdrop" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md"
+          className="halo-card halo-card-raised p-8 w-full max-w-md relative z-10"
         >
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
-              <User className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{ background: 'var(--h-pos-soft)' }}>
+              <User strokeWidth={1.75} className="w-8 h-8" style={{ color: 'var(--h-mint)' }} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back!</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              You are logged in as <span className="font-semibold">{user.username}</span>
+            <h2 className="halo-title">Welcome back</h2>
+            <p style={{ color: 'var(--h-ink-2)' }}>
+              You are logged in as <span className="font-semibold" style={{ color: 'var(--h-ink)' }}>{user.username}</span>
             </p>
-            <motion.button
+            <button
               onClick={() => navigate('/')}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              className="btn-halo btn-halo-lg w-full"
             >
-              Go to Dashboard
-            </motion.button>
+              Go to dashboard
+            </button>
           </div>
         </motion.div>
       </div>
@@ -84,119 +83,152 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
-          >
-            <img
-              src="/logo_512x512.png"
-              alt="Logo"
-              className="w-12 h-12 object-contain"
-            />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome Back</h1>
-          <p className="text-gray-600 dark:text-gray-400">Sign in to your BuyHatke dashboard</p>
-        </div>
+    <div className="min-h-screen flex" style={{ background: 'var(--h-canvas)' }}>
+      <div className="halo-backdrop" />
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-          >
-            <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Username
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                placeholder="Enter your username"
-                disabled={loading}
-                autoComplete="username"
+      {/* Form column */}
+      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-[400px]"
+        >
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+              className="w-16 h-16 rounded-[var(--h-r-lg)] flex items-center justify-center mx-auto mb-5"
+              style={{ background: 'var(--h-g-iris)', boxShadow: 'var(--h-sh-iris)' }}
+            >
+              <img
+                src="/logo_512x512.png"
+                alt="Logo"
+                className="w-10 h-10 object-contain"
               />
-            </div>
+            </motion.div>
+            <h1 className="halo-title mb-1.5">Welcome back</h1>
+            <p className="halo-subtitle">Sign in to your BuyHatke ads dashboard.</p>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="username" className="halo-label">
+                Username
+              </label>
+              <div className="relative">
+                <User strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="halo-field pl-10"
+                  placeholder="Enter your username"
+                  disabled={loading}
+                  autoComplete="username"
+                />
               </div>
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                placeholder="Enter your password"
-                disabled={loading}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                disabled={loading}
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="halo-label">
+                Password
+              </label>
+              <div className="relative">
+                <Lock strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="halo-field pl-10 pr-10"
+                  placeholder="Enter your password"
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--h-ink-3)' }}
+                  disabled={loading}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff strokeWidth={1.75} className="h-4 w-4" /> : <Eye strokeWidth={1.75} className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-sm"
+                style={{ color: 'var(--h-coral)' }}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-
-          <motion.button
-            type="submit"
-            disabled={loading}
-            className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-white font-medium bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg transform hover:scale-[1.02]'
-              }`}
-            whileHover={!loading ? { scale: 1.02 } : {}}
-            whileTap={!loading ? { scale: 0.98 } : {}}
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Signing In...
-              </>
-            ) : (
-              <>
-                <LogIn className="h-5 w-5 mr-2" />
-                Sign In
-              </>
+                {error}
+              </motion.p>
             )}
-          </motion.button>
-        </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            © 2025 BuyHatke. All rights reserved.
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-halo btn-halo-lg w-full"
+            >
+              {loading ? (
+                <>
+                  <span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn strokeWidth={1.75} className="h-4 w-4" />
+                  Sign in
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs mt-8" style={{ color: 'var(--h-ink-3)' }}>
+            &copy; 2026 BuyHatke. All rights reserved.
           </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Branded panel */}
+      <div className="hidden lg:flex relative flex-1 items-center justify-center overflow-hidden">
+        <div className="absolute inset-0" style={{ background: 'var(--h-g-aurora), var(--h-canvas-2)' }} />
+        <div
+          className="absolute inset-0 opacity-[0.028]"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          }}
+        />
+        <div
+          className="absolute h-[36rem] w-[36rem] rounded-full blur-3xl opacity-60 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(91,75,255,0.22), transparent 70%)', top: '-8rem', right: '-8rem' }}
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="relative z-10 flex flex-col items-center text-center px-12"
+        >
+          <div
+            className="w-20 h-20 rounded-[var(--h-r-lg)] flex items-center justify-center mb-6"
+            style={{ background: 'var(--h-g-iris)', boxShadow: 'var(--h-sh-iris-lg)' }}
+          >
+            <img src="/logo_512x512.png" alt="Hatke" className="w-12 h-12 object-contain" />
+          </div>
+          <h2 className="halo-title mb-2">BuyHatke ads dashboard</h2>
+          <p className="halo-subtitle max-w-xs">
+            Campaigns, slots and offers — all in one lit, weightless canvas.
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
-} 
+}

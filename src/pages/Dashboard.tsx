@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { BreakdownModal } from '@/components/analytics/BreakdownModal';
-import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Sparkles, LayoutGrid } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Percent, Gauge, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VelvetLoader } from '@/components/ui/velvet-loader';
+import { PageHeader } from '@/components/ui/page-header';
 import { CometCard } from '@/components/ui/comet-card';
+import { useSpotlight } from '@/hooks/useSpotlight';
 import { analyticsService, MetricsPayload } from '@/services/analyticsService';
 import { MetricsData, BreakdownData, TrendChartSeries, Campaign } from '@/types';
 import { toast } from 'sonner';
-import { coerceName, formatSmartPercent } from '@/lib/format';
+import { coerceName } from '@/lib/format';
 
 // Utils
 import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
@@ -19,8 +20,6 @@ import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
 // Constants for localStorage
 const DASHBOARD_CACHE_KEY = 'dashboard_analytics_cache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-const card = 'velvet-surface velvet-micro-shadow p-5';
 
 // Helper function to get default metrics
 const getDefaultMetrics = (): MetricsData => ({
@@ -50,10 +49,10 @@ const loadDashboardCache = () => {
   try {
     const cached = localStorage.getItem(DASHBOARD_CACHE_KEY);
     if (!cached) return null;
-    
+
     const cacheData = JSON.parse(cached);
     const now = Date.now();
-    
+
     // Check if cache is still valid (within 24 hours)
     if (now - cacheData.timestamp < CACHE_DURATION) {
       console.log('💾 Loading dashboard data from localStorage cache');
@@ -96,7 +95,10 @@ export function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(false); // Start with false - no auto-loading
   const [dataLoaded, setDataLoaded] = useState(false); // Track if any data has been loaded
-  
+  // HALO: additive-only UI state — captures the last fetch error for the styled
+  // error banner. Does not alter fetching, caching, or handler behaviour.
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   // Real data states
   const [metricsData, setMetricsData] = useState<MetricsData>(getDefaultMetrics());
   const [comparisonMetricsData, setComparisonMetricsData] = useState<MetricsData | null>(null);
@@ -145,25 +147,26 @@ export function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+      setFetchError(null);
+
       console.log('📊 Fetching LAST 7 DAYS data using individual campaign approach like Analytics');
-      
+
       // Create last 7 days date range (exactly 7 days from today)
       const today = new Date();
       const sevenDaysAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000); // 6 days ago + today = 7 days
-      
+
       const last7DaysPayload: MetricsPayload = {
         from: sevenDaysAgo.toISOString().split('T')[0],
         to: today.toISOString().split('T')[0],
         interval: '1d' // Daily intervals for better line chart
       };
-      
+
       console.log('📊 Date range (exactly 7 days):', {
         from: last7DaysPayload.from,
         to: last7DaysPayload.to,
         totalDays: Math.ceil((today.getTime() - sevenDaysAgo.getTime()) / (24 * 60 * 60 * 1000)) + 1
       });
-      
+
       // Create comparison period (previous 7 days)
       const fourteenDaysAgo = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000); // 13 days ago + 7 days ago = previous 7 days
       const comparisonPayload: MetricsPayload = {
@@ -183,12 +186,12 @@ export function Dashboard() {
       }
 
       setCampaigns(campaignsResult.data);
-      
+
       // Process campaigns data to get all campaign IDs (active + archived)
       const allCampaigns = campaignsResult.data;
       const activeCampaigns = allCampaigns.filter((c: Campaign) => c.status === 1);
       const archivedCampaigns = allCampaigns.filter((c: Campaign) => c.status === -1);
-      
+
       console.log('📊 Found campaigns:', {
         total: allCampaigns.length,
         active: activeCampaigns.length,
@@ -201,7 +204,7 @@ export function Dashboard() {
 
       // Fetch data for each campaign individually BUT IN PARALLEL (much faster)
       console.log('📊 Fetching metrics for each campaign individually IN PARALLEL...');
-      
+
       // Create all campaign promises for metrics and trend data
       const campaignPromises = allCampaignIds.map(async (campaignId) => {
         const payload: MetricsPayload = {
@@ -267,7 +270,7 @@ export function Dashboard() {
                     conversions: 0
                   };
                 }
-                
+
                 trendDataPoints[date].impressions += point.impressions || 0;
                 trendDataPoints[date].clicks += point.clicks || 0;
                 trendDataPoints[date].conversions += point.conversions || 0;
@@ -280,7 +283,7 @@ export function Dashboard() {
       });
 
       // Recalculate derived metrics (like Analytics does)
-      aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ? 
+      aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
         (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       console.log('📊 Aggregated metrics (parallel processing):', aggregatedMetrics);
@@ -295,7 +298,7 @@ export function Dashboard() {
 
       // Set the aggregated data
       setMetricsData(aggregatedMetrics);
-      
+
       if (aggregatedTrendData.length > 0) {
         setTrendData([{
           name: 'Overall Performance',
@@ -310,7 +313,7 @@ export function Dashboard() {
       // Fetch breakdown data for each campaign individually BUT IN PARALLEL
       console.log('📊 Fetching breakdown data for each campaign individually IN PARALLEL...');
       const breakdownTypes = ['gender', 'platform', 'age', 'location'];
-      
+
       // Create all breakdown promises for all campaigns and types in parallel
       const allBreakdownPromises = breakdownTypes.map(async (breakdownType) => {
         const breakdownByType: { [key: string]: any } = {};
@@ -327,7 +330,7 @@ export function Dashboard() {
             };
 
             const breakdownResult = await analyticsService.getBreakdownData(breakdownPayload);
-            
+
             if (breakdownResult.success && Array.isArray(breakdownResult.data)) {
               return breakdownResult.data;
             }
@@ -340,7 +343,7 @@ export function Dashboard() {
 
         // Wait for all campaigns for this breakdown type
         const allCampaignBreakdownData = await Promise.all(campaignBreakdownPromises);
-        
+
         // Aggregate data for this breakdown type
         allCampaignBreakdownData.forEach(campaignData => {
           campaignData.forEach((item: any) => {
@@ -375,7 +378,7 @@ export function Dashboard() {
 
         // Calculate total impressions for percentage calculation
         const totalImpressions = breakdownArray.reduce((sum, item: any) => sum + (item.impressions || 0), 0);
-        
+
         // Calculate proper percentages based on total impressions
         const breakdownWithPercentages = breakdownArray.map((item: any) => ({
           ...item,
@@ -400,14 +403,14 @@ export function Dashboard() {
 
       // Set individual breakdown data for charts
       setGenderBreakdown(aggregatedBreakdownData.gender || []);
-      
+
       // Map platform names for display
       const mappedPlatformData = (aggregatedBreakdownData.platform || []).map((item: any) => ({
         ...item,
         name: getPlatformName(item.name)
       }));
       setPlatformBreakdown(mappedPlatformData);
-      
+
       setAgeBreakdown(aggregatedBreakdownData.age || []);
       setLocationBreakdown(aggregatedBreakdownData.location || []);
 
@@ -421,17 +424,17 @@ export function Dashboard() {
       // Calculate quick stats using REAL aggregated data
       const activeCampaignsCount = activeCampaigns.length;
       const bestCTR = aggregatedMetrics.ctr || 0;
-      
+
       // Calculate top platform from ACTUAL breakdown data
-      const topPlatform = mappedPlatformData.length > 0 ? 
-        mappedPlatformData.sort((a: any, b: any) => (b.impressions || 0) - (a.impressions || 0))[0]?.name || 'Unknown' : 
+      const topPlatform = mappedPlatformData.length > 0 ?
+        mappedPlatformData.sort((a: any, b: any) => (b.impressions || 0) - (a.impressions || 0))[0]?.name || 'Unknown' :
         'Unknown';
-      
-      const conversionRate = (aggregatedMetrics.clicks && aggregatedMetrics.clicks > 0) ? 
+
+      const conversionRate = (aggregatedMetrics.clicks && aggregatedMetrics.clicks > 0) ?
         ((aggregatedMetrics.conversions || 0) / aggregatedMetrics.clicks) * 100 : 0;
-      
+
       console.log('📊 Top platform calculated from aggregated breakdown:', topPlatform, 'from data:', mappedPlatformData);
-      
+
       setQuickStats({
         activeCampaigns: activeCampaignsCount,
         bestCTR,
@@ -449,7 +452,7 @@ export function Dashboard() {
         };
 
         console.log('📊 Fetching comparison data for each campaign in parallel...');
-        
+
         // Create comparison promises for all campaigns
         const comparisonPromises = allCampaignIds.map(async (campaignId) => {
           const payload = {
@@ -482,7 +485,7 @@ export function Dashboard() {
           }
         });
 
-        aggregatedComparison.ctr = aggregatedComparison.impressions > 0 ? 
+        aggregatedComparison.ctr = aggregatedComparison.impressions > 0 ?
           (aggregatedComparison.clicks / aggregatedComparison.impressions) * 100 : 0;
 
         setComparisonMetricsData(aggregatedComparison);
@@ -491,7 +494,7 @@ export function Dashboard() {
         console.error('Error fetching comparison data:', error);
         setComparisonMetricsData(null);
       }
-      
+
       // Save all data to localStorage for 24-hour caching
       const dataToCache = {
         metricsData: aggregatedMetrics,
@@ -513,12 +516,14 @@ export function Dashboard() {
       };
       saveDashboardCache(dataToCache);
       setDataLoaded(true);
-      
+
       toast.success(`Last 7 days combined data loaded from ${allCampaignIds.length} campaigns!`);
 
     } catch (error) {
       console.error('❌ Error fetching 7-day dashboard data:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to load 7-day dashboard data');
+      setFetchError(message);
       // Clear all data on error
       setMetricsData(getDefaultMetrics());
       setComparisonMetricsData(null);
@@ -577,7 +582,7 @@ export function Dashboard() {
   const handleExport = () => {
     try {
       console.log('Exporting last 7 days dashboard data...');
-      
+
       // Prepare breakdown data in the format expected by the export function
       const consolidatedBreakdownData = {
         gender: genderBreakdown,
@@ -585,7 +590,7 @@ export function Dashboard() {
         age: ageBreakdown,
         location: locationBreakdown
       };
-      
+
       // Format the current dashboard data for CSV export
       const csvData = formatDashboardForCSV(
         metricsData,
@@ -636,202 +641,206 @@ export function Dashboard() {
   };
 
   const hasComparisonData = comparisonMetricsData !== null;
-  const ctrGrowth = hasComparisonData ? 
+  const ctrGrowth = hasComparisonData ?
     calculateGrowth(metricsData.ctr, comparisonMetricsData.ctr) : null;
-  const clicksGrowth = hasComparisonData ? 
+  const clicksGrowth = hasComparisonData ?
     calculateGrowth(metricsData.clicks, comparisonMetricsData.clicks) : null;
-  
-  console.log('📊 Growth calculations:', { 
-    hasComparisonData, 
-    currentCTR: metricsData.ctr, 
+
+  console.log('📊 Growth calculations:', {
+    hasComparisonData,
+    currentCTR: metricsData.ctr,
     previousCTR: comparisonMetricsData?.ctr,
     ctrGrowth,
     currentClicks: metricsData.clicks,
     previousClicks: comparisonMetricsData?.clicks,
-    clicksGrowth 
+    clicksGrowth
   });
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <VelvetLoader size={36} label="Loading dashboard" />
-      </div>
-    );
-  }
+  const headerActions = dataLoaded ? (
+    <>
+      <Button variant="ghost" size="sm" onClick={handleClearCache}>
+        <Zap className="h-3.5 w-3.5" />
+        Clear cache
+      </Button>
+      <Button variant="outline" size="sm" onClick={handleExport}>
+        <Download className="h-3.5 w-3.5" />
+        Export
+      </Button>
+      <Button variant="secondary" size="sm" onClick={() => navigate('/analytics')}>
+        Deep analytics
+        <ArrowUpRight className="h-3.5 w-3.5" />
+      </Button>
+      <Button size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        Refresh
+      </Button>
+    </>
+  ) : null;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="page-eyebrow">Dashboard</p>
-          <h1 className="page-display">
-            <span className="velvet-header-gradient">Performance</span> <span className="page-display-serif gradient-text">overview</span>
-          </h1>
-        </div>
-        {dataLoaded && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn-velvet-ghost h-9"
-            >
+    <div className="halo-page">
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Performance overview"
+        subhead="Combined performance across every live campaign over the last 7 days, cached locally for a day."
+        actions={headerActions}
+      />
+
+      <div className="mt-7 space-y-5">
+        {fetchError && (
+          <div className="halo-card p-5 flex items-start gap-3" role="alert">
+            <div className="halo-chip flex-none" style={{ background: 'var(--h-neg-soft)', color: 'var(--h-coral)' }}>
+              <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="halo-heading">Couldn't load dashboard data</p>
+              <p className="halo-subtitle mt-0.5">{fetchError} — check your connection and try refreshing.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <button onClick={handleClearCache} className="btn-velvet-ghost h-9">
-              <Zap className="h-3.5 w-3.5" />
-              Clear cache
-            </button>
-            <button onClick={handleExport} className="btn-velvet-ghost h-9">
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </button>
-            <button onClick={() => navigate('/analytics')} className="btn-velvet h-9">
-              Deep analytics
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </button>
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {loading ? (
+          <DashboardSkeleton />
+        ) : !dataLoaded ? (
+          <div className="halo-card halo-card-raised mx-auto max-w-md py-12 px-8 text-center">
+            <div className="halo-chip-lg mx-auto">
+              <BarChart3 className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <h2 className="halo-heading mt-4">Ready to fetch</h2>
+            <p className="halo-subtitle mt-1.5">
+              Combined metrics from all campaigns, cached for 24 hours once loaded.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <Button onClick={handleFetchAnalytics} disabled={loading} size="lg">
+                <TrendingUp className="h-4 w-4" strokeWidth={1.75} />
+                Fetch analytics
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {hasComparisonData && ctrGrowth !== null && (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-3 items-stretch">
+                <div className="halo-card halo-rail halo-rail-iris halo-tile-iris halo-rise p-5 flex items-center gap-3" style={{ '--i': 0 } as CSSProperties}>
+                  <div className="halo-badge-glass halo-chip-iris flex-none">
+                    <Activity className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-[var(--h-ink-2)]">7-day period</p>
+                    <p className="mt-0.5 truncate font-semibold text-[var(--h-ink)]">Week-over-week</p>
+                  </div>
+                </div>
+                <div
+                  className={`halo-card halo-rail ${ctrGrowth >= 0 ? 'halo-rail-mint halo-tile-mint' : 'halo-rail-coral halo-tile-coral'} halo-rise p-5 flex items-center justify-between`}
+                  style={{ '--i': 1 } as CSSProperties}
+                >
+                  <div>
+                    <p className={`num text-xl font-semibold leading-none ${ctrGrowth >= 0 ? 'halo-delta-up' : 'halo-delta-down'}`}>
+                      {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
+                    </p>
+                    <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink-2)]">CTR growth</p>
+                  </div>
+                  <div className={`halo-badge-glass ${ctrGrowth >= 0 ? 'halo-chip-mint' : 'halo-chip-coral'} flex-none`}>
+                    <Percent className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </div>
+                </div>
+                <div className="halo-card halo-rail halo-rail-violet halo-tile-violet halo-rise p-5 flex items-center justify-between" style={{ '--i': 2 } as CSSProperties}>
+                  <div>
+                    <p className="num text-xl font-semibold leading-none text-[var(--h-ink)]">
+                      {metricsData.ctr.toFixed(2)}<span className="text-sm text-[var(--h-ink-3)]">%</span>
+                    </p>
+                    <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink-2)]">Overall CTR</p>
+                  </div>
+                  <div className="halo-badge-glass halo-chip-violet flex-none">
+                    <Gauge className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <section>
+              <MetricsDashboard
+                data={metricsData}
+                comparisonData={comparisonMetricsData || undefined}
+                period="7d"
+                trend={trendData[0]?.data.map((d) => d.impressions) ?? []}
+              />
+            </section>
+
+            <div className="halo-card p-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex items-center gap-3">
+                <div className="halo-badge-glass halo-chip-iris flex-none">
+                  <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={2} />
+                </div>
+                <div>
+                  <p className="halo-heading">Ad slot management</p>
+                  <p className="halo-subtitle">Slots across platforms</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/slot-management')}>
+                Manage slots
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 items-stretch">
+              <div className="halo-card p-5 flex flex-col min-h-[360px] xl:col-span-8">
+                <div className="flex-1 min-h-[300px]">
+                  <TrendChart series={trendData} title="7-day performance" showGrid animated={false} height={300} />
+                </div>
+              </div>
+              <div className="halo-card p-5 flex flex-col min-h-[360px] xl:col-span-4">
+                <h3 className="halo-heading mb-3">Quick insights</h3>
+                <div className="flex-1 space-y-2">
+                  {[
+                    { label: 'Active campaigns', value: quickStats.activeCampaigns, tone: 'pos' },
+                    { label: 'Overall CTR', value: `${metricsData.ctr.toFixed(2)}%`, tone: 'iris' },
+                    { label: 'Top platform', value: quickStats.topPlatform, tone: 'ink' },
+                    { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%`, tone: 'violet' },
+                  ].map((row) => (
+                    <div key={row.label} className="halo-inset flex items-center justify-between px-3 py-2.5">
+                      <span className="halo-label">{row.label}</span>
+                      <span
+                        className="num text-sm font-semibold"
+                        style={{
+                          color:
+                            row.tone === 'pos' ? 'var(--h-mint)' :
+                            row.tone === 'iris' ? 'var(--h-iris-500)' :
+                            row.tone === 'violet' ? 'var(--h-violet)' :
+                            'var(--h-ink)',
+                        }}
+                      >
+                        {row.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5 xl:grid-cols-4 items-stretch">
+              {[
+                { data: genderBreakdown, title: 'Gender' },
+                { data: platformBreakdown, title: 'Platform' },
+                { data: ageBreakdown, title: 'Age' },
+                { data: locationBreakdown, title: 'Location' },
+              ].map(({ data, title }, idx) => (
+                <BreakdownCard
+                  key={title}
+                  index={idx}
+                  onClick={() => setBreakdownModal({ open: true, title: `${title} · 7 days`, data })}
+                >
+                  <BreakdownPieChart data={data} title={`${title} · 7 days`} />
+                </BreakdownCard>
+              ))}
+            </div>
           </div>
         )}
       </div>
-
-      {!dataLoaded && !loading ? (
-        <CometCard className="mx-auto max-w-md">
-          <div className="velvet-surface velvet-micro-shadow p-10 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-4">
-              <BarChart3 className="h-6 w-6 text-[var(--indigo-500)]" />
-            </div>
-            <h2 className="text-lg font-semibold text-[var(--text-1)]">Ready to fetch</h2>
-            <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">
-              Combined metrics from all campaigns · cached 24h
-            </p>
-            <div className="mt-6 flex justify-center">
-              <button onClick={handleFetchAnalytics} disabled={loading} className="btn-velvet h-10 px-5">
-                {loading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Fetching…
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Fetch analytics
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </CometCard>
-      ) : (
-        <div className="space-y-5">
-          {hasComparisonData && ctrGrowth !== null && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center gap-3">
-                <div className="metric-icon-tone metric-icon-tone--accent flex-shrink-0">
-                  <Activity className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold">7-day period</p>
-                  <p className="text-[13px] font-semibold text-[var(--text-1)] truncate">Week-over-week</p>
-                </div>
-              </div>
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between">
-                <div>
-                  <p className={`text-[20px] font-semibold tabular-nums leading-none ${ctrGrowth >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                    {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
-                  </p>
-                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold mt-1.5">CTR growth</p>
-                </div>
-                <Sparkles className="h-4 w-4 text-amber-500 opacity-70 flex-shrink-0" />
-              </div>
-              <div className="velvet-surface velvet-micro-shadow p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[20px] font-semibold tabular-nums leading-none text-[var(--text-1)]">
-                    {metricsData.ctr.toFixed(2)}<span className="text-[var(--text-3)] text-[14px]">%</span>
-                  </p>
-                  <p className="text-[10.5px] text-[var(--text-3)] uppercase tracking-wider font-semibold mt-1.5">Overall CTR</p>
-                </div>
-                <TrendingUp className="h-4 w-4 text-[var(--indigo-500)] opacity-80 flex-shrink-0" />
-              </div>
-            </div>
-          )}
-
-          <section className="space-y-3">
-            <div className="velvet-section-title">Key metrics</div>
-            <MetricsDashboard data={metricsData} comparisonData={comparisonMetricsData || undefined} period="7d" />
-          </section>
-
-          <div className="velvet-surface velvet-micro-shadow p-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/50 via-pink-500/40 to-violet-500/50" />
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
-                  <LayoutGrid className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-semibold text-[var(--text-1)]">Ad slot management</p>
-                  <p className="text-[11.5px] text-[var(--text-3)]">Slots across platforms</p>
-                </div>
-              </div>
-              <button onClick={() => navigate('/slot-management')} className="btn-velvet-ghost h-8 text-[12px] flex-shrink-0">
-                Manage slots
-                <ArrowUpRight className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <div className="velvet-surface velvet-micro-shadow xl:col-span-2 p-4 flex flex-col min-h-[360px] relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500/50 via-indigo-500/40 to-violet-500/50" />
-              <div className="velvet-section-title mb-3">Performance trends</div>
-              <div className="flex-1 min-h-[300px]">
-                <TrendChart series={trendData} title="7-day performance" showGrid animated={false} height={300} />
-              </div>
-            </div>
-            <div className="velvet-surface velvet-micro-shadow p-4 flex flex-col min-h-[360px] relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/50 via-orange-500/40 to-amber-500/50" />
-              <div className="velvet-section-title mb-3">Quick insights</div>
-              <div className="flex-1 space-y-1.5">
-                {[
-                  { label: 'Active campaigns', value: quickStats.activeCampaigns, color: 'text-emerald-600' },
-                  { label: 'Overall CTR', value: `${metricsData.ctr.toFixed(2)}%`, color: 'text-[var(--indigo-500)]' },
-                  { label: 'Top platform', value: quickStats.topPlatform, color: 'text-[var(--text-1)]' },
-                  { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%`, color: 'text-violet-600' },
-                ].map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--bg-panel-2)] px-3 py-2.5"
-                  >
-                    <span className="text-[11.5px] text-[var(--text-2)]">{row.label}</span>
-                    <span className={`text-[12.5px] font-semibold tabular-nums ${row.color}`}>{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { data: genderBreakdown, title: 'Gender' },
-              { data: platformBreakdown, title: 'Platform' },
-              { data: ageBreakdown, title: 'Age' },
-              { data: locationBreakdown, title: 'Location' },
-            ].map(({ data, title }) => (
-              <CometCard key={title} className="h-[400px]">
-                <button
-                  type="button"
-                  onClick={() => setBreakdownModal({ open: true, title: `${title} · 7 days`, data })}
-                  className="relative velvet-surface velvet-micro-shadow group cursor-pointer w-full h-full text-left transition-all duration-300 hover:shadow-[var(--shadow-velvet)] hover:-translate-y-0.5 overflow-hidden flex flex-col"
-                >
-                  <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-[var(--violet-500)]/0 via-[var(--violet-500)]/0 to-[var(--plum-500)]/5" />
-                  <div className="relative flex-1 min-h-0 p-3">
-                    <BreakdownPieChart data={data} title={`${title} · 7 days`} />
-                  </div>
-                </button>
-              </CometCard>
-            ))}
-          </div>
-        </div>
-      )}
 
       <BreakdownModal
         open={breakdownModal.open}
@@ -839,6 +848,69 @@ export function Dashboard() {
         title={breakdownModal.title}
         data={breakdownModal.data}
       />
+    </div>
+  );
+}
+
+/* ============================================================
+   Local presentational helpers
+   ============================================================ */
+
+function BreakdownCard({
+  index,
+  onClick,
+  children,
+}: {
+  index: number;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const spotlight = useSpotlight();
+  return (
+    <CometCard className="h-[400px]">
+      <button
+        type="button"
+        onClick={onClick}
+        {...spotlight}
+        style={{ '--i': Math.min(index, 10) } as CSSProperties}
+        className="halo-card halo-card-interactive halo-spotlight halo-rise w-full h-full text-left flex flex-col overflow-hidden"
+      >
+        <div className="relative flex-1 min-h-0 p-5">{children}</div>
+      </button>
+    </CometCard>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="halo-card p-5 h-[104px] flex flex-col justify-between">
+            <div className="halo-skeleton h-3 w-16" />
+            <div className="halo-skeleton h-7 w-24" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <div className="halo-card p-5 min-h-[360px] xl:col-span-8">
+          <div className="halo-skeleton h-3 w-32 mb-4" />
+          <div className="halo-skeleton h-[300px] w-full" />
+        </div>
+        <div className="halo-card p-5 min-h-[360px] xl:col-span-4 space-y-2">
+          <div className="halo-skeleton h-3 w-28 mb-2" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="halo-skeleton h-10 w-full" />
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="halo-card p-5 h-[400px]">
+            <div className="halo-skeleton h-full w-full" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

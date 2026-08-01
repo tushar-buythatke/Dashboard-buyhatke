@@ -3,15 +3,13 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useEnvironment } from '@/context/EnvironmentContext';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Bell,
@@ -20,20 +18,20 @@ import {
   ChevronDown,
   Moon,
   Sun,
+  Menu,
   Eye,
   MousePointerClick,
-  Target,
+  Percent,
   TrendingUp,
-  Sparkles,
-  Zap,
-  Star,
   CheckCircle,
   Clock,
   Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
+import { useAccent } from '@/context/AccentContext';
 import { NotificationsModal } from './NotificationsModal';
+import { useNavItems } from './Sidebar';
 
 function getInitials(userName: string | null | undefined) {
   if (!userName) return 'U';
@@ -53,20 +51,20 @@ function NotificationDropdown() {
 
   const getMetricIcon = (metric?: string) => {
     switch (metric) {
-      case 'impressions': return <Eye className="h-3.5 w-3.5" />;
-      case 'clicks': return <MousePointerClick className="h-3.5 w-3.5" />;
-      case 'ctr': return <Target className="h-3.5 w-3.5" />;
-      default: return <TrendingUp className="h-3.5 w-3.5" />;
+      case 'impressions': return <Eye size={14} strokeWidth={1.75} />;
+      case 'clicks': return <MousePointerClick size={14} strokeWidth={1.75} />;
+      case 'ctr': return <Percent size={14} strokeWidth={1.75} />;
+      default: return <TrendingUp size={14} strokeWidth={1.75} />;
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'achievement': return <Star className="h-3.5 w-3.5 text-amber-500" />;
-      case 'success': return <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />;
-      case 'warning': return <Zap className="h-3.5 w-3.5 text-orange-500" />;
-      case 'info': return <TrendingUp className="h-3.5 w-3.5 text-sky-500" />;
-      default: return <Bell className="h-3.5 w-3.5" />;
+      case 'achievement': return <Bell size={14} strokeWidth={1.75} className="text-[var(--h-amber)]" />;
+      case 'success': return <CheckCircle size={14} strokeWidth={1.75} className="text-[var(--h-mint)]" />;
+      case 'warning': return <Bell size={14} strokeWidth={1.75} className="text-[var(--h-amber)]" />;
+      case 'info': return <TrendingUp size={14} strokeWidth={1.75} className="text-[var(--h-cyan)]" />;
+      default: return <Bell size={14} strokeWidth={1.75} />;
     }
   };
 
@@ -85,50 +83,44 @@ function NotificationDropdown() {
   return (
     <DropdownMenuContent
       align="end"
-      className="w-[22rem] sm:w-96 p-0 max-h-[80vh] overflow-hidden z-[100000] border-[var(--line)] bg-[var(--bg-panel)] shadow-[var(--shadow-3)] rounded-2xl"
+      className="halo-card w-[22rem] sm:w-96 p-0 max-h-[80vh] overflow-hidden z-[100000]"
     >
-      <div className="px-5 py-4 border-b border-[var(--line)] bg-gradient-to-br from-[var(--bg-panel-2)] to-[var(--bg-panel)]">
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--h-line)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--bg-tint)] text-[var(--indigo-500)] border border-[var(--line-violet)]">
-              <Bell className="h-4 w-4" />
+            <div className="halo-chip">
+              <Bell size={16} strokeWidth={1.75} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-1)]">Notifications</h3>
-              <p className="text-[11px] text-[var(--text-3)]">
-                {notifications.length} total · {unreadCount} unread
+              <h3 className="text-sm font-semibold text-[var(--h-ink)]">Notifications</h3>
+              <p className="text-[11px] text-[var(--h-ink-3)]">
+                <span className="num">{notifications.length}</span> total · <span className="num">{unreadCount}</span> unread
               </p>
             </div>
           </div>
           {unreadCount > 0 && (
-            <div className="flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-[var(--neg-soft)] text-[var(--neg)] text-[10px] font-semibold">
-              {unreadCount}
-            </div>
+            <span className="halo-badge halo-badge-neg num">{unreadCount}</span>
           )}
         </div>
 
         {notifications.length > 0 && (
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={markAllAsRead}
-                className="flex-1 h-8 text-[11px] text-[var(--indigo-500)] border-[var(--line-violet)] hover:bg-[var(--bg-tint)] hover:border-[var(--violet-400)]"
+                className="btn-halo-soft btn-halo-sm flex-1"
               >
-                <CheckCircle className="h-3 w-3 mr-1.5" />
+                <CheckCircle size={14} strokeWidth={1.75} />
                 Mark all read
-              </Button>
+              </button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={clearAllNotifications}
-              className="flex-1 h-8 text-[11px] text-[var(--neg)] border-[var(--line)] hover:bg-[var(--neg-soft)]"
+              className="btn-halo-ghost btn-halo-sm flex-1 text-[var(--h-coral)] hover:bg-[var(--h-neg-soft)]"
             >
-              <Trash2 className="h-3 w-3 mr-1.5" />
+              <Trash2 size={14} strokeWidth={1.75} />
               Clear all
-            </Button>
+            </button>
           </div>
         )}
       </div>
@@ -137,12 +129,12 @@ function NotificationDropdown() {
         {notifications.length === 0 ? (
           <div className="p-10 text-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)] flex items-center justify-center">
-                <Bell className="h-5 w-5 text-[var(--text-3)]" />
+              <div className="halo-chip-lg">
+                <Bell size={18} strokeWidth={1.75} />
               </div>
               <div>
-                <p className="font-medium text-sm text-[var(--text-1)]">No notifications yet</p>
-                <p className="text-[11px] text-[var(--text-3)] mt-0.5">
+                <p className="font-medium text-sm text-[var(--h-ink)]">No notifications yet</p>
+                <p className="text-[11px] text-[var(--h-ink-3)] mt-0.5">
                   We'll notify you when your ads hit their targets
                 </p>
               </div>
@@ -154,9 +146,11 @@ function NotificationDropdown() {
               key={notification.id}
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`group p-3.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--bg-panel-2)] cursor-pointer transition-colors ${
-                !notification.isRead ? 'bg-[var(--bg-tint)]' : ''
-              }`}
+              className="group p-3.5 hover:bg-[var(--h-tint)] cursor-pointer transition-colors"
+              style={{
+                borderBottom: '1px solid var(--h-line)',
+                background: !notification.isRead ? 'var(--h-tint)' : undefined
+              }}
               onClick={() => {
                 markAsRead(notification.id);
                 if (notification.metadata?.adId) {
@@ -167,48 +161,44 @@ function NotificationDropdown() {
               }}
             >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--bg-panel-2)] border border-[var(--line)] flex items-center justify-center">
+                <div className="halo-chip flex-shrink-0">
                   {getTypeIcon(notification.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-[12.5px] font-semibold text-[var(--text-1)] truncate pr-1">
+                    <p className="text-[12.5px] font-semibold text-[var(--h-ink)] truncate pr-1">
                       {notification.title}
                     </p>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {!notification.isRead && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--violet-500)]" />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 text-[var(--text-3)] hover:text-[var(--neg)] hover:bg-[var(--neg-soft)]"
+                      {!notification.isRead && <span className="halo-dot halo-dot-live text-[var(--h-iris-500)]" />}
+                      <button
+                        className="h-5 w-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 text-[var(--h-ink-3)] hover:text-[var(--h-coral)] hover:bg-[var(--h-neg-soft)] transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeNotification(notification.id);
                         }}
                       >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                        <Trash2 size={12} strokeWidth={1.75} />
+                      </button>
                     </div>
                   </div>
-                  <p className="text-[12px] text-[var(--text-2)] mt-0.5 line-clamp-2">
+                  <p className="text-[12px] text-[var(--h-ink-2)] mt-0.5 line-clamp-2">
                     {notification.message}
                   </p>
                   <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-1 text-[10.5px] text-[var(--text-3)]">
-                      <Clock className="h-3 w-3" />
+                    <div className="flex items-center gap-1 text-[10.5px] text-[var(--h-ink-3)]">
+                      <Clock size={12} strokeWidth={1.75} />
                       <span>{formatTimeAgo(notification.timestamp)}</span>
                     </div>
                     {notification.metadata?.metric && (
-                      <div className="flex items-center gap-1 text-[var(--text-3)]">
+                      <div className="flex items-center gap-1 text-[var(--h-ink-3)]">
                         {getMetricIcon(notification.metadata.metric)}
                         <span className="text-[10.5px]">{notification.metadata.metric}</span>
                       </div>
                     )}
                   </div>
                   {notification.metadata?.improvement && (
-                    <Badge className="mt-1.5 text-[10px] font-medium px-1.5 py-0 bg-[var(--pos-soft)] text-[var(--pos)] border-0">
+                    <Badge className="mt-1.5 text-[10px] font-medium px-1.5 py-0 bg-[var(--h-pos-soft)] text-[var(--h-mint)] border-0 num">
                       +{notification.metadata.improvement}% improvement
                     </Badge>
                   )}
@@ -220,15 +210,13 @@ function NotificationDropdown() {
       </div>
 
       {notifications.length > 4 && (
-        <div className="p-3 border-t border-[var(--line)] bg-[var(--bg-panel-2)]">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full h-8 text-[11px] text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel)] border border-[var(--line)]"
+        <div className="p-3" style={{ borderTop: '1px solid var(--h-line)' }}>
+          <button
+            className="btn-halo-ghost btn-halo-sm w-full"
             onClick={openNotificationsModal}
           >
             View all {notifications.length} notifications
-          </Button>
+          </button>
         </div>
       )}
     </DropdownMenuContent>
@@ -247,6 +235,8 @@ export function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { accent, setAccent } = useAccent();
+  const navItems = useNavItems();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -262,62 +252,122 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header
-      className="velvet-header"
-      style={{ position: 'fixed', zIndex: 99999 }}
+      className="halo-glass halo-glass-nav fixed top-0 left-0 right-0 z-[99999] h-[var(--h-header-h)]"
+      style={{ border: 'none', borderBottom: '1px solid var(--h-line)' }}
     >
-      <div className="velvet-haze" aria-hidden />
-      <div className="relative z-[1] flex items-center justify-between h-full max-w-[1400px] mx-auto px-4 sm:px-6">
-        {/* Left: menu + brand */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
+      <div className="relative h-full max-w-[1560px] mx-auto px-4 sm:px-6 flex items-center justify-between">
+        {/* Left: hamburger (mobile) + logo (desktop) */}
+        <div className="flex items-center gap-3 z-[1]">
+          <button
             onClick={onMenuClick}
-            className="lg:hidden h-9 w-9 text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel-2)]"
+            aria-label="Open menu"
+            className="lg:hidden btn-halo-ghost btn-halo-icon"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
-              <line x1="4" y1="7" x2="20" y2="7" />
-              <line x1="4" y1="12" x2="20" y2="12" />
-              <line x1="4" y1="17" x2="20" y2="17" />
-            </svg>
-          </Button>
+            <Menu size={18} strokeWidth={1.75} />
+          </button>
 
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2.5 sm:gap-3 group"
+            className="hidden lg:flex items-center gap-2.5"
           >
-            <div className="relative">
-              <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-[10px] flex items-center justify-center border border-[var(--line-violet)] bg-[var(--bg-tint)] transition-all duration-300 group-hover:border-[var(--violet-400)] group-hover:shadow-[0_0_12px_rgba(99,76,230,0.2)]"
-                style={{ boxShadow: 'var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.06)' }}
-              >
-                <img
-                  src="/logo_512x512.png"
-                  alt="Logo"
-                  className="w-5 h-5 sm:w-6 sm:h-6 object-contain"
-                />
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--pos)] border-2 border-[var(--bg-panel)]" />
-            </div>
-
-            <div className="hidden sm:flex items-center leading-tight">
-              <h1 className="text-[19px] font-bold tracking-[-0.02em] text-[var(--text-1)] flex items-center gap-1.5">
-                <span>Hatke</span>
-                <span className="font-serif italic font-normal text-[var(--indigo-500)]">Dashboard</span>
-                <Sparkles className="h-3.5 w-3.5 text-[var(--gold-500)] opacity-70" />
-              </h1>
-            </div>
+            <img src="/logo_512x512.png" alt="Logo" className="w-7 h-7 object-contain" />
+            <span
+              className="text-[17px] font-semibold tracking-tight text-[var(--h-ink)]"
+              style={{ fontFamily: 'var(--h-font-display)' }}
+            >
+              Hatke
+            </span>
           </button>
         </div>
 
+        {/* Center: nav rail (desktop) / centered logo (mobile) */}
+        <div className="absolute left-1/2 -translate-x-1/2 hidden lg:flex">
+          <div className="halo-segment">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                end={item.href === '/'}
+                className={({ isActive }) =>
+                  `halo-nav-item ${isActive ? 'halo-nav-item-active' : ''}`
+                }
+              >
+                {item.name}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={() => navigate('/')}
+          className="absolute left-1/2 -translate-x-1/2 lg:hidden flex items-center gap-2"
+        >
+          <img src="/logo_512x512.png" alt="Logo" className="w-7 h-7 object-contain" />
+          <span
+            className="text-[15px] font-semibold tracking-tight text-[var(--h-ink)]"
+            style={{ fontFamily: 'var(--h-font-display)' }}
+          >
+            Hatke
+          </span>
+        </button>
+
         {/* Right: actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-2 z-[1]">
+          {(() => {
+            const ACCENTS = [
+              { key: 'iris', label: 'Purple-blue', color: '#5b4bff' },
+              { key: 'blue', label: 'Blue', color: '#0d7fe6' },
+              { key: 'mint', label: 'Green', color: '#0ea975' },
+              { key: 'coral', label: 'Orange-red', color: '#f2453f' },
+              { key: 'pink', label: 'Soft pink', color: '#e8408f' },
+            ] as const;
+            const n = ACCENTS.length;
+            // Reordered so the selected swatch always sits in the middle —
+            // on hover the pill widens symmetrically and the rest reveal
+            // outward on each side, instead of growing off to one edge.
+            const idx = ACCENTS.findIndex((a) => a.key === accent);
+            const half = Math.floor(n / 2);
+            const ordered = Array.from({ length: n }, (_, i) => ACCENTS[(idx - half + i + n) % n]);
+            const hoverWidth = 24 + n * 16 + (n - 1) * 12;
+
+            return (
+              // Same transparent ghost-button shell as the theme toggle beside it —
+              // ring icon at rest, widening to reveal solid dots on hover.
+              <div
+                className="group hidden lg:flex h-9 w-9 items-center justify-center overflow-hidden rounded-full transition-[width,background-color] duration-300 ease-out hover:w-[var(--hover-w)] hover:bg-[var(--h-tint)]"
+                style={{ '--hover-w': `${hoverWidth}px` } as React.CSSProperties}
+              >
+                <div className="flex items-center gap-3 px-3">
+                  {ordered.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setAccent(opt.key)}
+                      aria-label={`${opt.label} theme`}
+                      aria-pressed={accent === opt.key}
+                      title={opt.label}
+                      className="flex h-4 w-4 flex-none items-center justify-center rounded-full"
+                    >
+                      {/* Resting: an outline ring at icon scale, matching the moon
+                          glyph's weight. On hover: fills solid, like it did before. */}
+                      <span
+                        className="h-4 w-4 rounded-full border-2 bg-transparent transition-[background-color,transform] duration-200 group-hover:[background-color:var(--dot-color)]"
+                        style={{
+                          '--dot-color': opt.color,
+                          borderColor: opt.color,
+                          transform: accent === opt.key ? 'scale(1)' : 'scale(0.8)',
+                        } as React.CSSProperties}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          <button
             onClick={toggleTheme}
-            className="h-9 w-9 text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel-2)] transition-all"
             aria-label="Toggle theme"
+            className="hidden lg:inline-flex btn-halo-ghost btn-halo-icon"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === 'dark' ? (
@@ -326,9 +376,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                   initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
                   animate={{ opacity: 1, rotate: 0, scale: 1 }}
                   exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
-                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.19, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Sun className="h-4 w-4" />
+                  <Sun size={16} strokeWidth={1.75} />
                 </motion.div>
               ) : (
                 <motion.div
@@ -336,41 +386,39 @@ export function Header({ onMenuClick }: HeaderProps) {
                   initial={{ opacity: 0, rotate: 90, scale: 0.6 }}
                   animate={{ opacity: 1, rotate: 0, scale: 1 }}
                   exit={{ opacity: 0, rotate: -90, scale: 0.6 }}
-                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.19, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Moon className="h-4 w-4" />
+                  <Moon size={16} strokeWidth={1.75} />
                 </motion.div>
               )}
             </AnimatePresence>
-          </Button>
-
-          <button
-            onClick={() => setApiVersion(isV2 ? 'v1' : 'v2')}
-            className={`relative h-8 px-2.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-200 border ${
-              isV2
-                ? 'bg-[var(--indigo-50)] text-[var(--indigo-600)] border-[var(--indigo-200)] dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700'
-                : 'bg-[var(--bg-panel-2)] text-[var(--text-2)] border-[var(--line)] hover:border-[var(--line-violet)] hover:text-[var(--text-1)]'
-            }`}
-            aria-label={`Switch to ${isV2 ? 'V1' : 'V2'} API`}
-            title={`Currently using ${apiVersion.toUpperCase()} API. Click to switch to ${isV2 ? 'V1' : 'V2'}.`}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${isV2 ? 'bg-[var(--indigo-500)] animate-pulse' : 'bg-[var(--text-3)]'}`} />
-              API {apiVersion.toUpperCase()}
-            </span>
           </button>
+
+          <div className="hidden lg:flex halo-segment" role="group" aria-label="API version">
+            <button
+              onClick={() => isV2 && setApiVersion('v1')}
+              className={`halo-segment-item ${!isV2 ? 'is-active' : ''}`}
+            >
+              V1
+            </button>
+            <button
+              onClick={() => !isV2 && setApiVersion('v2')}
+              className={`halo-segment-item ${isV2 ? 'is-active' : ''}`}
+              title={`Currently using ${apiVersion.toUpperCase()} API`}
+            >
+              V2
+            </button>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="relative h-9 w-9 rounded-lg flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel-2)] transition-colors"
+                className="hidden lg:inline-flex btn-halo-ghost btn-halo-icon relative"
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" />
+                <Bell size={16} strokeWidth={1.75} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-[var(--neg)] text-white text-[9px] font-semibold flex items-center justify-center border-2 border-[var(--bg-panel)]">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  <span className="halo-dot halo-dot-live absolute top-2 right-2 text-[var(--h-coral)]" />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -380,50 +428,32 @@ export function Header({ onMenuClick }: HeaderProps) {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="h-9 sm:h-10 px-2 sm:px-3 rounded-lg flex items-center gap-2 hover:bg-[var(--bg-panel-2)] transition-colors border border-transparent hover:border-[var(--line)]">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center text-[var(--indigo-500)]">
-                    <span className="text-[11px] sm:text-[12px] font-semibold">
+                <button className="h-9 pl-1.5 pr-2 rounded-[var(--h-r-pill)] flex items-center gap-1 hover:bg-[var(--h-tint)] transition-colors">
+                  <div className="h-[26px] w-[26px] rounded-full bg-[var(--h-tint-2)] flex items-center justify-center text-[var(--h-iris-600)]">
+                    <span className="text-[11px] font-semibold">
                       {getInitials(user.username)}
                     </span>
                   </div>
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <span className="text-[12.5px] font-medium text-[var(--text-1)] max-w-[7rem] truncate">
-                      {user.username}
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-[var(--text-3)]" />
-                  </div>
+                  <ChevronDown size={14} strokeWidth={1.75} className="text-[var(--h-ink-3)]" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-64 p-0 mt-2 border border-[var(--line)] bg-[var(--bg-panel)] shadow-[var(--shadow-3)] rounded-2xl z-[100000] overflow-hidden"
+                className="halo-card w-64 p-0 mt-2 z-[100000] overflow-hidden"
               >
-                <div className="px-5 py-4 bg-gradient-to-br from-[var(--bg-panel-2)] to-[var(--bg-panel)] border-b border-[var(--line)]">
+                <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--h-line)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="h-11 w-11 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)] flex items-center justify-center text-[var(--indigo-500)]">
-                        <UserIcon className="h-5 w-5" />
-                      </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--pos)] border-2 border-[var(--bg-panel)]" />
+                    <div className="halo-chip-lg">
+                      <UserIcon size={18} strokeWidth={1.75} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-[13px] text-[var(--text-1)] truncate">
+                      <p className="font-semibold text-[13px] text-[var(--h-ink)] truncate">
                         {user.username}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <Badge
-                          className={`text-[10px] font-medium px-1.5 py-0 border-0 ${
-                            userRole === 'admin'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                              : userRole === 'editor'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                : 'bg-[var(--bg-panel-2)] text-[var(--text-2)]'
-                          }`}
-                        >
-                          {userRole === 'admin' ? 'Admin' : userRole === 'editor' ? 'Editor' : 'Viewer'}
-                        </Badge>
-                        <div className="flex items-center gap-1 text-[10px] text-[var(--pos)]">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[var(--pos)]" />
+                        <span className="halo-badge halo-badge-iris capitalize">{userRole}</span>
+                        <div className="flex items-center gap-1 text-[10px] text-[var(--h-mint)]">
+                          <span className="halo-dot" />
                           <span>Online</span>
                         </div>
                       </div>
@@ -435,9 +465,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12.5px] text-[var(--neg)] hover:bg-[var(--neg-soft)] focus:bg-[var(--neg-soft)] focus:text-[var(--neg)] cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-[var(--h-r-sm)] text-[12.5px] text-[var(--h-coral)] hover:bg-[var(--h-neg-soft)] focus:bg-[var(--h-neg-soft)] focus:text-[var(--h-coral)] cursor-pointer"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
+                    <LogOut size={14} strokeWidth={1.75} />
                     <span>{isLoggingOut ? 'Signing out…' : 'Sign out'}</span>
                   </DropdownMenuItem>
                 </div>

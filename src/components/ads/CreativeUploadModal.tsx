@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, AlertCircle, Check, Loader2, FileVideo } from 'lucide-react';
+import { Upload, AlertCircle, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,12 +13,12 @@ interface CreativeUploadModalProps {
   requiredDimensions?: { width: number; height: number };
 }
 
-export default function CreativeUploadModal({ 
-  isOpen, 
-  onClose, 
+export default function CreativeUploadModal({
+  isOpen,
+  onClose,
   onUpload,
   adId,
-  requiredDimensions 
+  requiredDimensions
 }: CreativeUploadModalProps) {
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -34,7 +34,7 @@ export default function CreativeUploadModal({
       const img = new Image();
       img.onload = () => {
         if (requiredDimensions) {
-          const isValidSize = img.width === requiredDimensions.width && 
+          const isValidSize = img.width === requiredDimensions.width &&
                             img.height === requiredDimensions.height;
           if (!isValidSize) {
             setError(
@@ -63,14 +63,14 @@ export default function CreativeUploadModal({
     return new Promise<boolean>((resolve) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
-      
+
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(video.src);
         const videoWidth = video.videoWidth;
         const videoHeight = video.videoHeight;
-        
+
         if (requiredDimensions) {
-          const isValidSize = videoWidth === requiredDimensions.width && 
+          const isValidSize = videoWidth === requiredDimensions.width &&
                             videoHeight === requiredDimensions.height;
           if (!isValidSize) {
             setError(
@@ -87,12 +87,12 @@ export default function CreativeUploadModal({
           resolve(true);
         }
       };
-      
+
       video.onerror = () => {
         setError('Invalid video file');
         resolve(false);
       };
-      
+
       video.src = URL.createObjectURL(file);
     });
   };
@@ -100,7 +100,7 @@ export default function CreativeUploadModal({
   const handleFile = async (file: File) => {
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
-    
+
     if (!isImage && !isVideo) {
       setError('Please select an image or video file');
       return;
@@ -131,7 +131,7 @@ export default function CreativeUploadModal({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -145,19 +145,22 @@ export default function CreativeUploadModal({
 
   const handleUpload = async () => {
     if (!selectedFile || !isValid) return;
-    
+
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('image', selectedFile);
-      
+
+      // HALO: true upload-percentage progress needs an XHR/axios onUploadProgress
+      // handler instead of fetch — left the request logic untouched, the bar
+      // below is an indeterminate iris sweep while isUploading is true.
       const response = await fetch(`${buildApiUrl('/ads/uploadCreative')}?userId=1`, {
         method: 'POST',
         body: formData
       });
-      
+
       const data = await response.json();
-      
+
       if (data.status === 1 && data.data?.creativeUrl) {
         onUpload(data.data.creativeUrl);
         resetModal();
@@ -190,16 +193,16 @@ export default function CreativeUploadModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md border-slate-200">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Upload Creative</DialogTitle>
+      <DialogContent className="sm:max-w-md halo-card rounded-[var(--h-r-xl)] p-0 overflow-hidden">
+        <DialogHeader className="px-5 pt-5">
+          <DialogTitle className="halo-heading text-base">Upload creative</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
+
+        <div className="space-y-4 px-5 pb-5">
           {requiredDimensions && (
-            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
-              <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription className="text-blue-800 dark:text-blue-300">
+            <Alert className="halo-inset border-0 bg-[var(--h-tint)]">
+              <AlertCircle className="w-4 h-4 text-[var(--h-iris-600)]" strokeWidth={1.75} />
+              <AlertDescription className="text-[var(--h-ink-2)] text-xs">
                 Media must be exactly {requiredDimensions.width} x {requiredDimensions.height} pixels
               </AlertDescription>
             </Alert>
@@ -207,18 +210,20 @@ export default function CreativeUploadModal({
 
           {!previewUrl ? (
             <div
-              className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive 
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                  : 'border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600'
+              className={`relative rounded-[var(--h-r)] p-8 text-center transition-colors border-2 border-dashed ${
+                dragActive
+                  ? 'border-[var(--h-iris-500)] bg-[var(--h-tint)]'
+                  : 'border-[var(--h-line-2)] hover:border-[var(--h-line-accent)]'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
-              <Upload className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <span className="halo-chip-lg mx-auto mb-4">
+                <Upload size={22} strokeWidth={1.75} />
+              </span>
+              <p className="halo-subtitle mb-4">
                 Drag and drop your image or video here, or click to browse
               </p>
               <input
@@ -227,72 +232,98 @@ export default function CreativeUploadModal({
                 onChange={handleFileInput}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <Button variant="outline" className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
-                Browse Files
+              <Button variant="outline" className="btn-halo-outline pointer-events-none">
+                Browse files
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="relative">
+              <div className="halo-inset relative p-3 flex items-center justify-center">
                 {fileType === 'image' ? (
-                  <img 
-                    src={previewUrl} 
-                    alt="Preview" 
-                    className="w-full border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm"
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-w-full max-h-72 rounded-[var(--h-r-sm)]"
                   />
                 ) : (
-                  <video 
-                    src={previewUrl} 
+                  <video
+                    src={previewUrl}
                     controls
-                    className="w-full border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm"
+                    className="max-w-full max-h-72 rounded-[var(--h-r-sm)]"
                   >
                     Your browser does not support the video tag.
                   </video>
                 )}
+                {!isValidating && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewUrl('')}
+                    disabled={isUploading}
+                    className="btn-halo-ghost btn-halo-icon btn-halo-sm absolute top-2 left-2 bg-[var(--h-surface)] shadow-[var(--h-sh-2)]"
+                    aria-label="Remove file"
+                  >
+                    <X size={14} strokeWidth={1.75} />
+                  </button>
+                )}
                 {isValidating && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-                    <div className="text-white flex items-center">
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> Validating...
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[var(--h-r-sm)]" style={{ background: 'color-mix(in srgb, var(--h-ink) 45%, transparent)' }}>
+                    <div className="text-[var(--h-ink-inv)] flex items-center gap-2 text-sm">
+                      <span className="halo-spinner" style={{ borderTopColor: '#fff', borderColor: 'rgba(255,255,255,0.35)' }} />
+                      Validating…
                     </div>
                   </div>
                 )}
                 {!isValidating && isValid && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full shadow-lg">
-                    <Check className="w-4 h-4" />
+                  <div className="absolute top-2 right-2 p-1 rounded-full shadow-[var(--h-sh-2)]" style={{ background: 'var(--h-mint)', color: '#fff' }}>
+                    <Check className="w-3.5 h-3.5" strokeWidth={2} />
                   </div>
                 )}
               </div>
-              
+
+              {isUploading && (
+                <div className="h-1.5 rounded-[var(--h-r-pill)] overflow-hidden bg-[var(--h-surface-3)]">
+                  <div
+                    className="h-full rounded-[var(--h-r-pill)]"
+                    style={{
+                      width: '55%',
+                      background: 'var(--h-g-iris)',
+                      animation: 'halo-shimmer 1.1s ease-in-out infinite alternate',
+                    }}
+                  />
+                </div>
+              )}
+
               {error && (
-                <Alert variant="destructive" className="border-red-200 dark:border-red-800">
-                  <AlertCircle className="w-4 h-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="border-0 bg-[var(--h-neg-soft)]">
+                  <AlertCircle className="w-4 h-4 text-[var(--h-coral)]" strokeWidth={1.75} />
+                  <AlertDescription className="text-[var(--h-coral)] text-xs">{error}</AlertDescription>
                 </Alert>
               )}
-              
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
                   onClick={() => setPreviewUrl('')}
-                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   disabled={isUploading}
+                  className="btn-halo-outline flex-1"
                 >
-                  Choose Different File
-                </Button>
-                <Button 
-                  onClick={handleUpload} 
+                  Choose different file
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpload}
                   disabled={!isValid || isValidating || isUploading}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 relative"
+                  className="btn-halo flex-1"
                 >
                   {isUploading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Uploading...
+                      <span className="halo-spinner" style={{ borderTopColor: '#fff', borderColor: 'rgba(255,255,255,0.35)' }} />
+                      Uploading…
                     </>
                   ) : (
-                    'Upload Creative'
+                    'Upload creative'
                   )}
-                </Button>
+                </button>
               </div>
             </div>
           )}

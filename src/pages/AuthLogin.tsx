@@ -5,8 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import {
     Eye, EyeOff, LogIn, User, Lock, Shield,
     CheckCircle2, UserPlus, Clock,
-    RefreshCw, Smartphone, ArrowRight, Copy, Loader2, QrCode,
-    Sparkles, ShieldCheck
+    RefreshCw, Smartphone, ArrowRight, Copy, QrCode,
+    ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -391,65 +391,10 @@ export default function AuthLogin() {
         setResetUserData(null);
     };
 
-    // === STYLES (velvet) ===
+    // === STYLES (halo) ===
 
-    const velvetInput =
-        'w-full h-11 px-3.5 pl-11 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-[13px] text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--violet-500)] focus:bg-[var(--bg-panel)] transition-all duration-200';
-
-    const velvetLabel = 'block text-[11px] font-semibold text-[var(--text-2)] mb-1.5 tracking-wide uppercase';
-
-    // === AMBIENT BACKGROUND ===
-    const renderBackground = () => (
-        <>
-            <div
-                className="absolute inset-0"
-                style={{
-                    background: `radial-gradient(ellipse 90% 60% at 50% 0%, rgba(124, 111, 235, 0.22), transparent 60%),
-                                radial-gradient(ellipse 60% 50% at 100% 100%, rgba(168, 90, 138, 0.12), transparent 60%),
-                                radial-gradient(ellipse 50% 40% at 0% 100%, rgba(90, 169, 244, 0.08), transparent 60%),
-                                var(--bg-canvas)`,
-                }}
-            />
-            {/* Soft drifting orbs */}
-            <motion.div
-                className="absolute -top-32 -left-32 w-[28rem] h-[28rem] rounded-full blur-3xl"
-                style={{ background: 'radial-gradient(circle, rgba(124, 111, 235, 0.45), transparent 70%)' }}
-                animate={{ scale: [1, 1.15, 1], x: [0, 30, 0], y: [0, 20, 0] }}
-                transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-                className="absolute -bottom-32 -right-32 w-[32rem] h-[32rem] rounded-full blur-3xl"
-                style={{ background: 'radial-gradient(circle, rgba(168, 90, 138, 0.32), transparent 70%)' }}
-                animate={{ scale: [1.1, 0.95, 1.1], x: [0, -20, 0], y: [0, -15, 0] }}
-                transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-                className="absolute top-1/3 right-1/4 w-96 h-96 rounded-full blur-3xl"
-                style={{ background: 'radial-gradient(circle, rgba(90, 169, 244, 0.18), transparent 70%)' }}
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            {/* Fine grain */}
-            <div className="velvet-grain absolute inset-0 opacity-[0.03] pointer-events-none" />
-        </>
-    );
-
-    const renderError = () => (
-        <AnimatePresence>
-            {error && (
-                <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="mb-5"
-                >
-                    <div className="px-4 py-3 bg-[var(--neg-soft)] border border-[var(--neg)]/20 rounded-xl">
-                        <p className="text-[12.5px] font-medium text-[var(--neg)]">{error}</p>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
+    const haloInput = 'halo-field pl-11';
+    const haloLabel = 'halo-label mb-1.5 block';
 
     const openForgotPassword = () => {
         setResetEmail(username.trim());
@@ -462,50 +407,78 @@ export default function AuthLogin() {
         setFlowState('forgot');
     };
 
+    // === ERROR — single line, never a block ===
+
+    const renderError = () => (
+        <AnimatePresence>
+            {error && (
+                <motion.p
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="text-sm mb-4"
+                    style={{ color: 'var(--h-coral)' }}
+                >
+                    {error}
+                </motion.p>
+            )}
+        </AnimatePresence>
+    );
+
     // === FORM RENDERERS ===
 
     const renderLoginForm = () => (
         <form onSubmit={handleLogin} className="space-y-4">
             <div>
-                <label className={velvetLabel}>Username</label>
+                <label className={haloLabel}>Username</label>
                 <div className="relative">
-                    <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${focusedField === 'username' ? 'text-[var(--violet-500)]' : 'text-[var(--text-3)]'}`} />
+                    <User
+                        strokeWidth={1.75}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors pointer-events-none"
+                        style={{ color: focusedField === 'username' ? 'var(--h-iris-500)' : 'var(--h-ink-3)' }}
+                    />
                     <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         onFocus={() => setFocusedField('username')}
                         onBlur={() => setFocusedField(null)}
-                        className={velvetInput}
+                        className={haloInput}
                         placeholder="yourname@buyhatke.com"
                         disabled={loading}
                     />
                 </div>
-                <p className="mt-1.5 text-[10.5px] text-[var(--text-3)] italic">
+                <p className="mt-1.5 text-[11px] italic" style={{ color: 'var(--h-ink-3)' }}>
                     Use your official @buyhatke.com email
                 </p>
             </div>
 
             <div>
-                <label className={velvetLabel}>Password</label>
+                <label className={haloLabel}>Password</label>
                 <div className="relative">
-                    <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${focusedField === 'password' ? 'text-[var(--violet-500)]' : 'text-[var(--text-3)]'}`} />
+                    <Lock
+                        strokeWidth={1.75}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors pointer-events-none"
+                        style={{ color: focusedField === 'password' ? 'var(--h-iris-500)' : 'var(--h-ink-3)' }}
+                    />
                     <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => setFocusedField(null)}
-                        className={velvetInput + ' pr-11'}
+                        className={haloInput + ' pr-11'}
                         placeholder="Enter your password"
                         disabled={loading}
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--violet-500)] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                        style={{ color: 'var(--h-ink-3)' }}
+                        tabIndex={-1}
                     >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff strokeWidth={1.75} className="h-4 w-4" /> : <Eye strokeWidth={1.75} className="h-4 w-4" />}
                     </button>
                 </div>
             </div>
@@ -513,12 +486,12 @@ export default function AuthLogin() {
             <button
                 type="submit"
                 disabled={loading}
-                className="btn-velvet w-full h-11 text-[13px] mt-2"
+                className="btn-halo btn-halo-lg w-full mt-2"
             >
                 {loading ? (
-                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Signing in…</span>
+                    <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Signing in&hellip;</>
                 ) : (
-                    <span className="inline-flex items-center gap-2"><LogIn className="h-4 w-4" />Sign in</span>
+                    <><LogIn strokeWidth={1.75} className="h-4 w-4" />Sign in</>
                 )}
             </button>
 
@@ -526,7 +499,8 @@ export default function AuthLogin() {
                 <button
                     type="button"
                     onClick={openForgotPassword}
-                    className="text-[12px] text-[var(--violet-500)] hover:text-[var(--violet-400)] font-medium transition-colors"
+                    className="text-xs font-medium transition-colors"
+                    style={{ color: 'var(--h-iris-500)' }}
                     disabled={loading}
                 >
                     Forgot your password?
@@ -540,37 +514,37 @@ export default function AuthLogin() {
             return (
                 <form onSubmit={handleForgotEmailSubmit} className="space-y-4">
                     <div className="text-center mb-2">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
-                            <User className="h-5 w-5 text-[var(--indigo-500)]" />
+                        <div className="halo-chip mx-auto mb-3">
+                            <User strokeWidth={1.75} className="h-5 w-5" />
                         </div>
-                        <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Reset password</h3>
-                        <p className="text-[12px] text-[var(--text-3)] mt-1">Enter your username to verify your account</p>
+                        <h3 className="halo-heading">Reset password</h3>
+                        <p className="halo-subtitle mt-1">Enter your username to verify your account</p>
                     </div>
                     <div>
-                        <label className={velvetLabel}>Username or Email</label>
+                        <label className={haloLabel}>Username or email</label>
                         <div className="relative">
-                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                            <User strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
                             <input
                                 type="text"
                                 value={resetEmail}
                                 onChange={(e) => setResetEmail(e.target.value)}
-                                className={velvetInput}
+                                className={haloInput}
                                 placeholder="Enter username or email"
                                 disabled={resetLoading}
                                 autoFocus
                             />
                         </div>
                     </div>
-                    <button type="submit" disabled={resetLoading} className="btn-velvet w-full h-11 text-[13px]">
+                    <button type="submit" disabled={resetLoading} className="btn-halo btn-halo-lg w-full">
                         {resetLoading ? (
-                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking…</span>
+                            <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Checking&hellip;</>
                         ) : (
-                            <span className="inline-flex items-center gap-2"><ArrowRight className="h-4 w-4" />Continue</span>
+                            <><ArrowRight strokeWidth={1.75} className="h-4 w-4" />Continue</>
                         )}
                     </button>
                     <div className="text-center">
-                        <button type="button" onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
-                            ← Back to sign in
+                        <button type="button" onClick={resetToLogin} className="text-xs transition-colors" style={{ color: 'var(--h-ink-3)' }}>
+                            &larr; Back to sign in
                         </button>
                     </div>
                 </form>
@@ -581,46 +555,43 @@ export default function AuthLogin() {
             return (
                 <form onSubmit={handleForgotOtpSubmit} className="space-y-4">
                     <div className="text-center mb-2">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
-                            <Smartphone className="h-5 w-5 text-[var(--indigo-500)]" />
+                        <div className="halo-chip mx-auto mb-3">
+                            <Smartphone strokeWidth={1.75} className="h-5 w-5" />
                         </div>
-                        <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Enter OTP</h3>
-                        <p className="text-[12px] text-[var(--text-3)] mt-1">
+                        <h3 className="halo-heading">Enter OTP</h3>
+                        <p className="halo-subtitle mt-1">
                             6-digit code from your authenticator
                         </p>
                         {resetUserData && (
-                            <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
-                                <span className="text-[10.5px] text-[var(--text-3)]">Account:</span>
-                                <span className="text-[11px] font-semibold text-[var(--text-1)]">{resetUserData.userName}</span>
-                            </div>
+                            <span className="halo-badge mt-2">
+                                Account: <span className="font-semibold">{resetUserData.userName}</span>
+                            </span>
                         )}
                     </div>
                     <div>
-                        <label className={velvetLabel}>Authenticator OTP</label>
-                        <div className="relative">
-                            <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
-                            <input
-                                type="text"
-                                value={resetOtp}
-                                onChange={(e) => setResetOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                                className={velvetInput + ' text-center text-[20px] tracking-[0.4em] font-mono pl-3.5 pr-3.5'}
-                                placeholder="000000"
-                                maxLength={6}
-                                disabled={resetLoading}
-                                autoFocus
-                            />
-                        </div>
+                        <label className={haloLabel}>Authenticator OTP</label>
+                        <input
+                            type="text"
+                            value={resetOtp}
+                            onChange={(e) => setResetOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                            className="halo-field text-center text-xl tracking-[0.4em] num"
+                            style={{ fontFamily: 'var(--h-font-mono)' }}
+                            placeholder="000000"
+                            maxLength={6}
+                            disabled={resetLoading}
+                            autoFocus
+                        />
                     </div>
-                    <button type="submit" disabled={resetLoading || resetOtp.length !== 6} className="btn-velvet w-full h-11 text-[13px]">
+                    <button type="submit" disabled={resetLoading || resetOtp.length !== 6} className="btn-halo btn-halo-lg w-full">
                         {resetLoading ? (
-                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Verifying…</span>
+                            <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Verifying&hellip;</>
                         ) : (
-                            <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Verify OTP</span>
+                            <><Shield strokeWidth={1.75} className="h-4 w-4" />Verify OTP</>
                         )}
                     </button>
                     <div className="text-center">
-                        <button type="button" onClick={() => { setForgotStep('email'); setResetOtp(''); setError(null); }} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
-                            ← Back
+                        <button type="button" onClick={() => { setForgotStep('email'); setResetOtp(''); setError(null); }} className="text-xs transition-colors" style={{ color: 'var(--h-ink-3)' }}>
+                            &larr; Back
                         </button>
                     </div>
                 </form>
@@ -630,36 +601,36 @@ export default function AuthLogin() {
         return (
             <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
                 <div className="text-center mb-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--pos-soft)] border border-[var(--pos)]/20 mb-3">
-                        <Shield className="h-5 w-5 text-[var(--pos)]" />
+                    <div className="halo-chip mx-auto mb-3" style={{ background: 'var(--h-pos-soft)', color: 'var(--h-mint)' }}>
+                        <Shield strokeWidth={1.75} className="h-5 w-5" />
                     </div>
-                    <h3 className="text-[18px] font-semibold text-[var(--text-1)]">Set new password</h3>
-                    <p className="text-[12px] text-[var(--text-3)] mt-1">Create a new password for your account</p>
+                    <h3 className="halo-heading">Set new password</h3>
+                    <p className="halo-subtitle mt-1">Create a new password for your account</p>
                 </div>
                 <div>
-                    <label className={velvetLabel}>New Password</label>
+                    <label className={haloLabel}>New password</label>
                     <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
-                        <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className={velvetInput} placeholder="Minimum 6 characters" disabled={resetLoading} autoFocus />
+                        <Lock strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
+                        <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className={haloInput} placeholder="Minimum 6 characters" disabled={resetLoading} autoFocus />
                     </div>
                 </div>
                 <div>
-                    <label className={velvetLabel}>Confirm Password</label>
+                    <label className={haloLabel}>Confirm password</label>
                     <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
-                        <input type="password" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} className={velvetInput} placeholder="Re-enter password" disabled={resetLoading} />
+                        <Lock strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
+                        <input type="password" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} className={haloInput} placeholder="Re-enter password" disabled={resetLoading} />
                     </div>
                 </div>
-                <button type="submit" disabled={resetLoading || !resetPassword || !resetConfirmPassword} className="btn-velvet w-full h-11 text-[13px]">
+                <button type="submit" disabled={resetLoading || !resetPassword || !resetConfirmPassword} className="btn-halo btn-halo-lg w-full">
                     {resetLoading ? (
-                        <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Updating…</span>
+                        <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Updating&hellip;</>
                     ) : (
-                        <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Reset password</span>
+                        <><Shield strokeWidth={1.75} className="h-4 w-4" />Reset password</>
                     )}
                 </button>
                 <div className="text-center">
-                    <button type="button" onClick={() => { setForgotStep('otp'); setResetPassword(''); setResetConfirmPassword(''); setError(null); }} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
-                        ← Back
+                    <button type="button" onClick={() => { setForgotStep('otp'); setResetPassword(''); setResetConfirmPassword(''); setError(null); }} className="text-xs transition-colors" style={{ color: 'var(--h-ink-3)' }}>
+                        &larr; Back
                     </button>
                 </div>
             </form>
@@ -669,48 +640,48 @@ export default function AuthLogin() {
     const renderSignupForm = () => (
         <form onSubmit={handleSignup} className="space-y-4">
             <div>
-                <label className={velvetLabel}>Username</label>
+                <label className={haloLabel}>Username</label>
                 <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                    <User strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
                     <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         onFocus={() => setFocusedField('username')}
                         onBlur={() => setFocusedField(null)}
-                        className={velvetInput}
+                        className={haloInput}
                         placeholder="yourname@buyhatke.com"
                         disabled={loading}
                     />
                 </div>
-                <p className="mt-1.5 text-[10.5px] text-[var(--text-3)] italic">
+                <p className="mt-1.5 text-[11px] italic" style={{ color: 'var(--h-ink-3)' }}>
                     Registration requires a @buyhatke.com email
                 </p>
             </div>
             <div>
-                <label className={velvetLabel}>Create Password</label>
+                <label className={haloLabel}>Create password</label>
                 <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-3)]" />
+                    <Lock strokeWidth={1.75} className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'var(--h-ink-3)' }} />
                     <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => setFocusedField(null)}
-                        className={velvetInput + ' pr-11'}
+                        className={haloInput + ' pr-11'}
                         placeholder="Minimum 6 characters"
                         disabled={loading}
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] hover:text-[var(--violet-500)] transition-colors">
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--h-ink-3)' }} tabIndex={-1}>
+                        {showPassword ? <EyeOff strokeWidth={1.75} className="h-4 w-4" /> : <Eye strokeWidth={1.75} className="h-4 w-4" />}
                     </button>
                 </div>
             </div>
-            <button type="submit" disabled={loading} className="btn-velvet w-full h-11 text-[13px] mt-2">
+            <button type="submit" disabled={loading} className="btn-halo btn-halo-lg w-full mt-2">
                 {loading ? (
-                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating account…</span>
+                    <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Creating account&hellip;</>
                 ) : (
-                    <span className="inline-flex items-center gap-2"><UserPlus className="h-4 w-4" />Create account</span>
+                    <><UserPlus strokeWidth={1.75} className="h-4 w-4" />Create account</>
                 )}
             </button>
         </form>
@@ -719,15 +690,14 @@ export default function AuthLogin() {
     const render2FASetup = () => (
         <div className="space-y-5">
             <div className="text-center">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)] mb-3">
-                    <QrCode className="h-6 w-6 text-[var(--indigo-500)]" />
+                <div className="halo-chip-lg mx-auto mb-3">
+                    <QrCode strokeWidth={1.75} className="h-6 w-6" />
                 </div>
-                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Link authenticator</h3>
-                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
-                    <span className="text-[10.5px] text-[var(--text-3)]">Account:</span>
-                    <span className="text-[11px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
-                </div>
-                <p className="text-[12px] text-[var(--text-3)] mt-2">
+                <h3 className="halo-heading" style={{ fontSize: '1.125rem' }}>Link authenticator</h3>
+                <span className="halo-badge mt-2">
+                    Account: <span className="font-semibold">{userData?.username}</span>
+                </span>
+                <p className="halo-subtitle mt-2">
                     Scan with Google Authenticator or Authy
                 </p>
             </div>
@@ -735,31 +705,31 @@ export default function AuthLogin() {
             {secretData && (
                 <>
                     <div className="flex justify-center">
-                        <div className="p-3 rounded-2xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
+                        <div className="halo-inset p-3">
                             <img src={secretData.qrCode} alt="2FA QR Code" className="w-44 h-44 block rounded-lg" />
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
-                        <div className="text-[11px] text-[var(--text-3)] font-mono truncate">
-                            Key: <span className="font-semibold text-[var(--text-1)]">{secretData.tempSecret}</span>
+                    <div className="halo-inset flex items-center justify-between px-3 py-2.5">
+                        <div className="text-xs num truncate" style={{ color: 'var(--h-ink-3)', fontFamily: 'var(--h-font-mono)' }}>
+                            Key: <span className="font-semibold" style={{ color: 'var(--h-ink)' }}>{secretData.tempSecret}</span>
                         </div>
-                        <button onClick={copySecret} className="p-1.5 rounded-lg text-[var(--text-3)] hover:text-[var(--violet-500)] hover:bg-[var(--bg-panel)] transition-colors">
-                            <Copy className="h-3.5 w-3.5" />
+                        <button onClick={copySecret} className="btn-halo-ghost btn-halo-icon btn-halo-sm">
+                            <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
                         </button>
                     </div>
 
-                    <div className="px-3.5 py-3 rounded-xl bg-[var(--bg-tint)] border border-[var(--line-violet)]">
-                        <p className="text-[12px] text-[var(--text-2)]">
-                            <span className="font-semibold text-[var(--indigo-500)]">Important:</span> After scanning, click below. You'll enter the OTP after admin approval.
+                    <div className="rounded-[var(--h-r)] px-3.5 py-3" style={{ background: 'var(--h-tint)', border: '1px solid var(--h-line-accent)' }}>
+                        <p className="text-xs" style={{ color: 'var(--h-ink-2)' }}>
+                            <span className="font-semibold" style={{ color: 'var(--h-iris-500)' }}>Important:</span> After scanning, click below. You'll enter the OTP after admin approval.
                         </p>
                     </div>
 
-                    <button onClick={linkAuthenticator} disabled={loading} className="btn-velvet w-full h-11 text-[13px]">
+                    <button onClick={linkAuthenticator} disabled={loading} className="btn-halo btn-halo-lg w-full">
                         {loading ? (
-                            <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Linking…</span>
+                            <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Linking&hellip;</>
                         ) : (
-                            <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />I've scanned the QR code</span>
+                            <><CheckCircle2 strokeWidth={1.75} className="h-4 w-4" />I've scanned the QR code</>
                         )}
                     </button>
                 </>
@@ -770,181 +740,210 @@ export default function AuthLogin() {
     const renderWaitingApproval = () => (
         <div className="text-center space-y-5">
             <motion.div
-                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)]"
+                className="halo-chip-lg mx-auto"
+                style={{ width: '4rem', height: '4rem', background: 'var(--h-warn-soft)', color: 'var(--h-amber)' }}
                 animate={{ scale: [1, 1.04, 1] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
             >
-                <Clock className="h-7 w-7 text-[var(--gold-500)]" />
+                <Clock strokeWidth={1.75} className="h-7 w-7" />
             </motion.div>
 
             <div>
-                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Waiting for approval</h3>
-                <p className="text-[12.5px] text-[var(--text-3)] mt-1.5 leading-relaxed">
+                <h3 className="halo-heading" style={{ fontSize: '1.125rem' }}>Waiting for approval</h3>
+                <p className="halo-subtitle mt-1.5">
                     Your account is pending admin approval.<br />
                     Once approved, you can sign in with your OTP.
                 </p>
             </div>
 
-            <div className="px-4 py-3 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-left space-y-1.5">
+            <div className="halo-inset px-4 py-3 text-left space-y-1.5">
                 <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] text-[var(--text-3)]">Username</span>
-                    <span className="text-[12px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
+                    <span className="halo-eyebrow">Username</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--h-ink)' }}>{userData?.username}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] text-[var(--text-3)]">Authenticator</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--pos)]">
-                        <CheckCircle2 className="h-3 w-3" /> Linked
+                    <span className="halo-eyebrow">Authenticator</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--h-mint)' }}>
+                        <CheckCircle2 strokeWidth={1.75} className="h-3 w-3" /> Linked
                     </span>
                 </div>
             </div>
 
-            <button onClick={checkApprovalStatus} disabled={loading} className="btn-velvet w-full h-11 text-[13px]">
+            <button onClick={checkApprovalStatus} disabled={loading} className="btn-halo btn-halo-lg w-full">
                 {loading ? (
-                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking…</span>
+                    <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Checking&hellip;</>
                 ) : (
-                    <span className="inline-flex items-center gap-2"><RefreshCw className="h-4 w-4" />Check approval status</span>
+                    <><RefreshCw strokeWidth={1.75} className="h-4 w-4" />Check approval status</>
                 )}
             </button>
 
-            <button onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
-                ← Back to sign in
+            <button onClick={resetToLogin} className="text-xs transition-colors" style={{ color: 'var(--h-ink-3)' }}>
+                &larr; Back to sign in
             </button>
         </div>
     );
 
     const renderOTPVerification = () => (
         <div className="space-y-5 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--pos-soft)] border border-[var(--pos)]/20">
-                <ShieldCheck className="h-6 w-6 text-[var(--pos)]" />
+            <div className="halo-chip-lg mx-auto" style={{ background: 'var(--h-pos-soft)', color: 'var(--h-mint)' }}>
+                <ShieldCheck strokeWidth={1.75} className="h-6 w-6" />
             </div>
             <div>
-                <h3 className="text-[20px] font-semibold text-[var(--text-1)]">Enter verification code</h3>
-                <p className="text-[12.5px] text-[var(--text-3)] mt-1">
+                <h3 className="halo-heading" style={{ fontSize: '1.125rem' }}>Enter verification code</h3>
+                <p className="halo-subtitle mt-1">
                     6-digit code from your authenticator
                 </p>
-                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--bg-panel-2)] border border-[var(--line)]">
-                    <span className="text-[10.5px] text-[var(--text-3)]">Verifying:</span>
-                    <span className="text-[11px] font-semibold text-[var(--text-1)]">{userData?.username}</span>
-                </div>
+                <span className="halo-badge mt-2">
+                    Verifying: <span className="font-semibold">{userData?.username}</span>
+                </span>
             </div>
 
             <input
                 type="text"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                className="w-full h-14 px-4 text-center text-[24px] tracking-[0.4em] font-mono font-semibold rounded-2xl bg-[var(--bg-panel-2)] border border-[var(--line)] text-[var(--text-1)] focus:outline-none focus:border-[var(--pos)] focus:bg-[var(--bg-panel)] transition-all"
+                className="halo-field w-full h-14 text-center text-2xl tracking-[0.4em] font-semibold num"
+                style={{ fontFamily: 'var(--h-font-mono)' }}
                 placeholder="000000"
                 maxLength={6}
                 autoFocus
                 disabled={loading}
             />
 
-            <button onClick={verifyOTPAndEnable} disabled={loading || otpCode.length !== 6} className="btn-velvet w-full h-11 text-[13px]">
+            <button onClick={verifyOTPAndEnable} disabled={loading || otpCode.length !== 6} className="btn-halo btn-halo-lg w-full">
                 {loading ? (
-                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Verifying…</span>
+                    <><span className="halo-spinner" style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: '#fff' }} />Verifying&hellip;</>
                 ) : (
-                    <span className="inline-flex items-center gap-2"><ArrowRight className="h-4 w-4" />Verify & sign in</span>
+                    <><ArrowRight strokeWidth={1.75} className="h-4 w-4" />Verify &amp; sign in</>
                 )}
             </button>
 
-            <button onClick={resetToLogin} className="text-[12px] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
-                ← Back to sign in
+            <button onClick={resetToLogin} className="text-xs transition-colors" style={{ color: 'var(--h-ink-3)' }}>
+                &larr; Back to sign in
             </button>
         </div>
     );
 
     const renderTabs = () => (
-        <div className="flex p-1 mb-6 rounded-xl bg-[var(--bg-panel-2)] border border-[var(--line)]">
+        <div className="halo-segment w-full mb-6">
             <button
                 onClick={() => { setFlowState('login'); setUsername(''); setPassword(''); setError(null); }}
-                className={`flex-1 h-9 rounded-lg text-[12.5px] font-medium transition-all flex items-center justify-center gap-1.5 ${
-                    flowState === 'login'
-                        ? 'bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)]'
-                        : 'text-[var(--text-3)] hover:text-[var(--text-1)]'
-                }`}
+                data-state={flowState === 'login' ? 'active' : undefined}
+                className="halo-segment-item flex-1 justify-center"
             >
-                <LogIn className="h-3.5 w-3.5" />
+                <LogIn strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Sign in
             </button>
             <button
                 onClick={() => { setFlowState('signup'); setUsername(''); setPassword(''); setError(null); }}
-                className={`flex-1 h-9 rounded-lg text-[12.5px] font-medium transition-all flex items-center justify-center gap-1.5 ${
-                    flowState === 'signup'
-                        ? 'bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)]'
-                        : 'text-[var(--text-3)] hover:text-[var(--text-1)]'
-                }`}
+                data-state={flowState === 'signup' ? 'active' : undefined}
+                className="halo-segment-item flex-1 justify-center"
             >
-                <UserPlus className="h-3.5 w-3.5" />
+                <UserPlus strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Sign up
             </button>
         </div>
     );
 
     // === MAIN RENDER ===
+    // Split layout at lg: form column (left) + branded aurora panel (right).
+    // Below lg, the branded panel collapses and the form centers on the aurora canvas.
 
     return (
-        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-            {renderBackground()}
+        <div className="min-h-screen flex" style={{ background: 'var(--h-canvas)' }}>
+            <div className="halo-backdrop" />
 
-            <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-full max-w-md rounded-3xl border border-[var(--line)] bg-[var(--bg-panel)]/85 backdrop-blur-2xl p-8"
-                style={{ boxShadow: 'var(--shadow-velvet)' }}
-            >
-                {/* Brand mark */}
-                {(flowState === 'login' || flowState === 'signup' || flowState === 'forgot') && (
-                    <div className="text-center mb-6">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.1, duration: 0.4 }}
-                            className="relative inline-block"
-                        >
-                            <div
-                                className="absolute inset-0 rounded-2xl blur-2xl"
-                                style={{ background: 'var(--g-brand-soft)' }}
-                            />
-                            <div className="relative w-14 h-14 rounded-2xl bg-[var(--bg-panel)] border border-[var(--line)] flex items-center justify-center">
+            {/* Form column */}
+            <div className="relative z-10 flex flex-1 items-center justify-center p-6">
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-full max-w-[400px]"
+                >
+                    {/* Brand mark */}
+                    {(flowState === 'login' || flowState === 'signup' || flowState === 'forgot') && (
+                        <div className="text-center mb-6">
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.1, duration: 0.4 }}
+                                className="w-14 h-14 rounded-[var(--h-r-lg)] flex items-center justify-center mx-auto"
+                                style={{ background: 'var(--h-g-iris)', boxShadow: 'var(--h-sh-iris)' }}
+                            >
                                 <img src="/logo_512x512.png" alt="Logo" className="w-8 h-8 object-contain" />
-                            </div>
+                            </motion.div>
+                            <h1 className="halo-title mt-4">BuyHatke ads dashboard</h1>
+                            <p className="halo-subtitle mt-1">Marketing intelligence platform</p>
+                        </div>
+                    )}
+
+                    {renderError()}
+
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={flowState}
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.25 }}
+                        >
+                            {(flowState === 'login' || flowState === 'signup') && renderTabs()}
+                            {flowState === 'login' && renderLoginForm()}
+                            {flowState === 'forgot' && renderForgotPassword()}
+                            {flowState === 'signup' && renderSignupForm()}
+                            {flowState === 'setup2fa' && render2FASetup()}
+                            {flowState === 'waiting' && renderWaitingApproval()}
+                            {flowState === 'verifyotp' && renderOTPVerification()}
                         </motion.div>
-                        <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-[var(--text-1)]">
-                            <span>BuyHatke</span>{' '}
-                            <span className="font-serif italic font-normal gradient-text">Ads Dashboard</span>
-                        </h1>
-                        <p className="mt-1 text-[11.5px] text-[var(--text-3)] flex items-center justify-center gap-1">
-                            <Sparkles className="h-3 w-3 text-[var(--gold-500)]" />
-                            Marketing intelligence platform
-                        </p>
-                    </div>
-                )}
+                    </AnimatePresence>
 
-                {renderError()}
+                    <p className="text-center text-xs mt-8" style={{ color: 'var(--h-ink-3)' }}>
+                        &copy; 2026 BuyHatke. All rights reserved.
+                    </p>
+                </motion.div>
+            </div>
 
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={flowState}
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12 }}
-                        transition={{ duration: 0.25 }}
+            {/* Branded panel */}
+            <div className="hidden lg:flex relative flex-1 items-center justify-center overflow-hidden">
+                <div className="absolute inset-0" style={{ background: 'var(--h-g-aurora), var(--h-canvas-2)' }} />
+                <div
+                    className="absolute inset-0 opacity-[0.028]"
+                    style={{
+                        backgroundImage:
+                            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")",
+                    }}
+                />
+                <motion.div
+                    className="absolute h-[36rem] w-[36rem] rounded-full blur-3xl pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(91,75,255,0.22), transparent 70%)', top: '-8rem', right: '-8rem' }}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.div
+                    className="absolute h-[26rem] w-[26rem] rounded-full blur-3xl pointer-events-none"
+                    style={{ background: 'radial-gradient(circle, rgba(0,191,224,0.14), transparent 70%)', bottom: '-6rem', left: '-6rem' }}
+                    animate={{ scale: [1.05, 0.95, 1.05] }}
+                    transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                    className="relative z-10 flex flex-col items-center text-center px-12"
+                >
+                    <div
+                        className="w-20 h-20 rounded-[var(--h-r-lg)] flex items-center justify-center mb-6"
+                        style={{ background: 'var(--h-g-iris)', boxShadow: 'var(--h-sh-iris-lg)' }}
                     >
-                        {(flowState === 'login' || flowState === 'signup') && renderTabs()}
-                        {flowState === 'login' && renderLoginForm()}
-                        {flowState === 'forgot' && renderForgotPassword()}
-                        {flowState === 'signup' && renderSignupForm()}
-                        {flowState === 'setup2fa' && render2FASetup()}
-                        {flowState === 'waiting' && renderWaitingApproval()}
-                        {flowState === 'verifyotp' && renderOTPVerification()}
-                    </motion.div>
-                </AnimatePresence>
-
-                <div className="mt-7 text-center">
-                    <p className="text-[10.5px] text-[var(--text-3)]">© 2025 BuyHatke. All rights reserved.</p>
-                </div>
-            </motion.div>
+                        <img src="/logo_512x512.png" alt="Hatke" className="w-12 h-12 object-contain" />
+                    </div>
+                    <h2 className="halo-title mb-2">BuyHatke ads dashboard</h2>
+                    <p className="halo-subtitle max-w-xs">
+                        Campaigns, slots and offers — all in one lit, weightless canvas.
+                    </p>
+                </motion.div>
+            </div>
         </div>
     );
 }

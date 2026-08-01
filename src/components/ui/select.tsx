@@ -22,14 +22,14 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      'halo-field flex items-center justify-between disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
       className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <CaretSortIcon className="h-5 w-5 opacity-50" />
+      <CaretSortIcon className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -78,7 +78,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-[100] max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-[var(--line-strong)] bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[0_16px_44px_-12px_rgba(15,12,40,0.28)] dark:shadow-[0_18px_48px_-12px_rgba(0,0,0,0.65)] ring-1 ring-black/[0.03] dark:ring-white/[0.05]',
+        'relative z-[100] max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--h-r-lg)] halo-card halo-card-raised text-[var(--h-ink)]',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
@@ -109,7 +109,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-sm font-semibold', className)}
+    className={cn('px-2 py-1.5 halo-eyebrow', className)}
     {...props}
   />
 ));
@@ -122,14 +122,14 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-lg py-2.5 pl-3 pr-8 text-[13.5px] outline-none transition-colors focus:bg-[var(--bg-tint)] focus:text-[var(--indigo-500)] data-[state=checked]:bg-[var(--bg-tint)] data-[state=checked]:text-[var(--indigo-500)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex w-full cursor-default select-none items-center rounded-[var(--h-r-sm)] py-2.5 pl-3 pr-8 text-[0.8125rem] outline-none transition-colors focus:bg-[var(--h-tint)] focus:text-[var(--h-iris-600)] data-[state=checked]:bg-[var(--h-tint)] data-[state=checked]:text-[var(--h-iris-600)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <CheckIcon className="h-4 w-4 text-[var(--indigo-500)]" />
+        <CheckIcon className="h-4 w-4 text-[var(--h-iris-600)]" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -143,7 +143,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-muted', className)}
+    className={cn('-mx-1 my-1 halo-divider', className)}
     {...props}
   />
 ));

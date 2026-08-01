@@ -27,17 +27,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // Apply theme to document
     const root = document.documentElement;
-    
+
+    // Every themed element has its own color/background/box-shadow transition
+    // for hover/focus micro-interactions. Toggling `.dark` makes ALL of them
+    // fire at once, which reads as a slow, staggered "wave" turning white
+    // instead of an instant switch. Suspend transitions for one frame so the
+    // theme snaps instantly, then restore them for normal interactions.
+    root.classList.add('theme-switching');
+
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
-    
-    // Save to localStorage
+
     localStorage.setItem('theme', theme);
+
+    const id = requestAnimationFrame(() => {
+      root.classList.remove('theme-switching');
+    });
+    return () => cancelAnimationFrame(id);
   }, [theme]);
 
   const toggleTheme = () => {
