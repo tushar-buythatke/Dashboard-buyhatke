@@ -1,26 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusPill } from '@/components/ui/status-pill';
 import { PageHeader } from '@/components/ui/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSpotlight } from '@/hooks/useSpotlight';
 import {
   Plus,
   Edit,
   Smartphone,
   Monitor,
   Globe,
-  CheckCircle,
-  XCircle,
   RefreshCw,
   Settings,
   LayoutGrid,
   Maximize2,
-  Eye
 } from 'lucide-react';
 import { slotService, Slot, CreateSlotPayload, UpdateSlotPayload } from '@/services/slotService';
 import { toast } from 'sonner';
@@ -39,10 +35,75 @@ const PLATFORM_OPTIONS = [
 function PlatformIcon({ platformId, className }: { platformId: number; className?: string }) {
   const match = PLATFORM_OPTIONS.find(p => p.value === platformId);
   const Icon = match?.icon ?? Settings;
-  return <Icon className={className ?? 'w-4 h-4'} />;
+  return <Icon className={className ?? 'w-4 h-4'} strokeWidth={1.75} />;
 }
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
+
+function SlotCard({ slot, index, canEdit, onEdit }: { slot: Slot; index: number; canEdit: boolean; onEdit: (s: Slot) => void }) {
+  const spotlight = useSpotlight();
+  // HALO: no occupancy/fill metric exists on the Slot API — the bar reflects
+  // active/inactive status only, as a stand-in for a true fill percentage.
+  const fillPct = slot.isActive ? 100 : 8;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.96, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92 }}
+      transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.32, ease: easeOut }}
+      className="halo-card halo-card-interactive halo-spotlight halo-rail group relative p-5 flex flex-col gap-3 focus-within:shadow-[var(--h-sh-3)]"
+      {...spotlight}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="halo-eyebrow num">SLOT {String(slot.slotId).padStart(2, '0')}</span>
+        <StatusPill
+          status={slot.isActive ? 'live' : 'paused'}
+          label={slot.isActive ? 'Active' : 'Inactive'}
+          size="sm"
+        />
+      </div>
+
+      <h3 className="halo-heading truncate">{slot.name}</h3>
+
+      <span className="halo-badge halo-badge-iris w-fit">
+        <PlatformIcon platformId={slot.platform} className="h-3 w-3" />
+        {slotService.getPlatformName(slot.platform)}
+      </span>
+
+      {/* Fill / occupancy */}
+      <div className="mt-1">
+        <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'var(--h-surface-3)' }}>
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${fillPct}%`, background: 'var(--h-g-iris)' }}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--h-ink-3)' }}>
+        <Maximize2 strokeWidth={1.75} className="h-3 w-3" />
+        <span className="num">
+          {parseFloat(slot.width.toString()).toFixed(0)}&times;{parseFloat(slot.height.toString()).toFixed(0)}
+        </span>
+      </div>
+
+      {/* Actions — ghost icon pill, revealed on hover / focus-within */}
+      {canEdit && (
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
+          <button
+            onClick={() => onEdit(slot)}
+            className="btn-halo-ghost btn-halo-icon btn-halo-sm"
+            aria-label={`Edit ${slot.name}`}
+          >
+            <Edit strokeWidth={1.75} className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 export function SlotManagement() {
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -169,60 +230,52 @@ export function SlotManagement() {
   }, [filterActive]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
-      {/* Header */}
-      <PageHeader
-        eyebrow="Slots"
-        title="Slot management"
-        subhead="Create and manage ad slots for different platforms"
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status filter */}
-            <Select
-              value={filterActive?.toString() ?? 'all'}
-              onValueChange={(v) => setFilterActive(v === 'all' ? undefined : parseInt(v))}
-            >
-              <SelectTrigger className="h-9 w-40 border-[var(--line)] bg-[var(--bg-panel)] text-[12.5px] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Slots</SelectItem>
-                <SelectItem value="1">Active Only</SelectItem>
-                <SelectItem value="0">Inactive Only</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              onClick={fetchSlots}
-              disabled={loading}
-              className="h-9 gap-1.5 border-[var(--line)] bg-[var(--bg-panel)] text-[12.5px] text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-
-            {canEdit && (
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                className="btn-velvet h-9 gap-1.5 rounded-lg px-3.5 text-[12.5px]"
+    <div className="halo-page">
+      <div className="space-y-5">
+        <PageHeader
+          eyebrow="Slots"
+          title="Slot management"
+          subhead="Create and manage ad slots for different platforms."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={filterActive?.toString() ?? 'all'}
+                onValueChange={(v) => setFilterActive(v === 'all' ? undefined : parseInt(v))}
               >
-                <Plus className="h-3.5 w-3.5" />
-                Create Slot
-              </Button>
-            )}
-          </div>
-        }
-      />
+                <SelectTrigger className="halo-field w-40 h-9">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All slots</SelectItem>
+                  <SelectItem value="1">Active only</SelectItem>
+                  <SelectItem value="0">Inactive only</SelectItem>
+                </SelectContent>
+              </Select>
 
-      {/* Platform Toggle Bar — Velvet pill row */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.4, ease: easeOut }}
-        className="velvet-surface velvet-micro-shadow p-1.5"
-      >
-        <div className="flex items-center gap-1 flex-wrap">
+              <button
+                onClick={fetchSlots}
+                disabled={loading}
+                className="btn-halo-outline btn-halo-sm"
+              >
+                <RefreshCw strokeWidth={1.75} className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+
+              {canEdit && (
+                <button
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="btn-halo"
+                >
+                  <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
+                  Create slot
+                </button>
+              )}
+            </div>
+          }
+        />
+
+        {/* Platform filter pill row */}
+        <div className="halo-segment flex-wrap">
           {PLATFORM_OPTIONS.map((platform) => {
             const Icon = platform.icon;
             const isActive = activePlatform === platform.value;
@@ -232,234 +285,120 @@ export function SlotManagement() {
               <button
                 key={platform.value}
                 onClick={() => setActivePlatform(platform.value)}
-                className={`
-                  relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium
-                  transition-all duration-300 ease-out cursor-pointer select-none
-                  ${isActive
-                    ? 'bg-gradient-to-b from-[var(--violet-500)] to-[var(--violet-700)] text-white shadow-[0_4px_12px_rgba(99,76,230,0.25)]'
-                    : 'text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--text-1)]'
-                  }
-                `}
+                data-state={isActive ? 'active' : undefined}
+                className="halo-segment-item"
               >
-                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                <Icon strokeWidth={1.75} className="h-3.5 w-3.5 flex-shrink-0" />
                 <span>{platform.label}</span>
-                <span
-                  className={`
-                    inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
-                    rounded-full text-[10.5px] font-semibold tabular-nums
-                    ${isActive
-                      ? 'bg-white/25 text-white'
-                      : 'bg-[var(--bg-panel-2)] text-[var(--text-3)] border border-[var(--line)]'
-                    }
-                  `}
-                >
+                <span className="halo-badge num" style={{ height: '1.125rem', padding: '0 0.4rem' }}>
                   {count}
                 </span>
               </button>
             );
           })}
         </div>
-      </motion.div>
 
-      {/* Active platform summary label */}
-      <p className="text-[12px] text-[var(--text-3)] px-1">
-        {activePlatform === -1
-          ? `Showing all ${slots.length} slot${slots.length !== 1 ? 's' : ''}`
-          : `Showing ${visibleSlots.length} ${PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slot${visibleSlots.length !== 1 ? 's' : ''}`
-        }
-      </p>
+        <p className="halo-subtitle px-1">
+          {activePlatform === -1
+            ? `Showing all ${slots.length} slot${slots.length !== 1 ? 's' : ''}`
+            : `Showing ${visibleSlots.length} ${PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slot${visibleSlots.length !== 1 ? 's' : ''}`
+          }
+        </p>
 
-      {/* Slots Grid — Velvet luxury tiles */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <VelvetLoader size={28} label="Loading slots" />
-        </div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        >
-          <AnimatePresence mode="popLayout">
-            {visibleSlots.map((slot, index) => (
-              <motion.div
-                key={slot.slotId}
-                layout
-                initial={{ opacity: 0, scale: 0.95, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.32, ease: easeOut }}
-                whileHover={{ y: -4 }}
-                className="group relative"
-              >
-                <div
-                  className="relative rounded-2xl h-full flex flex-col overflow-visible
-                             bg-gradient-to-br from-[#fdfcff] to-[#f6f3fc]
-                             dark:from-[#1a1530] dark:to-[#13102a]
-                             border border-[var(--line)] hover:border-[var(--line-violet)]
-                             shadow-[0_4px_24px_rgba(43,19,94,0.04)]
-                             hover:shadow-[0_12px_30px_rgba(43,19,94,0.10)]
-                             transition-all duration-300 ease-out"
-                >
-                  {/* Glow halo behind the number */}
-                  <div className="pointer-events-none absolute top-0 left-0 h-28 w-36 opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500"
-                       style={{ background: 'radial-gradient(circle at 30% 40%, rgba(99,76,230,0.18) 0%, rgba(217,70,132,0.08) 50%, transparent 70%)' }} />
-
-                  {/* Card body */}
-                  <div className="relative p-5 pt-5 pb-4 flex flex-col gap-2.5">
-
-                    {/* Slot number + status */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className="leading-none tracking-tight"
-                        style={{
-                          fontFamily: "'Instrument Serif', Georgia, serif",
-                          fontSize: '2.25rem',
-                          lineHeight: 1,
-                          background: 'linear-gradient(135deg, #634ce6 0%, #d94684 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          filter: 'drop-shadow(0 2px 6px rgba(99,76,230,0.18))',
-                        }}
-                      >
-                        {String(slot.slotId).padStart(2, '0')}
-                      </span>
-                      <div className="flex-shrink-0">
-                        <StatusPill
-                          status={slot.isActive ? 'live' : 'paused'}
-                          label={slot.isActive ? 'Active' : 'Inactive'}
-                          size="sm"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Slot name */}
-                    <h3 className="text-[14px] font-semibold tracking-tight text-[var(--text-1)] truncate">
-                      {slot.name}
-                    </h3>
-
-                    {/* Meta row: platform + dimensions */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-2)]">
-                        <PlatformIcon platformId={slot.platform} className="h-3 w-3" />
-                        {slotService.getPlatformName(slot.platform)}
-                      </span>
-                      <span className="text-[var(--text-3)] text-[10px]">|</span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-2)] tabular-nums">
-                        <Maximize2 className="h-3 w-3 text-[var(--text-3)]" />
-                        {parseFloat(slot.width.toString()).toFixed(0)}×{parseFloat(slot.height.toString()).toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Edit — revealed on hover */}
-                  {canEdit && (
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-end px-4 pb-3 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openUpdateDialog(slot)}
-                        className="h-7 gap-1 px-3 text-[11px] font-medium text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)]"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+        {/* Slots grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="halo-card p-5 space-y-3">
+                <div className="halo-skeleton h-4 w-16" />
+                <div className="halo-skeleton h-5 w-3/4" />
+                <div className="halo-skeleton h-5 w-24" />
+                <div className="halo-skeleton h-1 w-full" />
+              </div>
             ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            <AnimatePresence mode="popLayout">
+              {visibleSlots.map((slot, index) => (
+                <SlotCard key={slot.slotId} slot={slot} index={index} canEdit={canEdit} onEdit={openUpdateDialog} />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
-      {/* Empty state */}
-      {!loading && visibleSlots.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="velvet-surface velvet-micro-shadow rounded-2xl p-12 text-center"
-        >
-          {activePlatform === -1 ? (
-            <>
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)]">
-                <Settings className="h-6 w-6 text-[var(--indigo-500)]" />
-              </div>
-              <h3 className="text-lg font-semibold text-[var(--text-1)]">No slots found</h3>
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">
-                Create your first ad slot to get started
-              </p>
-              {canEdit && (
-                <Button
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="btn-velvet h-9 mt-5 gap-1.5 px-4 text-[12.5px]"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create First Slot
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-tint)] border border-[var(--line-violet)]">
-                <PlatformIcon
-                  platformId={activePlatform}
-                  className="h-6 w-6 text-[var(--indigo-500)]"
-                />
-              </div>
-              <h3 className="text-lg font-semibold text-[var(--text-1)]">
-                No {PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slots
-              </h3>
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">
-                There are no slots configured for this platform yet
-              </p>
-              {canEdit && (
-                <Button
-                  onClick={() => {
+        {/* Empty state */}
+        {!loading && visibleSlots.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="halo-card text-center py-12"
+          >
+            <div className="halo-chip-lg mx-auto mb-4">
+              <PlatformIcon platformId={activePlatform === -1 ? -2 : activePlatform} className="h-6 w-6" />
+            </div>
+            <h3 className="halo-heading">
+              {activePlatform === -1
+                ? 'No slots found'
+                : `No ${PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slots`}
+            </h3>
+            <p className="halo-subtitle mt-1.5">
+              {activePlatform === -1
+                ? 'Create your first ad slot to get started.'
+                : 'There are no slots configured for this platform yet.'}
+            </p>
+            {canEdit && (
+              <button
+                onClick={() => {
+                  if (activePlatform !== -1) {
                     setCreateForm(prev => ({ ...prev, platform: activePlatform }));
-                    setCreateDialogOpen(true);
-                  }}
-                  className="btn-velvet h-9 mt-5 gap-1.5 px-4 text-[12.5px]"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create {PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} Slot
-                </Button>
-              )}
-            </>
-          )}
-        </motion.div>
-      )}
+                  }
+                  setCreateDialogOpen(true);
+                }}
+                className="btn-halo mt-5"
+              >
+                <Plus strokeWidth={1.75} className="h-3.5 w-3.5" />
+                Create {activePlatform === -1 ? 'first' : PLATFORM_OPTIONS.find(p => p.value === activePlatform)?.label} slot
+              </button>
+            )}
+          </motion.div>
+        )}
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)] rounded-2xl overflow-hidden">
+        <DialogContent className="sm:max-w-md halo-card rounded-[var(--h-r-xl)] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-[var(--text-1)] text-base font-semibold flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
-                <Plus className="h-4 w-4 text-white" />
+            <DialogTitle className="halo-heading flex items-center gap-2">
+              <span className="halo-chip">
+                <Plus strokeWidth={1.75} className="h-4 w-4" />
               </span>
               Create new slot
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div>
-              <Label htmlFor="name" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Slot name</Label>
+              <Label htmlFor="name" className="halo-label">Slot name</Label>
               <Input
                 id="name"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                 placeholder="e.g. Hero banner — Home page"
-                className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                className="halo-field mt-1.5"
               />
             </div>
             <div>
-              <Label className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Platform</Label>
+              <Label className="halo-label">Platform</Label>
               <div className="mt-1.5">
                 <Select
                   value={createForm.platform.toString()}
                   onValueChange={(v) => setCreateForm({ ...createForm, platform: parseInt(v) })}
                 >
-                  <SelectTrigger className="border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)]">
+                  <SelectTrigger className="halo-field">
                     <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
                   <SelectContent>
@@ -477,7 +416,7 @@ export function SlotManagement() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="width" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Width (px)</Label>
+                <Label htmlFor="width" className="halo-label">Width (px)</Label>
                 <Input
                   id="width"
                   type="text"
@@ -489,11 +428,11 @@ export function SlotManagement() {
                     setCreateForm({ ...createForm, width: v === '' ? '' : Number(v) });
                   }}
                   placeholder="728"
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="halo-field mt-1.5 num"
                 />
               </div>
               <div>
-                <Label htmlFor="height" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Height (px)</Label>
+                <Label htmlFor="height" className="halo-label">Height (px)</Label>
                 <Input
                   id="height"
                   type="text"
@@ -505,24 +444,23 @@ export function SlotManagement() {
                     setCreateForm({ ...createForm, height: v === '' ? '' : Number(v) });
                   }}
                   placeholder="90"
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="halo-field mt-1.5 num"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
-              <Button
-                variant="ghost"
+            <div className="flex justify-end gap-2 pt-2" style={{ borderTop: '1px solid var(--h-line)' }}>
+              <button
                 onClick={() => setCreateDialogOpen(false)}
-                className="h-9 px-3 text-[12.5px] text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel-2)]"
+                className="btn-halo-ghost"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleCreateSlot}
-                className="btn-velvet h-9 px-4 text-[12.5px]"
+                className="btn-halo"
               >
                 Create slot
-              </Button>
+              </button>
             </div>
           </div>
         </DialogContent>
@@ -530,34 +468,34 @@ export function SlotManagement() {
 
       {/* Update Dialog */}
       <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-md border-[var(--line)] bg-[var(--bg-panel)] rounded-2xl overflow-hidden">
+        <DialogContent className="sm:max-w-md halo-card rounded-[var(--h-r-xl)] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-[var(--text-1)] text-base font-semibold flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--violet-500)] to-[var(--violet-700)] shadow-md">
-                <Edit className="h-4 w-4 text-white" />
+            <DialogTitle className="halo-heading flex items-center gap-2">
+              <span className="halo-chip">
+                <Edit strokeWidth={1.75} className="h-4 w-4" />
               </span>
               Update slot
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div>
-              <Label htmlFor="update-name" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Slot name</Label>
+              <Label htmlFor="update-name" className="halo-label">Slot name</Label>
               <Input
                 id="update-name"
                 value={updateForm.name ?? ''}
                 onChange={(e) => setUpdateForm({ ...updateForm, name: e.target.value })}
                 placeholder="Enter slot name"
-                className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                className="halo-field mt-1.5"
               />
             </div>
             <div>
-              <Label className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Platform</Label>
+              <Label className="halo-label">Platform</Label>
               <div className="mt-1.5">
                 <Select
                   value={updateForm.platform?.toString()}
                   onValueChange={(v) => setUpdateForm({ ...updateForm, platform: parseInt(v) })}
                 >
-                  <SelectTrigger className="border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)]">
+                  <SelectTrigger className="halo-field">
                     <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
                   <SelectContent>
@@ -575,7 +513,7 @@ export function SlotManagement() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="update-width" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Width (px)</Label>
+                <Label htmlFor="update-width" className="halo-label">Width (px)</Label>
                 <Input
                   id="update-width"
                   type="text"
@@ -586,11 +524,11 @@ export function SlotManagement() {
                     const v = e.target.value.replace(/[^0-9]/g, '');
                     setUpdateForm({ ...updateForm, width: v === '' ? undefined : Number(v) });
                   }}
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="halo-field mt-1.5 num"
                 />
               </div>
               <div>
-                <Label htmlFor="update-height" className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Height (px)</Label>
+                <Label htmlFor="update-height" className="halo-label">Height (px)</Label>
                 <Input
                   id="update-height"
                   type="text"
@@ -601,30 +539,30 @@ export function SlotManagement() {
                     const v = e.target.value.replace(/[^0-9]/g, '');
                     setUpdateForm({ ...updateForm, height: v === '' ? undefined : Number(v) });
                   }}
-                  className="mt-1.5 border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] tabular-nums focus:ring-2 focus:ring-[var(--line-violet)] focus:border-[var(--line-violet)]"
+                  className="halo-field mt-1.5 num"
                 />
               </div>
             </div>
             <div>
-              <Label className="text-[11px] uppercase tracking-wider text-[var(--text-3)] font-semibold">Status</Label>
+              <Label className="halo-label">Status</Label>
               <div className="mt-1.5">
                 <Select
                   value={updateForm.isActive?.toString()}
                   onValueChange={(v) => setUpdateForm({ ...updateForm, isActive: parseInt(v) })}
                 >
-                  <SelectTrigger className="border-[var(--line)] bg-[var(--bg-panel-2)] text-[var(--text-1)] focus:ring-2 focus:ring-[var(--line-violet)]">
+                  <SelectTrigger className="halo-field">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">
                       <div className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--pos)]" />
+                        <span className="halo-dot" style={{ color: 'var(--h-pos)' }} />
                         <span>Active</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="0">
                       <div className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-3)]" />
+                        <span className="halo-dot" style={{ color: 'var(--h-ink-3)' }} />
                         <span>Inactive</span>
                       </div>
                     </SelectItem>
@@ -632,20 +570,19 @@ export function SlotManagement() {
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
-              <Button
-                variant="ghost"
+            <div className="flex justify-end gap-2 pt-2" style={{ borderTop: '1px solid var(--h-line)' }}>
+              <button
                 onClick={() => setUpdateDialogOpen(false)}
-                className="h-9 px-3 text-[12.5px] text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-panel-2)]"
+                className="btn-halo-ghost"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleUpdateSlot}
-                className="btn-velvet h-9 px-4 text-[12.5px]"
+                className="btn-halo"
               >
                 Update slot
-              </Button>
+              </button>
             </div>
           </div>
         </DialogContent>

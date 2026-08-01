@@ -1,6 +1,5 @@
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from './button';
 
 interface Props {
   children: ReactNode;
@@ -39,26 +38,26 @@ export class ChartErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Chart Error
+        <div className="halo-inset flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="halo-chip-lg mb-3" style={{ background: 'var(--h-warn-soft)', color: 'var(--h-amber)' }}>
+            <AlertTriangle className="w-5 h-5" strokeWidth={1.75} />
+          </div>
+          <h3 className="halo-heading mb-1.5">
+            Chart error
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm">
+          <p className="halo-subtitle mb-4 max-w-sm">
             There was an issue rendering this chart. This can happen during scroll or data updates.
           </p>
-          <Button
+          <button
             onClick={this.handleRetry}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
+            className="btn-halo-outline btn-halo-sm"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
             Retry
-          </Button>
+          </button>
           {process.env.NODE_ENV === 'development' && (
-            <details className="mt-4 text-xs text-gray-500">
-              <summary className="cursor-pointer">Error Details</summary>
+            <details className="mt-4 text-xs text-[var(--h-ink-3)]">
+              <summary className="cursor-pointer">Error details</summary>
               <pre className="mt-2 text-left overflow-auto max-w-md">
                 {this.state.error?.stack}
               </pre>

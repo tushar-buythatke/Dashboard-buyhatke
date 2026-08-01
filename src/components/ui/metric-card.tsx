@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatCount } from '@/lib/format';
+import { useCountUp } from '@/hooks/useCountUp';
+import { useSpotlight } from '@/hooks/useSpotlight';
 
 export type MetricTone = 'accent' | 'violet' | 'plum' | 'teal' | 'pink' | 'sky' | 'amber';
 
@@ -41,22 +43,8 @@ function AnimatedNumber({
   formatter: (n: number) => string;
   enabled: boolean;
 }) {
-  const mv = useMotionValue(enabled ? 0 : to);
-  const text = useTransform(mv, (v) => formatter(Math.round(v)));
-
-  React.useEffect(() => {
-    if (!enabled) {
-      mv.set(to);
-      return;
-    }
-    const controls = animate(mv, to, {
-      duration: 0.8,
-      ease: [0.22, 1, 0.36, 1],
-    });
-    return () => controls.stop();
-  }, [to, enabled, mv]);
-
-  return <motion.span>{text}</motion.span>;
+  const display = useCountUp(to, 750);
+  return <>{formatter(Math.round(enabled ? display : to))}</>;
 }
 
 function MiniSparkline({ values, tone }: { values: number[]; tone: MetricTone }) {
@@ -74,13 +62,13 @@ function MiniSparkline({ values, tone }: { values: number[]; tone: MetricTone })
   const linePath = `M${pts.join(' L')}`;
   const areaPath = `M0,${h} L${pts.join(' L')} L${w},${h} Z`;
   const colorMap: Record<MetricTone, string> = {
-    accent: 'var(--indigo-400)',
-    violet: 'var(--violet-500)',
-    plum: 'var(--plum-500)',
-    teal: 'var(--pos)',
-    pink: 'var(--pink-500)',
-    sky: 'var(--blue-400)',
-    amber: 'var(--gold-500)',
+    accent: 'var(--h-iris-500)',
+    violet: 'var(--h-violet)',
+    plum: 'var(--h-iris-400)',
+    teal: 'var(--h-mint)',
+    pink: 'var(--h-coral)',
+    sky: 'var(--h-cyan)',
+    amber: 'var(--h-amber)',
   };
   const stroke = colorMap[tone];
   return (
@@ -122,6 +110,16 @@ export const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
         : delta && /^[-↓−]|negative/i.test(delta.trim())
         ? 'down'
         : undefined);
+    const spotlight = useSpotlight();
+    const toneColor: Record<MetricTone, string> = {
+      accent: 'var(--h-iris-500)',
+      violet: 'var(--h-violet)',
+      plum: 'var(--h-iris-400)',
+      teal: 'var(--h-mint)',
+      pink: 'var(--h-coral)',
+      sky: 'var(--h-cyan)',
+      amber: 'var(--h-amber)',
+    };
 
     return (
       <motion.div
@@ -131,51 +129,59 @@ export const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
         transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
         whileHover={onClick ? { y: -2 } : undefined}
         onClick={onClick}
+        onPointerMove={spotlight.onPointerMove}
+        onPointerLeave={spotlight.onPointerLeave}
         className={cn(
-          'metric-card',
-          `metric-card--${tone}`,
-          onClick && 'cursor-pointer',
+          'halo-card halo-rail halo-spotlight p-5',
+          onClick && 'halo-card-interactive',
           className
         )}
       >
-        <div className="relative z-[1]">
-          <div className="metric-label">{label}</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="metric-value">
-              {isNumeric ? (
-                <AnimatedNumber
-                  to={value as number}
-                  formatter={formatter}
-                  enabled={animateValue}
-                />
-              ) : (
-                value
+        <div className="relative z-[1] flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {icon && (
+                <div
+                  className="halo-chip"
+                  style={{ color: toneColor[tone] }}
+                >
+                  {icon}
+                </div>
               )}
-            </span>
-            {unit && (
-              <span className="text-base font-medium text-[var(--text-3)]">
-                {unit}
+              <div className="halo-eyebrow truncate">{label}</div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="halo-metric num">
+                {isNumeric ? (
+                  <AnimatedNumber
+                    to={value as number}
+                    formatter={formatter}
+                    enabled={animateValue}
+                  />
+                ) : (
+                  value
+                )}
               </span>
-            )}
+              {unit && (
+                <span className="text-base font-medium text-[var(--h-ink-3)]">
+                  {unit}
+                </span>
+              )}
+            </div>
           </div>
           {delta && (
             <div
               className={cn(
-                'num-delta mt-2 inline-flex items-center gap-1',
-                direction === 'up' && 'up text-[var(--pos)]',
-                direction === 'down' && 'down text-[var(--neg)]'
+                'halo-delta',
+                direction === 'up' && 'halo-delta-up',
+                direction === 'down' && 'halo-delta-down',
+                !direction && 'halo-delta-flat'
               )}
             >
               {delta}
             </div>
           )}
         </div>
-
-        {icon && (
-          <div className={cn('metric-icon-tone', `metric-icon-tone--${tone}`)}>
-            {icon}
-          </div>
-        )}
 
         {sparkline && <MiniSparkline values={sparkline} tone={tone} />}
       </motion.div>

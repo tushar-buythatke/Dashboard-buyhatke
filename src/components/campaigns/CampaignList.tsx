@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, RefreshCw, Download, BarChart3, MoreHorizontal, Eye, Edit, Copy, Archive, Pause, Play, Activity, DollarSign, Target, Zap, Megaphone, Inbox, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { VelvetLoader } from '@/components/ui/velvet-loader';
+import { Plus, Search, RefreshCw, Download, BarChart3, MoreHorizontal, Eye, Edit, Copy, Archive, Pause, Play, Activity, IndianRupee, Rows3, Zap, Megaphone, Inbox, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,7 +15,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { exportToCsv } from '@/utils/csvExport';
 import { buildApiUrl } from '@/config/api';
 import { usePermissions } from '@/context/PermissionsContext';
-import { formatCount } from '@/lib/format';
+import { formatCount, familyForString } from '@/lib/format';
 
 const ZOOM_REMINDER_KEY = 'campaign_zoom_reminder_shown';
 const REMINDER_COOLDOWN = 24 * 60 * 60 * 1000;
@@ -122,28 +120,8 @@ export function CampaignList() {
     }
   };
 
-  // Zoom reminder — once per 24h
-  useEffect(() => {
-    if (campaigns.length === 0) return;
-    const reminderData = localStorage.getItem(ZOOM_REMINDER_KEY);
-    const now = Date.now();
-    const shouldShow = !reminderData || (now - JSON.parse(reminderData).timestamp > REMINDER_COOLDOWN);
-    if (!shouldShow) return;
-
-    const t = setTimeout(() => {
-      toast.info('Best viewing at 80% magnification', {
-        duration: 4500,
-        position: 'top-center',
-        description: 'This dashboard is optimised for a slightly zoomed-out view',
-      });
-      localStorage.setItem(ZOOM_REMINDER_KEY, JSON.stringify({ timestamp: now }));
-    }, 2000);
-    return () => clearTimeout(t);
-  }, [campaigns.length]);
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    localStorage.removeItem(ZOOM_REMINDER_KEY);
     await fetchCampaigns();
     setIsRefreshing(false);
   };
@@ -239,11 +217,10 @@ export function CampaignList() {
   const totalImpressions = Object.values(campaignMetrics).reduce((s, m) => s + m.impressions, 0);
   const totalLandingCount = Object.values(campaignMetrics).reduce((s, m) => s + m.landingCount, 0);
 
-  const summaryCards = [
-    { label: 'Active', value: activeCampaigns },
-    { label: 'Budget', value: `₹${totalBudget.toLocaleString()}` },
-    { label: 'Impressions', value: formatCount(totalImpressions) },
-    { label: 'Live Landings', value: formatCount(totalLandingCount) },
+  const summaryStats = [
+    { label: 'Active campaigns', value: activeCampaigns.toLocaleString(), icon: Activity },
+    { label: 'Total budget', value: `₹${totalBudget.toLocaleString()}`, icon: IndianRupee },
+    { label: 'Live landings', value: formatCount(totalLandingCount), icon: Zap },
   ];
 
   // Render a numeric table cell with semantic weight:
@@ -254,21 +231,15 @@ export function CampaignList() {
     const display = Number.isFinite(n) ? formatter(n) : '0';
     const isZero = !Number.isFinite(n) || n === 0;
     return (
-      <span className={isZero ? 'text-[var(--text-3)] font-normal' : 'text-[var(--text-1)] font-semibold'}>
+      <span className={isZero ? 'text-[var(--h-ink-3)] font-normal' : 'text-[var(--h-ink)] font-semibold'}>
         {display}
       </span>
     );
   };
 
   return (
-    <div className="min-h-screen w-full app-canvas">
-      {/* Subtle ambient haze behind everything */}
-      <div className="velvet-ambient" aria-hidden>
-        <div className="velvet-orb velvet-orb--violet" style={{ width: 360, height: 360, top: -100, right: -80, opacity: 0.35 }} />
-        <div className="velvet-orb velvet-orb--plum" style={{ width: 280, height: 280, bottom: 100, left: -80, opacity: 0.25 }} />
-      </div>
-
-      <div className="relative z-[1] max-w-[1400px] mx-auto p-4 sm:p-6 space-y-5">
+    <div className="halo-page">
+      <div className="space-y-5">
         {/* Page Header */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -277,89 +248,96 @@ export function CampaignList() {
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
         >
           <div>
-            <p className="page-eyebrow">Marketing · Campaigns</p>
-            <h1 className="page-display mt-1">
-              <Megaphone className="h-5 w-5 text-[var(--indigo-500)]" strokeWidth={1.5} />
-              <span className="velvet-header-gradient">All</span>
-              <span className="page-display-serif gradient-text">Campaigns</span>
+            <p className="halo-eyebrow">Marketing / Campaigns</p>
+            <h1 className="halo-title mt-1 flex items-center gap-2">
+              <Megaphone size={20} strokeWidth={1.75} className="text-[var(--h-iris-500)]" />
+              All campaigns
             </h1>
-            <p className="page-subhead">Manage and monitor your advertising campaigns</p>
+            <p className="halo-subtitle mt-1">Manage and monitor your advertising campaigns</p>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="h-8"
+              className="btn-halo-ghost btn-halo-sm"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw size={14} strokeWidth={1.75} className={isRefreshing ? 'animate-spin' : ''} />
               {isRefreshing ? 'Refreshing' : 'Refresh'}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              className="h-8"
-            >
-              <Download className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={handleExport} className="btn-halo-ghost btn-halo-sm">
+              <Download size={14} strokeWidth={1.75} />
               Export
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/analytics')}
-              className="h-8"
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => navigate('/analytics')} className="btn-halo-ghost btn-halo-sm">
+              <BarChart3 size={14} strokeWidth={1.75} />
               Analytics
-            </Button>
+            </button>
             {canEdit && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => navigate('/campaigns/new')}
-                className="h-8"
-              >
-                <Plus className="h-3.5 w-3.5" />
+              <button onClick={() => navigate('/campaigns/new')} className="btn-halo btn-halo-sm">
+                <Plus size={14} strokeWidth={1.75} />
                 New campaign
-              </Button>
+              </button>
             )}
           </div>
         </motion.div>
 
-        {/* Summary cards */}
+        {/* Summary — one vivid hero (the flagship metric) + a compact stat bar */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4"
+          transition={{ duration: 0.3, delay: 0.02, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 gap-5 lg:grid-cols-5 items-stretch"
         >
-          {summaryCards.map((s) => (
-              <div key={s.label} className="metric-card">
-                <div className="relative z-[1]">
-                  <div className="metric-label">{s.label}</div>
-                  <div className="metric-value text-[1.1rem] sm:text-[1.25rem]">{s.value}</div>
+          <div className="halo-mesh halo-mesh-iris relative flex flex-col justify-between overflow-hidden rounded-[var(--h-r-card)] p-5 lg:col-span-2">
+            <div className="halo-mesh-grain" aria-hidden="true" />
+            <span className="text-[13px] font-medium text-white/75">Total impressions</span>
+            <div>
+              <p className="num text-[2rem] font-semibold leading-none tracking-[-0.03em] text-white">
+                {formatCount(totalImpressions)}
+              </p>
+              <p className="mt-1.5 text-[12.5px] text-white/60">Across {campaigns.length} campaigns</p>
+            </div>
+          </div>
+
+          <div className="halo-card grid grid-cols-1 content-center divide-y divide-[var(--h-line)] sm:grid-cols-3 sm:divide-y-0 sm:divide-x sm:divide-[var(--h-line)] lg:col-span-3">
+            {summaryStats.map((s) => (
+              <div key={s.label} className="flex items-center gap-3 p-4">
+                <span className="halo-chip h-9 w-9 rounded-[10px]">
+                  <s.icon className="h-4 w-4" strokeWidth={2} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[12.5px] font-medium text-[var(--h-ink-2)]">{s.label}</p>
+                  <p className="num mt-0.5 text-[1.05rem] font-semibold leading-none text-[var(--h-ink)]">{s.value}</p>
                 </div>
               </div>
             ))}
+          </div>
         </motion.div>
 
-        {/* Filters */}
+        {/* Toolbar */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="velvet-surface p-4"
+          transition={{ duration: 0.3, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+          className="halo-glass rounded-[var(--h-r-lg)] p-3 sticky top-0 z-10"
         >
-          <div className="velvet-section-title mb-3">Filters</div>
           <div className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--h-ink-3)] pointer-events-none" strokeWidth={1.75} />
+              <Input
+                placeholder="Search by brand name…"
+                className="halo-field halo-search h-9 text-[12.5px]"
+                value={brandNameFilter}
+                onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
+              />
+            </div>
+
             <Select
               value={statusFilter}
               onValueChange={(value) => setSearchParams(prev => ({ ...Object.fromEntries(prev), status: value === 'all' ? '' : value }))}
             >
-              <SelectTrigger className="w-full sm:w-48 h-9 bg-[var(--bg-panel)] border-[var(--line)] text-[12.5px]">
+              <SelectTrigger className="halo-field w-full sm:w-48 h-9 text-[12.5px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -370,16 +348,6 @@ export function CampaignList() {
                 ))}
               </SelectContent>
             </Select>
-
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-3)]" />
-              <Input
-                placeholder="Search by brand name…"
-                className="pl-8 h-9 bg-[var(--bg-panel)] border-[var(--line)] text-[12.5px]"
-                value={brandNameFilter}
-                onChange={(e) => setSearchParams(prev => ({ ...Object.fromEntries(prev), brandName: e.target.value }))}
-              />
-            </div>
           </div>
         </motion.div>
 
@@ -387,52 +355,59 @@ export function CampaignList() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="velvet-surface overflow-hidden relative"
+          transition={{ duration: 0.3, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="halo-card overflow-hidden relative"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
-            <div className="flex items-center gap-2">
-              <Target className="h-3.5 w-3.5 text-[var(--indigo-500)]" />
-              <span className="text-[12.5px] font-semibold tracking-tight text-[var(--text-1)]">Campaign list</span>
+          <div className="halo-panel-head halo-panel-head-mesh">
+            <div className="halo-mesh-grain" aria-hidden="true" />
+            <div className="halo-panel-head-title">
+              <span className="halo-chip"><Rows3 size={16} strokeWidth={1.75} /></span>
+              <h3 className="halo-heading">Campaign list</h3>
             </div>
-            <span className="velvet-chip" style={{ background: 'linear-gradient(135deg, rgba(99,76,230,0.08), rgba(217,70,132,0.06))', borderColor: 'rgba(99,76,230,0.15)' }}>{filteredCampaigns.length} campaigns</span>
+            <span className="halo-badge">{filteredCampaigns.length} campaigns</span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="halo-scroll-x">
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <VelvetLoader size={28} label="Loading campaigns" />
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="halo-skeleton h-11 rounded-[var(--h-r-sm)]" />
+                ))}
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-[var(--neg-soft)] border border-[var(--neg)]/20 flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-[var(--neg)]" strokeWidth={1.5} />
-                </div>
-                <p className="text-[12.5px] font-medium text-[var(--neg)]">{error}</p>
+                <span className="halo-chip-lg" style={{ background: 'var(--h-neg-soft)', color: 'var(--h-coral)' }}>
+                  <AlertCircle size={20} strokeWidth={1.75} />
+                </span>
+                <p className="halo-heading text-[var(--h-coral)]">{error}</p>
               </div>
             ) : filteredCampaigns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-[var(--bg-panel-2)] border border-[var(--line)] flex items-center justify-center">
-                  <Inbox className="h-5 w-5 text-[var(--text-3)]" strokeWidth={1.5} />
-                </div>
-                <p className="text-[12.5px] font-medium text-[var(--text-2)]">No campaigns found</p>
-                <p className="text-[11px] text-[var(--text-3)]">Try adjusting your filters or create a new campaign</p>
+                <span className="halo-chip-lg"><Inbox size={20} strokeWidth={1.75} /></span>
+                <p className="halo-heading">No campaigns found</p>
+                <p className="halo-subtitle">Try adjusting your filters or create a new campaign</p>
+                {canEdit && (
+                  <button onClick={() => navigate('/campaigns/new')} className="btn-halo btn-halo-sm mt-2">
+                    <Plus size={14} strokeWidth={1.75} />
+                    New campaign
+                  </button>
+                )}
               </div>
             ) : (
-              <Table>
+              <Table className="halo-table">
                 <TableHeader>
-                  <TableRow className="border-b border-[var(--line)] hover:bg-transparent" style={{ background: 'linear-gradient(90deg, rgba(99,76,230,0.04) 0%, rgba(217,70,132,0.03) 50%, rgba(99,76,230,0.04) 100%)' }}>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[200px]">Brand</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[120px]">Status</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[80px] text-center">Live ads</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[120px]">Created</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Target impr.</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Live impr.</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Live clicks</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[90px] text-center">CTR</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[110px] text-right">Landings</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[90px] text-right">Budget</TableHead>
-                    <TableHead className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-4 py-2.5 w-[80px] text-center">Actions</TableHead>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[200px]">Brand</TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
+                    <TableHead className="w-[80px] text-center">Live ads</TableHead>
+                    <TableHead className="w-[120px]">Created</TableHead>
+                    <TableHead className="col-num w-[110px]">Target impr.</TableHead>
+                    <TableHead className="col-num w-[110px]">Live impr.</TableHead>
+                    <TableHead className="col-num w-[110px]">Live clicks</TableHead>
+                    <TableHead className="w-[90px] text-center">CTR</TableHead>
+                    <TableHead className="col-num w-[110px]">Landings</TableHead>
+                    <TableHead className="col-num w-[90px]">Budget</TableHead>
+                    <TableHead className="w-[80px] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -444,57 +419,68 @@ export function CampaignList() {
                       <TableRow
                         key={String(campaign.campaignId)}
                         onClick={() => navigate(`/campaigns/${campaign.campaignId}/ads`)}
-                        className="velvet-row-hover border-b border-[var(--line)] last:border-b-0 cursor-pointer hover:bg-[var(--bg-panel-2)] transition-colors"
+                        className="cursor-pointer group"
                       >
-                        <TableCell className="px-4 py-2.5">
-                          <span className="text-[12.5px] font-semibold text-[var(--text-1)]">
-                            {campaign.brandName}
+                        <TableCell>
+                          <span className="flex items-center gap-2.5">
+                            <span className={`halo-avatar halo-chip-solid halo-chip-${familyForString(campaign.brandName)}`}>
+                              {campaign.brandName.trim().charAt(0).toUpperCase() || '?'}
+                            </span>
+                            <span className="text-[12.5px] font-semibold text-[var(--h-ink)]">
+                              {campaign.brandName}
+                            </span>
                           </span>
                         </TableCell>
-                        <TableCell className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                          <StatusPill
-                            status={statusInfo?.kind || 'muted'}
-                            label={statusInfo?.label || 'Unknown'}
-                            size="sm"
-                          />
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <StatusPill
+                              status={statusInfo?.kind || 'muted'}
+                              label={statusInfo?.label || 'Unknown'}
+                              size="sm"
+                            />
+                          </span>
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-center">
-                          <span className={`text-[12px] font-semibold tabular-nums ${liveAdsCount[String(campaign.campaignId)] > 0 ? 'text-[var(--pos)]' : 'text-[var(--text-3)]'}`}>
+                        <TableCell className="text-center">
+                          <span className={`text-[12px] font-semibold num ${liveAdsCount[String(campaign.campaignId)] > 0 ? 'text-[var(--h-mint)]' : 'text-[var(--h-ink-3)]'}`}>
                             {liveAdsCount[String(campaign.campaignId)] || 0}
                           </span>
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[11.5px] text-[var(--text-2)]">
+                        <TableCell className="text-[11.5px] text-[var(--h-ink-2)]">
                           {formatDate(campaign.createdAt)}
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right">
+                        <TableCell className="col-num">
                           {formatCount(campaign.impressionTarget)}
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">
+                        <TableCell className="col-num">
                           {numCell(m?.impressions)}
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">
+                        <TableCell className="col-num">
                           {numCell(m?.clicks)}
                         </TableCell>
-                        <TableCell className={`px-4 py-2.5 text-[12px] tabular-nums text-center font-semibold ${
-                          ctrValue === 0 ? 'text-[var(--text-3)] font-normal'
-                            : ctrValue >= 3 ? 'text-emerald-600'
-                            : ctrValue >= 1 ? 'text-amber-600'
-                            : 'text-rose-500'
-                        }`}>
-                          {ctrValue === 0 ? '0.0%' : `${ctrValue.toFixed(1)}%`}
+                        <TableCell className="text-center">
+                          <span className={`halo-badge num ${
+                            ctrValue === 0 ? ''
+                              : ctrValue >= 3 ? 'halo-badge-pos'
+                              : ctrValue >= 1 ? 'halo-badge-warn'
+                              : 'halo-badge-neg'
+                          }`}>
+                            {ctrValue === 0 ? '0.0%' : `${ctrValue.toFixed(1)}%`}
+                          </span>
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[12px] tabular-nums text-right">
+                        <TableCell className="col-num">
                           {numCell(m?.landingCount)}
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-[12px] font-semibold tabular-nums text-[var(--text-1)] text-right">
+                        <TableCell className="col-num">
                           ₹{parseFloat(campaign.totalBudget).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className="px-4 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-[var(--bg-tint)]">
-                                <MoreHorizontal className="h-3.5 w-3.5 text-[var(--text-2)]" />
-                              </Button>
+                              <button
+                                className="btn-halo-ghost btn-halo-icon btn-halo-sm opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal size={14} strokeWidth={1.75} />
+                              </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
                               <DropdownMenuItem
@@ -539,7 +525,7 @@ export function CampaignList() {
                                   )}
                                   <DropdownMenuItem
                                     onClick={() => handleArchiveCampaign(campaign.campaignId)}
-                                    className="text-[12px] text-[var(--neg)] focus:text-[var(--neg)] focus:bg-[var(--neg-soft)]"
+                                    className="text-[12px] text-[var(--h-coral)] focus:text-[var(--h-coral)] focus:bg-[var(--h-neg-soft)]"
                                   >
                                     <Archive className="mr-2 h-3.5 w-3.5" />
                                     Archive

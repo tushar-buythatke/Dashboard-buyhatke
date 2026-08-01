@@ -1,4 +1,5 @@
 @import './styles/tokens.css';
+@import './styles/halo.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,9 +7,9 @@
 
 @layer base {
   html {
-    font-family: var(--font-sans);
-    background: var(--bg-canvas);
-    color: var(--text-1);
+    font-family: var(--h-font);
+    background: var(--h-canvas);
+    color: var(--h-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -21,9 +22,9 @@
   }
 
   body {
-    font-family: var(--font-sans);
-    background: var(--bg-canvas);
-    color: var(--text-1);
+    font-family: var(--h-font);
+    background: var(--h-canvas);
+    color: var(--h-ink);
     margin: 0 !important;
     padding: 0 !important;
     min-width: 320px !important;
@@ -37,7 +38,7 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--violet-500) 30%, transparent);
+    background: color-mix(in srgb, var(--h-iris-500) 26%, transparent);
     color: var(--text-1);
   }
 }
@@ -47,7 +48,7 @@
    ========================= */
 html,
 :root {
-  background-color: var(--bg-canvas) !important;
+  background-color: var(--h-canvas) !important;
 }
 
 .dark html,
@@ -64,7 +65,7 @@ html,
    minimal treatment, or with .scrollbar-none to hide entirely. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--violet-500) 36%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--h-iris-500) 38%, transparent) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -78,32 +79,20 @@ html,
 }
 
 *::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--violet-500) 48%, transparent) 0%,
-    color-mix(in srgb, var(--plum-500) 38%, transparent) 100%
-  );
+  background: color-mix(in srgb, var(--h-iris-500) 42%, transparent);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: background 0.2s var(--h-ease);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--violet-500) 70%, transparent) 0%,
-    color-mix(in srgb, var(--plum-500) 58%, transparent) 100%
-  );
+  background: color-mix(in srgb, var(--h-iris-500) 68%, transparent);
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(
-    180deg,
-    var(--violet-500) 0%,
-    var(--plum-500) 100%
-  );
+  background: var(--h-iris-500);
   background-clip: padding-box;
 }
 
@@ -114,7 +103,7 @@ html,
 /* Even slimmer variant for compact surfaces (table rows, small lists) */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--violet-500) 30%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--h-iris-500) 30%, transparent) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -151,7 +140,7 @@ html,
    FOCUS RING
    ========================= */
 :focus-visible {
-  outline: 2px solid var(--violet-500);
+  outline: 2px solid var(--h-iris-500);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -159,7 +148,7 @@ html,
 button:focus-visible,
 a:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-ring);
+  box-shadow: var(--h-ring);
 }
 
 /* Soft purple focus ring for inputs / dropdowns / triggers */

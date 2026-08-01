@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { FilterProvider } from '@/context/FilterContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { AccentProvider } from '@/context/AccentContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/context/PermissionsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -20,14 +21,15 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import AuthLogin from '@/pages/AuthLogin';
 import OffersConfig from '@/pages/OffersConfig';
+import StyleGuide from '@/pages/StyleGuide';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--h-canvas)]">
+        <div className="halo-spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
       </div>
     );
   }
@@ -59,9 +61,10 @@ function AppRoutes() {
         v7_relativeSplatPath: true
       }}
     >
-      <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 transition-colors duration-200" style={{ minHeight: '100vh', width: '100vw' }}>
+      <div className="relative min-h-screen w-full overflow-x-hidden">
         <Routes>
           <Route path="/login" element={<AuthLogin />} />
+          <Route path="/style" element={<StyleGuide />} />
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="campaigns">
@@ -94,6 +97,7 @@ function AppRoutes() {
 function App() {
   return (
     <ThemeProvider>
+      <AccentProvider>
       <EnvironmentProvider>
         <AuthProvider>
           <PermissionsProvider>
@@ -107,6 +111,7 @@ function App() {
           </PermissionsProvider>
         </AuthProvider>
       </EnvironmentProvider>
+      </AccentProvider>
     </ThemeProvider>
   );
 }

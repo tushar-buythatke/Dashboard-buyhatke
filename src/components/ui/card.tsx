@@ -8,12 +8,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      'relative rounded-[14px] border border-[var(--line)] bg-[var(--bg-panel)] text-[var(--text-1)] shadow-[var(--shadow-1)] overflow-hidden',
-      'before:content-[""] before:absolute before:top-0 before:left-0 before:right-0 before:h-px',
-      'before:bg-[linear-gradient(90deg,transparent_0%,var(--line-violet)_50%,transparent_100%)] before:opacity-60 before:pointer-events-none',
-      className
-    )}
+    className={cn('halo-card text-[var(--h-ink)]', className)}
     {...props}
   />
 ));
@@ -37,7 +32,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('text-sm font-semibold leading-tight tracking-tight text-[var(--text-1)]', className)}
+    className={cn('halo-heading', className)}
     {...props}
   />
 ));
@@ -49,7 +44,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-xs text-[var(--text-3)] leading-relaxed', className)}
+    className={cn('halo-subtitle', className)}
     {...props}
   />
 ));

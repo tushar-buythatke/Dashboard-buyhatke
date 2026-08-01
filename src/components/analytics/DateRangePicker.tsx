@@ -151,41 +151,42 @@ export function DateRangePicker() {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="velvet-focus flex h-9 w-full items-center justify-start rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm font-normal text-[var(--text-1)] hover:bg-[var(--bg-panel-2)] hover:border-[var(--line-strong)]"
+          className="flex h-9 w-full items-center justify-start rounded-[999px] border-0 bg-[var(--h-surface)] px-3.5 py-2 text-sm font-normal text-[var(--h-ink)] shadow-[var(--h-sh-1)] hover:shadow-[var(--h-sh-2)] transition-shadow"
         >
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <CalendarIcon className="h-3.5 w-3.5 text-[var(--indigo-500)] flex-shrink-0" />
+            <CalendarIcon className="h-3.5 w-3.5 text-[var(--h-iris-600)] flex-shrink-0" strokeWidth={1.75} />
             <span className="truncate text-xs sm:text-sm">{label}</span>
           </div>
         </Button>
       </PopoverTrigger>
 
       <PopoverContent
-        className="velvet-panel w-auto rounded-2xl z-[70] overflow-hidden p-3 sm:p-4"
+        className="halo-card w-auto z-[70] overflow-hidden p-3 sm:p-4 border-0"
         align="center"
         side="bottom"
         sideOffset={6}
         alignOffset={0}
+        style={{ boxShadow: 'var(--h-sh-3)' }}
       >
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           {/* Presets */}
-          <div className="flex sm:hidden flex-row gap-1 pb-3 border-b border-[var(--line)] overflow-x-auto">
+          <div className="flex sm:hidden flex-row gap-1 pb-3 border-b border-[var(--h-line)] overflow-x-auto">
             {presets.map((p) => (
               <button
                 key={p.label}
                 onClick={() => setDraftRange(p.getRange())}
-                className="px-2.5 py-1 text-xs rounded-full bg-transparent text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] hover:border-[var(--line-violet)] border border-transparent transition-all duration-200 whitespace-nowrap"
+                className="px-2.5 py-1 text-xs rounded-full bg-transparent text-[var(--h-ink-2)] hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-600)] transition-all duration-200 whitespace-nowrap"
               >
                 {p.label}
               </button>
             ))}
           </div>
-          <div className="hidden sm:flex flex-col gap-1 pr-3 border-r border-[var(--line)] min-w-[120px]">
+          <div className="hidden sm:flex flex-col gap-1 pr-3 border-r border-[var(--h-line)] min-w-[120px]">
             {presets.map((p) => (
               <button
                 key={p.label}
                 onClick={() => setDraftRange(p.getRange())}
-                className="px-2.5 py-1.5 text-xs sm:text-sm rounded-full bg-transparent text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] border border-transparent hover:border-[var(--line-violet)] transition-all duration-200 text-left"
+                className="px-2.5 py-1.5 text-xs sm:text-sm rounded-full bg-transparent text-[var(--h-ink-2)] hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-600)] transition-all duration-200 text-left"
               >
                 {p.label}
               </button>
@@ -211,63 +212,63 @@ export function DateRangePicker() {
               modifiers={modifiers}
               modifiersClassNames={{
                 range_preview:
-                  'aria-selected:bg-transparent bg-[var(--bg-tint)] text-[var(--indigo-500)]'
+                  'aria-selected:bg-transparent bg-[var(--h-tint)] text-[var(--h-iris-600)]'
               }}
               className="rounded-md border-0 bg-transparent scale-95 sm:scale-100"
               classNames={{
                 months: 'flex flex-col space-y-3',
                 month: 'space-y-3 bg-transparent',
                 caption: 'flex justify-center pt-1 relative items-center mb-2 bg-transparent',
-                caption_label: 'text-sm font-semibold text-[var(--text-1)] tracking-tight',
+                caption_label: 'text-sm font-semibold text-[var(--h-ink)] tracking-tight',
                 nav: 'space-x-1 flex items-center z-10',
                 nav_button:
-                  'h-7 w-7 bg-transparent hover:bg-[var(--bg-tint)] rounded-full transition-all duration-200 flex items-center justify-center text-[var(--text-2)] hover:text-[var(--indigo-500)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--violet-500)]/30 disabled:opacity-30 disabled:hover:bg-transparent',
+                  'h-7 w-7 bg-transparent hover:bg-[var(--h-tint)] rounded-full transition-all duration-200 flex items-center justify-center text-[var(--h-ink-2)] hover:text-[var(--h-iris-600)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--h-iris-500)]/30 disabled:opacity-30 disabled:hover:bg-transparent',
                 nav_button_previous: 'absolute left-1',
                 nav_button_next: 'absolute right-1',
                 table: 'w-full border-collapse space-y-1 bg-transparent',
                 head_row: 'flex mb-1 bg-transparent',
                 head_cell:
-                  'text-[var(--text-3)] rounded-full w-9 h-9 font-medium text-[10.5px] uppercase tracking-wider flex items-center justify-center',
+                  'text-[var(--h-ink-3)] rounded-full w-9 h-9 font-medium text-[10.5px] uppercase tracking-wider flex items-center justify-center',
                 row: 'flex w-full mt-1 bg-transparent',
                 cell:
                   'relative p-0 text-center text-xs focus-within:relative focus-within:z-20',
                 day:
-                  'h-9 w-9 p-0 font-medium rounded-full transition-all duration-200 flex items-center justify-center hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] focus:bg-[var(--bg-tint)] focus:text-[var(--indigo-500)] focus:outline-none text-[var(--text-1)] text-xs',
+                  'h-9 w-9 p-0 font-medium rounded-full transition-all duration-200 flex items-center justify-center hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-600)] focus:bg-[var(--h-tint)] focus:text-[var(--h-iris-600)] focus:outline-none text-[var(--h-ink)] text-xs',
                 day_range_start:
-                  'bg-[var(--violet-500)] text-white hover:bg-[var(--violet-600)] focus:bg-[var(--violet-600)] focus:outline-none font-semibold',
+                  'bg-[var(--h-iris-500)] text-white hover:bg-[var(--h-iris-600)] focus:bg-[var(--h-iris-600)] focus:outline-none font-semibold',
                 day_range_end:
-                  'bg-[var(--violet-500)] text-white hover:bg-[var(--violet-600)] focus:bg-[var(--violet-600)] focus:outline-none font-semibold',
+                  'bg-[var(--h-iris-500)] text-white hover:bg-[var(--h-iris-600)] focus:bg-[var(--h-iris-600)] focus:outline-none font-semibold',
                 day_selected:
-                  'bg-[var(--violet-500)] text-white hover:bg-[var(--violet-600)] focus:bg-[var(--violet-600)] focus:outline-none',
+                  'bg-[var(--h-iris-500)] text-white hover:bg-[var(--h-iris-600)] focus:bg-[var(--h-iris-600)] focus:outline-none',
                 day_today:
-                  'ring-1 ring-[var(--violet-500)]/40 rounded-full font-semibold text-[var(--indigo-500)]',
-                day_outside: 'text-[var(--text-3)] opacity-40',
-                day_disabled: 'text-[var(--text-3)] opacity-30',
+                  'ring-1 ring-[var(--h-iris-500)]/40 rounded-full font-semibold text-[var(--h-iris-600)]',
+                day_outside: 'text-[var(--h-ink-3)] opacity-40',
+                day_disabled: 'text-[var(--h-ink-3)] opacity-30',
                 day_range_middle:
-                  'aria-selected:bg-[var(--bg-tint)] aria-selected:text-[var(--indigo-500)] rounded-none',
+                  'aria-selected:bg-[var(--h-tint)] aria-selected:text-[var(--h-iris-600)] rounded-none',
                 day_hidden: 'invisible'
               }}
             />
 
             {/* Action Bar */}
-            <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--line)]">
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--h-line)]">
               <button
                 onClick={clearDraft}
-                className="text-xs text-[var(--text-3)] hover:text-[var(--indigo-500)] font-medium transition-colors duration-200 px-2 py-1 rounded-md hover:bg-[var(--bg-tint)]"
+                className="text-xs text-[var(--h-ink-3)] hover:text-[var(--h-iris-600)] font-medium transition-colors duration-200 px-2 py-1 rounded-full hover:bg-[var(--h-tint)]"
               >
                 Clear
               </button>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-[var(--text-2)] hover:text-[var(--text-1)] hover:bg-[var(--bg-tint)] rounded-md transition-all duration-200"
+                  className="btn-halo-ghost btn-halo-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={applyAndClose}
                   disabled={!(draftRange?.from && draftRange?.to)}
-                  className="btn-velvet h-8 px-4 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-halo btn-halo-sm"
                 >
                   Apply
                 </button>

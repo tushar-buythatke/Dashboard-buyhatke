@@ -28,31 +28,31 @@ const labelMap: Record<StatusKind, string> = {
 
 const styleMap: Record<StatusKind, { wrap: string; dot: string }> = {
   live: {
-    // Glassy emerald: transparent emerald tint + bright pulsing dot
-    wrap: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/14 dark:text-emerald-300 border-emerald-500/25 dark:border-emerald-400/30',
-    dot: 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.55)]',
+    // Mint tint + bright pulsing dot
+    wrap: 'bg-[var(--h-pos-soft)] text-[var(--h-mint)] border-[var(--h-mint)]/25',
+    dot: 'bg-[var(--h-mint)] shadow-[0_0_8px_rgba(16,199,143,0.55)]',
   },
   paused: {
-    // Soft amber/purple twilight slate tint
-    wrap: 'bg-amber-500/10 text-amber-700 dark:bg-amber-400/12 dark:text-amber-300 border-amber-500/25 dark:border-amber-400/28',
-    dot: 'bg-amber-500 dark:bg-amber-400',
+    // Soft amber tint
+    wrap: 'bg-[var(--h-warn-soft)] text-[var(--h-amber)] border-[var(--h-amber)]/25',
+    dot: 'bg-[var(--h-amber)]',
   },
   test: {
-    wrap: 'bg-pink-500/10 text-pink-600 dark:bg-pink-400/14 dark:text-pink-300 border-pink-500/25 dark:border-pink-400/30',
-    dot: 'bg-pink-500 dark:bg-pink-400',
+    wrap: 'bg-[var(--h-tint-2)] text-[var(--h-iris-600)] dark:text-[var(--h-iris-300)] border-[var(--h-line-accent)]',
+    dot: 'bg-[var(--h-iris-500)]',
   },
   draft: {
-    // Translucent muted slate
-    wrap: 'bg-slate-500/10 text-slate-600 dark:bg-slate-400/12 dark:text-slate-300 border-slate-500/20 dark:border-slate-400/22',
-    dot: 'bg-slate-500 dark:bg-slate-400',
+    // Translucent muted ink
+    wrap: 'bg-[var(--h-surface-3)] text-[var(--h-ink-2)] border-[var(--h-line-2)]',
+    dot: 'bg-[var(--h-ink-3)]',
   },
   archived: {
-    wrap: 'bg-slate-400/8 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400 border-slate-400/15 dark:border-slate-500/20',
-    dot: 'bg-slate-400 dark:bg-slate-500',
+    wrap: 'bg-[var(--h-surface-3)] text-[var(--h-ink-3)] border-[var(--h-line)]',
+    dot: 'bg-[var(--h-ink-3)]',
   },
   muted: {
-    wrap: 'bg-slate-400/8 text-slate-500 dark:bg-slate-500/10 dark:text-slate-400 border-slate-400/15 dark:border-slate-500/20',
-    dot: 'bg-slate-400 dark:bg-slate-500',
+    wrap: 'bg-[var(--h-surface-3)] text-[var(--h-ink-3)] border-[var(--h-line)]',
+    dot: 'bg-[var(--h-ink-3)]',
   },
 };
 

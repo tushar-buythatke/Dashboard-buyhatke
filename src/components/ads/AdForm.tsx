@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, Target, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, FileText, Star, Radio, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
@@ -65,10 +65,10 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
   };
 
   const variantClasses = {
-    default: checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600',
-    success: checked ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
-    warning: checked ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600',
-    primary: checked ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
+    default: checked ? 'bg-[var(--h-iris-500)]' : 'bg-[var(--h-line-2)] ',
+    success: checked ? 'bg-[var(--h-mint)]' : 'bg-[var(--h-line-2)] ',
+    warning: checked ? 'bg-[var(--h-amber)]' : 'bg-[var(--h-line-2)] ',
+    primary: checked ? 'bg-[var(--h-iris-500)]' : 'bg-[var(--h-line-2)] '
   };
 
   return (
@@ -77,10 +77,10 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
       className={`
         flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-300 group
         ${disabled
-          ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+          ? 'opacity-50 cursor-not-allowed bg-[var(--h-surface-2)] border-[var(--h-line-2)] '
           : checked
-            ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-700 hover:shadow-lg'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+            ? 'bg-[var(--h-iris-500)] border-[var(--h-line-accent)] hover:shadow-lg'
+            : 'bg-[var(--h-surface)] border-[var(--h-line-2)] hover:border-[var(--h-line-2)] hover:shadow-md'
         }
       `}
       whileHover={!disabled ? { scale: 1.02 } : {}}
@@ -92,7 +92,7 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
       `}>
         <motion.div
           className={`
-            absolute top-0.5 ${sizeClasses[size].thumb} bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center
+            absolute top-0.5 ${sizeClasses[size].thumb} bg-[var(--h-surface)] rounded-full shadow-lg transition-all duration-300 flex items-center justify-center
           `}
           animate={{
             x: checked ? (size === 'sm' ? 16 : size === 'md' ? 20 : 24) : 2
@@ -105,22 +105,22 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
               animate={{ scale: 1 }}
               transition={{ duration: 0.2 }}
             >
-              <CheckCircle2 className={`${size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-3 w-3' : 'h-4 w-4'} text-${variant === 'default' ? 'blue' : variant === 'success' ? 'green' : variant === 'warning' ? 'orange' : 'purple'}-500`} />
+              <CheckCircle2 className={`${size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-3 w-3' : 'h-4 w-4'} text-[${variant === 'default' ? 'var(--h-iris-500)' : variant === 'success' ? 'var(--h-mint)' : variant === 'warning' ? 'var(--h-amber)' : 'var(--h-iris-500)'}]`} />
             </motion.div>
           )}
         </motion.div>
       </div>
       <div className="flex-1">
         <div className={`font-semibold transition-colors duration-200 ${checked
-          ? 'text-blue-900 dark:text-blue-100'
-          : 'text-gray-700 dark:text-gray-300'
+          ? 'text-[var(--h-iris-700)] '
+          : 'text-[var(--h-ink-2)] '
           }`}>
           {label}
         </div>
         {description && (
           <div className={`text-sm mt-1 transition-colors duration-200 ${checked
-            ? 'text-blue-600 dark:text-blue-400'
-            : 'text-gray-500 dark:text-gray-400'
+            ? 'text-[var(--h-iris-600)] '
+            : 'text-[var(--h-ink-3)] '
             }`}>
             {description}
           </div>
@@ -132,7 +132,7 @@ const ElegantToggle: React.FC<ElegantToggleProps> = ({
           animate={{ scale: 1 }}
           className="ml-3"
         >
-          <Zap className="h-5 w-5 text-blue-500" />
+          <Zap className="h-5 w-5 text-[var(--h-iris-500)]" />
         </motion.div>
       )}
     </motion.div>
@@ -310,12 +310,12 @@ function VelvetDatePicker({
         <button
           type="button"
           disabled={disabled}
-          className="w-full h-10 rounded-[10px] border border-[var(--line-strong)] bg-[var(--bg-panel)] px-3 text-[13px] text-left flex items-center justify-between transition-[border-color,box-shadow] duration-200 hover:border-[var(--line-violet)] focus:outline-none focus:border-[var(--violet-500)] focus:ring-2 focus:ring-[var(--violet-500)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-10 rounded-[10px] border border-[var(--h-line-2)] bg-[var(--h-surface)] px-3 text-[13px] text-left flex items-center justify-between transition-[border-color,box-shadow] duration-200 hover:border-[var(--h-line-accent)] focus:outline-none focus:border-[var(--h-iris-500)] focus:ring-2 focus:ring-[var(--h-iris-500)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span className={selected ? 'text-[var(--text-1)]' : 'text-[var(--text-3)]'}>
+          <span className={selected ? 'text-[var(--h-ink)]' : 'text-[var(--h-ink-3)]'}>
             {selected ? formatDateDisplay(value) : placeholder}
           </span>
-          <CalendarIcon className="h-4 w-4 text-[var(--text-3)]" />
+          <CalendarIcon className="h-4 w-4 text-[var(--h-ink-3)]" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -332,8 +332,8 @@ function VelvetDatePicker({
           }}
           classNames={{
             day_selected:
-              'bg-[var(--indigo-500)] text-white hover:bg-[var(--indigo-500)] hover:text-white focus:bg-[var(--indigo-500)] focus:text-white',
-            day_today: 'bg-[var(--bg-tint)] text-[var(--indigo-500)] font-semibold',
+              'bg-[var(--h-iris-500)] text-[var(--h-ink-inv)] hover:bg-[var(--h-iris-500)] hover:text-[var(--h-ink-inv)] focus:bg-[var(--h-iris-500)] focus:text-[var(--h-ink-inv)]',
+            day_today: 'bg-[var(--h-tint)] text-[var(--h-iris-500)] font-semibold',
           }}
         />
       </PopoverContent>
@@ -1033,14 +1033,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] transition-colors duration-200">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Velvet Header */}
+    <div className="halo-page">
+      <div className="max-w-6xl mx-auto space-y-5">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="velvet-surface p-5"
+          className="halo-glass rounded-[var(--h-r-lg)] p-5"
         >
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -1049,17 +1049,17 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
               />
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-1)]">
-                  {isEditMode ? 'Edit Ad' : 'Create New Ad'}
+                <h1 className="halo-title !text-lg sm:!text-xl">
+                  {isEditMode ? 'Edit ad' : 'Create new ad'}
                 </h1>
-                <p className="text-xs text-[var(--text-3)] mt-0.5">
-                  for campaign <span className="font-semibold text-[var(--indigo-500)]">{campaignName}</span>
+                <p className="halo-subtitle mt-0.5">
+                  for campaign <span className="font-semibold text-[var(--h-iris-500)]">{campaignName}</span>
                 </p>
               </div>
             </div>
             <div className="flex items-center">
-              <span className="velvet-chip">
-                {isEditMode ? 'Edit Mode' : 'Create Mode'}
+              <span className="halo-badge halo-badge-iris">
+                {isEditMode ? 'Edit mode' : 'Create mode'}
               </span>
             </div>
           </div>
@@ -1102,14 +1102,12 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                  <div className="metric-icon-tone metric-icon-tone--violet !static">
-                    <Target className="h-4 w-4" />
+              <Card className="halo-card overflow-hidden">
+                <div className="halo-panel-head halo-rail-full">
+                  <div className="halo-panel-head-title">
+                    <span className="halo-chip"><FileText className="h-4 w-4" strokeWidth={1.75} /></span>
+                    <h3 className="halo-heading">Ad Details</h3>
                   </div>
-                  <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                    Ad Details
-                  </h3>
                 </div>
                 <div className="p-6 space-y-6">
                   <div className="space-y-6 sm:space-y-8">
@@ -1118,8 +1116,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       name="label"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                            <div className="w-2 h-2 bg-[var(--h-iris-500)] rounded-full mr-2"></div>
                             Ad Name
                           </FormLabel>
                           <div className="relative">
@@ -1133,12 +1131,12 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               />
                             </FormControl>
                             {openLabelSuggestions && labelSuggestions.length > 0 && (
-                              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                              <div className="absolute z-10 w-full mt-1 bg-[var(--h-surface)] border border-[var(--h-line-2)] rounded-md shadow-lg ">
                                 <ul className="py-1">
                                   {labelSuggestions.map((suggestion, index) => (
                                     <li
                                       key={index}
-                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-[var(--h-surface-3)] "
                                       onMouseDown={() => {
                                         form.setValue('label', suggestion);
                                         setOpenLabelSuggestions(false);
@@ -1146,7 +1144,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                     >
                                       {suggestion}
                                       {existingAdLabels.includes(suggestion) && (
-                                        <span className="ml-2 text-xs text-yellow-600">(Exists)</span>
+                                        <span className="ml-2 text-xs text-[var(--h-amber)]">(Exists)</span>
                                       )}
                                     </li>
                                   ))}
@@ -1154,7 +1152,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               </div>
                             )}
                           </div>
-                          <FormDescription className="text-gray-500 dark:text-gray-400">
+                          <FormDescription className="text-[var(--h-ink-3)] ">
                             A unique name for your ad within this campaign.
                           </FormDescription>
                           <FormMessage />
@@ -1167,8 +1165,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       name="slotId"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                            <div className="w-2 h-2 bg-[var(--h-iris-500)] rounded-full mr-2"></div>
                             Ad Slot
                           </FormLabel>
 
@@ -1179,7 +1177,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               setSlotFilterPlatform(value === "all" ? undefined : parseInt(value));
                             }}
                           >
-                            <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200">
+                            <SelectTrigger className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200">
                               <SelectValue placeholder="All Platforms" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1200,24 +1198,24 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                   type="button"
                                   role="combobox"
                                   aria-expanded={slotPickerOpen}
-                                  className="w-full h-10 rounded-[10px] border border-slate-200 dark:border-[var(--line)] bg-white dark:bg-[var(--bg-panel-2)] px-3 text-[13px] text-left flex items-center justify-between gap-2 transition-[border-color,box-shadow] duration-200 hover:border-[var(--line-violet)] focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
+                                  className="w-full h-10 rounded-[10px] border border-[var(--h-line-2)] dark:border-[var(--h-line)] bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] px-3 text-[13px] text-left flex items-center justify-between gap-2 transition-[border-color,box-shadow] duration-200 hover:border-[var(--h-line-accent)] focus:outline-none focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)]"
                                 >
                                   {selectedSlot ? (
                                     <span className="flex items-center gap-2 min-w-0">
-                                      <span className="font-medium text-[var(--text-1)] whitespace-nowrap">{selectedSlot.name}</span>
-                                      <span className="text-xs text-[var(--text-3)] whitespace-nowrap">
+                                      <span className="font-medium text-[var(--h-ink)] whitespace-nowrap">{selectedSlot.name}</span>
+                                      <span className="text-xs text-[var(--h-ink-3)] whitespace-nowrap">
                                         {getPlatformName(selectedSlot.platform)} · {parseFloat(selectedSlot.width.toString()).toFixed(0)}×{parseFloat(selectedSlot.height.toString()).toFixed(0)}
                                       </span>
                                     </span>
                                   ) : (
-                                    <span className="text-[var(--text-3)]">Select a slot</span>
+                                    <span className="text-[var(--h-ink-3)]">Select a slot</span>
                                   )}
-                                  <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--text-3)]" />
+                                  <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--h-ink-3)]" />
                                 </button>
                               </FormControl>
                             </PopoverTrigger>
                             <PopoverContent
-                              className="p-0 w-[var(--radix-popover-trigger-width)] max-w-[640px] min-w-[360px] rounded-[14px] border-[var(--line)] shadow-[0_20px_48px_-16px_rgba(79,61,212,0.24),0_2px_6px_rgba(15,12,40,0.06)] overflow-hidden"
+                              className="p-0 w-[var(--radix-popover-trigger-width)] max-w-[640px] min-w-[360px] rounded-[14px] border-[var(--h-line)] shadow-[0_20px_48px_-16px_rgba(79,61,212,0.24),0_2px_6px_rgba(15,12,40,0.06)] overflow-hidden"
                               align="start"
                             >
                               <Command
@@ -1235,7 +1233,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                   className="text-[13px] focus-visible:outline-none focus:outline-none"
                                 />
                                 <CommandList className="max-h-72">
-                                  <CommandEmpty className="py-8 text-center text-[13px] text-[var(--text-3)]">No slots match your search.</CommandEmpty>
+                                  <CommandEmpty className="py-8 text-center text-[13px] text-[var(--h-ink-3)]">No slots match your search.</CommandEmpty>
                                   <CommandGroup className="p-1.5">
                                     {filteredSlots.map((slot) => {
                                       const w = parseFloat(slot.width.toString()).toFixed(0);
@@ -1252,18 +1250,18 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                             field.onChange(optValue);
                                             setSlotPickerOpen(false);
                                           }}
-                                          className="rounded-[10px] px-2.5 py-2 gap-3 cursor-pointer aria-selected:bg-[var(--bg-tint)] data-[selected=true]:bg-[var(--bg-tint)]"
+                                          className="rounded-[10px] px-2.5 py-2 gap-3 cursor-pointer aria-selected:bg-[var(--h-tint)] data-[selected=true]:bg-[var(--h-tint)]"
                                         >
-                                          <Check className={`h-4 w-4 shrink-0 ${isSelected ? 'opacity-100 text-[var(--indigo-500)]' : 'opacity-0'}`} />
+                                          <Check className={`h-4 w-4 shrink-0 ${isSelected ? 'opacity-100 text-[var(--h-iris-500)]' : 'opacity-0'}`} />
                                           <div className="flex flex-col min-w-0 flex-1">
-                                            <span className="font-semibold text-[13px] text-[var(--text-1)] leading-tight truncate">{slot.name}</span>
-                                            <span className="text-[11px] text-[var(--text-3)] leading-tight mt-0.5 whitespace-nowrap">
+                                            <span className="font-semibold text-[13px] text-[var(--h-ink)] leading-tight truncate">{slot.name}</span>
+                                            <span className="text-[11px] text-[var(--h-ink-3)] leading-tight mt-0.5 whitespace-nowrap">
                                               {getPlatformName(slot.platform)} · {w}×{h}
                                             </span>
                                           </div>
                                           <span
                                             title={optValue}
-                                            className="shrink-0 font-mono text-[10.5px] tracking-tight text-[var(--text-3)]"
+                                            className="shrink-0 font-mono text-[10.5px] tracking-tight text-[var(--h-ink-3)]"
                                           >
                                             {optValue}
                                           </span>
@@ -1275,7 +1273,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               </Command>
                             </PopoverContent>
                           </Popover>
-                          <FormMessage className="text-red-500 font-medium" />
+                          <FormMessage className="text-[var(--h-coral)] font-medium" />
                         </FormItem>
                       )}
                     />
@@ -1283,14 +1281,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                      <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                        <div className="w-2 h-2 bg-[var(--h-iris-500)] rounded-full mr-2"></div>
                         Creative
                       </FormLabel>
                       {(() => {
                         const currentSlot = selectedSlot || filteredSlots.find(s => slotMatches(s, form.watch('slotId')));
                         return currentSlot ? (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-sm text-[var(--h-ink-3)] ">
                             Required: {parseFloat(currentSlot.width.toString()).toFixed(0)} x {parseFloat(currentSlot.height.toString()).toFixed(0)} px
                           </span>
                         ) : null;
@@ -1299,14 +1297,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                     <div className="flex items-center space-x-4">
                       {previewUrl ? (
-                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg">
+                        <div className="relative group bg-[var(--h-surface-3)] rounded-xl p-4 shadow-lg">
                           {(() => {
                             const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(previewUrl) || previewUrl.includes('video');
                             return isVideo ? (
                               <video
                                 src={getCacheBustedUrl(previewUrl)}
                                 controls
-                                className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                                className="h-32 w-32 object-cover rounded-lg border border-[var(--h-line-2)] "
                               >
                                 Your browser does not support the video tag.
                               </video>
@@ -1314,7 +1312,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               <img
                                 src={getCacheBustedUrl(previewUrl)}
                                 alt="Ad preview"
-                                className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                                className="h-32 w-32 object-cover rounded-lg border border-[var(--h-line-2)] "
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.onerror = null;
@@ -1327,16 +1325,16 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--h-coral)] hover:bg-[var(--h-coral)] text-[var(--h-ink-inv)] rounded-full h-6 w-6 p-0"
                             onClick={() => setPreviewUrl('')}
                           >
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
                       ) : (
-                        <label className="border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-all duration-200 bg-gray-50 dark:bg-gray-800">
-                          <Upload className="h-6 w-6 text-blue-500" />
-                          <p className="text-sm text-blue-600 dark:text-blue-400 text-center font-medium">
+                        <label className="border-2 border-dashed border-[var(--h-line-accent)] rounded-xl p-6 flex flex-col items-center justify-center space-y-2 w-40 h-32 cursor-pointer hover:border-[var(--h-line-accent)] hover:bg-[var(--h-tint-2)] transition-all duration-200 bg-[var(--h-surface-2)] ">
+                          <Upload className="h-6 w-6 text-[var(--h-iris-500)]" />
+                          <p className="text-sm text-[var(--h-iris-600)] text-center font-medium">
                             Click to upload
                           </p>
                           <input
@@ -1349,22 +1347,22 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       )}
                     </div>
                     {form.formState.errors.creativeUrl && (
-                      <p className="text-sm text-red-500 font-medium">{form.formState.errors.creativeUrl.message}</p>
+                      <p className="text-sm text-[var(--h-coral)] font-medium">{form.formState.errors.creativeUrl.message}</p>
                     )}
                   </div>
 
                   {/* Logo Upload Section */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                        <div className="w-2 h-2 bg-[var(--h-mint)] rounded-full mr-2"></div>
                         Logo (Optional)
                       </FormLabel>
                     </div>
 
                     <div className="flex items-center space-x-4">
                       {getCacheBustedUrl(logoPreviewUrl) ? (
-                        <div className="relative group bg-gray-100 dark:bg-gray-700 rounded-xl p-4 shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                        <div className="relative group bg-[var(--h-surface-3)] rounded-xl p-4 shadow-lg border-2 border-dashed border-[var(--h-line-2)] ">
                           <img
                             src={getCacheBustedUrl(logoPreviewUrl)}
                             alt="Logo preview"
@@ -1381,7 +1379,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 p-0"
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--h-coral)] hover:bg-[var(--h-coral)] text-[var(--h-ink-inv)] rounded-full h-6 w-6 p-0"
                             onClick={() => {
                               setLogoPreviewUrl('');
                               form.setValue('logo', '');
@@ -1391,7 +1389,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                           </Button>
                         </div>
                       ) : (
-                        <div className="w-full max-w-md rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700">
+                        <div className="w-full max-w-md rounded-xl border border-dashed border-[var(--h-line-2)] ">
                           <FileUpload
                             maxFiles={1}
                             accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'] }}
@@ -1403,7 +1401,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-[var(--h-ink-3)] ">
                       Upload a logo for this ad. No dimension requirements.
                     </p>
                   </div>
@@ -1414,7 +1412,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     name="impressionTarget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Impression Target</FormLabel>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Impression Target</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
@@ -1430,10 +1428,10 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                 e.preventDefault();
                               }
                             }}
-                            className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                            className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                           />
                         </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                        <FormDescription className="text-[var(--h-ink-3)] ">
                           Must be greater than or equal to click target
                         </FormDescription>
                         <FormMessage />
@@ -1446,7 +1444,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     name="clickTarget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Click Target</FormLabel>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Click Target</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
@@ -1462,10 +1460,10 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                 e.preventDefault();
                               }
                             }}
-                            className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                            className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                           />
                         </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                        <FormDescription className="text-[var(--h-ink-3)] ">
                           Must be less than or equal to impression target
                         </FormDescription>
                         <FormMessage />
@@ -1478,7 +1476,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Priority Score (0-1000)</FormLabel>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Priority Score (0-1000)</FormLabel>
                         <FormControl>
                           <div className="space-y-3">
                             <Input
@@ -1494,17 +1492,17 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                   e.preventDefault();
                                 }
                               }}
-                              className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="w-full bg-[var(--h-surface-3)] rounded-full h-2">
                               <div
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                                className="bg-[var(--h-iris-500)] h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${Math.min((field.value || 0) / 1000 * 100, 100)}%` }}
                               />
                             </div>
                           </div>
                         </FormControl>
-                        <FormDescription className="text-gray-500 dark:text-gray-400">
+                        <FormDescription className="text-[var(--h-ink-3)] ">
                           Higher priority ads are shown more frequently (0 = lowest, 1000 = highest)
                         </FormDescription>
                         <FormMessage />
@@ -1517,19 +1515,19 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Status</FormLabel>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Status</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200">
+                            <SelectTrigger className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200">
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                            <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Active</SelectItem>
-                            <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700">Paused</SelectItem>
+                          <SelectContent className="bg-[var(--h-surface)] border border-[var(--h-line-2)] ">
+                            <SelectItem value="1" className="text-[var(--h-ink)] hover:bg-[var(--h-surface-2)] ">Active</SelectItem>
+                            <SelectItem value="0" className="text-[var(--h-ink)] hover:bg-[var(--h-surface-2)] ">Paused</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1549,20 +1547,20 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             className={`
                           flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                           ${isTestMode
-                                ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
-                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-[var(--h-mint)] border-[color-mix(in srgb, var(--h-mint) 30%, transparent)] text-[var(--h-mint)] '
+                                : 'bg-[var(--h-surface-2)] border-[var(--h-line-2)] text-[var(--h-ink-2)] hover:border-[var(--h-line-2)] hover:bg-[var(--h-surface-3)] '
                               }
                         `}
                           >
                             <div className={`
                           relative w-12 h-6 rounded-full transition-all duration-200 mr-4
                           ${isTestMode
-                                ? 'bg-emerald-500'
-                                : 'bg-gray-300 dark:bg-gray-600'
+                                ? 'bg-[var(--h-mint)]'
+                                : 'bg-[var(--h-line-2)] '
                               }
                         `}>
                               <div className={`
-                            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 transform
+                            absolute top-0.5 w-5 h-5 bg-[var(--h-surface)] rounded-full shadow-md transition-all duration-200 transform
                             ${isTestMode
                                   ? 'translate-x-6'
                                   : 'translate-x-0.5'
@@ -1570,7 +1568,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                           `}>
                                 {isTestMode && (
                                   <div className="flex items-center justify-center h-full">
-                                    <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-3 h-3 text-[var(--h-mint)]" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                   </div>
@@ -1578,16 +1576,16 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               </div>
                             </div>
                             <div className="flex-1">
-                              <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-emerald-800 dark:text-emerald-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                              <FormLabel className={`font-semibold text-base cursor-pointer ${isTestMode ? 'text-[var(--h-mint)] ' : 'text-[var(--h-ink-2)] '}`}>
                                 Test Phase
                               </FormLabel>
-                              <FormDescription className={`mt-1 ${isTestMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <FormDescription className={`mt-1 ${isTestMode ? 'text-[var(--h-mint)] ' : 'text-[var(--h-ink-3)] '}`}>
                                 Enable to test this ad without affecting live traffic
                               </FormDescription>
                             </div>
                             {isTestMode && (
                               <div className="ml-4">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--h-mint-soft)] text-[var(--h-mint)] ">
                                   Active
                                 </span>
                               </div>
@@ -1605,8 +1603,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       const selected = SERVE_STRATEGIES.find((s) => s.value === field.value) ?? SERVE_STRATEGIES[0];
                       return (
                         <FormItem>
-                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Serve Strategy</FormLabel>
-                          <FormDescription className="text-[var(--text-3)]">
+                          <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Serve Strategy</FormLabel>
+                          <FormDescription className="text-[var(--h-ink-3)]">
                             The ad type. Determines how it's selected and rendered when served.
                           </FormDescription>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
@@ -1620,18 +1618,18 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                   onClick={() => field.onChange(s.value)}
                                   className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all duration-200 ${
                                     active
-                                      ? 'border-[var(--line-violet)] bg-[var(--bg-tint)] shadow-[var(--shadow-ring)]'
-                                      : 'border-[var(--line)] bg-[var(--bg-panel)] hover:border-[var(--line-violet)]'
+                                      ? 'border-[var(--h-line-accent)] bg-[var(--h-tint)] shadow-[var(--h-ring)]'
+                                      : 'border-[var(--h-line)] bg-[var(--h-surface)] hover:border-[var(--h-line-accent)]'
                                   }`}
                                 >
-                                  <span className={`metric-icon-tone metric-icon-tone--${s.tone} !static shrink-0`}>
-                                    <Icon className="h-4 w-4" />
+                                  <span className="halo-chip shrink-0">
+                                    <Icon className="h-4 w-4" strokeWidth={1.75} />
                                   </span>
                                   <span className="min-w-0">
-                                    <span className={`block text-[13px] font-semibold ${active ? 'text-[var(--indigo-500)]' : 'text-[var(--text-1)]'}`}>
+                                    <span className={`block text-[13px] font-semibold ${active ? 'text-[var(--h-iris-500)]' : 'text-[var(--h-ink)]'}`}>
                                       {s.label}
                                     </span>
-                                    <span className="block text-[10.5px] leading-tight text-[var(--text-3)] mt-0.5">{s.desc}</span>
+                                    <span className="block text-[10.5px] leading-tight text-[var(--h-ink-3)] mt-0.5">{s.desc}</span>
                                   </span>
                                 </button>
                               );
@@ -1640,25 +1638,25 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                           {/* Serve-behavior warnings (guide §5, §7) */}
                           {field.value === 2 && (
-                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/40 p-3">
-                              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                              <p className="text-[12px] leading-snug text-amber-800 dark:text-amber-200">
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[color-mix(in srgb, color-mix(in srgb, var(--h-amber) 35%, transparent) 60%, transparent)] bg-[var(--h-warn-soft)] p-3">
+                              <AlertTriangle className="h-4 w-4 text-[var(--h-amber)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-amber)] ">
                                 <strong>Coupon ads require a location.</strong> With an empty Locations field a coupon ad never serves — set at least one location below.
                               </p>
                             </div>
                           )}
                           {field.value === 3 && (
-                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-teal-300/60 bg-teal-50 dark:border-teal-700/50 dark:bg-teal-950/40 p-3">
-                              <Plane className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-                              <p className="text-[12px] leading-snug text-teal-800 dark:text-teal-200">
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[color-mix(in srgb, color-mix(in srgb, var(--h-mint) 30%, transparent) 60%, transparent)] bg-[var(--h-mint-soft)] p-3">
+                              <Plane className="h-4 w-4 text-[var(--h-mint)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-mint)] ">
                                 Flight ads serve through the separate flight path and are excluded from the normal product/banner query.
                               </p>
                             </div>
                           )}
                           {field.value === 4 && (
-                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--line-violet)] bg-[var(--bg-tint)] p-3">
-                              <Lock className="h-4 w-4 text-[var(--indigo-500)] shrink-0 mt-0.5" />
-                              <p className="text-[12px] leading-snug text-[var(--text-2)]">
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--h-line-accent)] bg-[var(--h-tint)] p-3">
+                              <Lock className="h-4 w-4 text-[var(--h-iris-500)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-ink-2)]">
                                 Category-locked ads serve only when the request's category is in this ad's Categories. Make sure Categories below is set.
                               </p>
                             </div>
@@ -1677,15 +1675,15 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       name="couponCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Coupon Code</FormLabel>
+                          <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Coupon Code</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="e.g., SAVE20"
                               {...field}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
-                          <FormDescription className="text-[var(--text-3)]">
+                          <FormDescription className="text-[var(--h-ink-3)]">
                             Fallback coupon shown when a product has no per-product coupon.
                           </FormDescription>
                           <FormMessage />
@@ -1706,20 +1704,20 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             className={`
                               flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                               ${isModel
-                                ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-blue-100 dark:shadow-blue-900/20'
-                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-[var(--h-tint)] border-[var(--h-line-accent)] text-[var(--h-iris-700)]  '
+                                : 'bg-[var(--h-surface-2)] border-[var(--h-line-2)] text-[var(--h-ink-2)] hover:border-[var(--h-line-2)] hover:bg-[var(--h-surface-3)] '
                               }
                             `}
                           >
                             <div className={`
                               relative w-12 h-6 rounded-full transition-all duration-200 mr-4 shadow-md
                               ${isModel
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-purple-200 dark:shadow-purple-800'
-                                : 'bg-gray-300 dark:bg-gray-600'
+                                ? 'bg-[var(--h-iris-500)]'
+                                : 'bg-[var(--h-line-2)] '
                               }
                             `}>
                               <div className={`
-                                absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform
+                                absolute top-0.5 w-5 h-5 bg-[var(--h-surface)] rounded-full shadow-lg transition-all duration-200 transform
                                 ${isModel
                                   ? 'translate-x-6'
                                   : 'translate-x-0.5'
@@ -1727,7 +1725,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               `}>
                                 {isModel && (
                                   <div className="flex items-center justify-center h-full">
-                                    <svg className="w-3 h-3 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-3 h-3 text-[var(--h-iris-500)]" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                   </div>
@@ -1735,16 +1733,16 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               </div>
                             </div>
                             <div className="flex-1">
-                              <FormLabel className={`font-semibold text-base cursor-pointer ${isModel ? 'text-purple-800 dark:text-purple-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                              <FormLabel className={`font-semibold text-base cursor-pointer ${isModel ? 'text-[var(--h-iris-700)] ' : 'text-[var(--h-ink-2)] '}`}>
                                 Is Model Type ad
                               </FormLabel>
-                              <FormDescription className={`mt-1 ${isModel ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <FormDescription className={`mt-1 ${isModel ? 'text-[var(--h-iris-600)] ' : 'text-[var(--h-ink-3)] '}`}>
                                 Enable if this ad is a model type
                               </FormDescription>
                             </div>
                             {isModel && (
                               <div className="ml-4">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700 shadow-sm">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--h-tint-2)] text-[var(--h-iris-700)] border border-[var(--h-line-accent)] shadow-sm">
                                   Model Active
                                 </span>
                               </div>
@@ -1763,19 +1761,17 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-visible">
-                <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                  <div className="metric-icon-tone metric-icon-tone--plum !static">
-                    <Settings className="h-4 w-4" />
+              <Card className="halo-card overflow-visible">
+                <div className="halo-panel-head halo-rail-full">
+                  <div className="halo-panel-head-title">
+                    <span className="halo-chip"><Settings className="h-4 w-4" strokeWidth={1.75} /></span>
+                    <h3 className="halo-heading">Targeting & Audience</h3>
                   </div>
-                  <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                    Targeting & Audience
-                  </h3>
                 </div>
                 <div className="p-6 space-y-6">
 
                   {/* Master No Specificity Toggle */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                  <div className="bg-[var(--h-iris-500)] p-4 rounded-xl border-2 border-[var(--h-line-accent)] ">
                     <ElegantToggle
                       checked={form.watch('noSpecificity') || false}
                       onChange={(checked) => {
@@ -1831,8 +1827,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                         const disabled = form.watch('noSpecificity');
                         return (
                           <FormItem>
-                            <FormLabel className="text-[var(--text-2)] font-semibold text-sm">Gender Targeting</FormLabel>
-                            <FormDescription className="text-[var(--text-3)]">
+                            <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Gender Targeting</FormLabel>
+                            <FormDescription className="text-[var(--h-ink-3)]">
                               Only a positive match serves — a Male/Female ad skips users whose gender is unknown. Use “All genders” to show it to everyone.
                             </FormDescription>
                             <div className="grid grid-cols-3 gap-2 pt-1">
@@ -1850,14 +1846,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                     title={opt.hint}
                                     className={`flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                                       active
-                                        ? 'border-[var(--line-violet)] bg-[var(--bg-tint)] shadow-[var(--shadow-ring)]'
-                                        : 'border-[var(--line)] bg-[var(--bg-panel)] hover:border-[var(--line-violet)]'
+                                        ? 'border-[var(--h-line-accent)] bg-[var(--h-tint)] shadow-[var(--h-ring)]'
+                                        : 'border-[var(--h-line)] bg-[var(--h-surface)] hover:border-[var(--h-line-accent)]'
                                     }`}
                                   >
-                                    <span className={`text-[13px] font-semibold ${active ? 'text-[var(--indigo-500)]' : 'text-[var(--text-1)]'}`}>
+                                    <span className={`text-[13px] font-semibold ${active ? 'text-[var(--h-iris-500)]' : 'text-[var(--h-ink)]'}`}>
                                       {opt.label}
                                     </span>
-                                    <span className="text-[10.5px] leading-tight text-[var(--text-3)]">{opt.hint}</span>
+                                    <span className="text-[10.5px] leading-tight text-[var(--h-ink-3)]">{opt.hint}</span>
                                   </button>
                                 );
                               })}
@@ -1869,8 +1865,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     />
 
                     <div className="space-y-3">
-                      <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                      <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                        <div className="w-2 h-2 bg-[var(--h-iris-500)] rounded-full mr-2"></div>
                         Age Range
                       </FormLabel>
 
@@ -1896,11 +1892,11 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                         <div className="flex justify-center">
                           <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--h-iris-500)] text-[var(--h-ink-inv)] shadow-sm">
                               {ageRange[0]} years
                             </span>
-                            <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm">
+                            <span className="text-[var(--h-ink-3)] text-xs">-</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--h-iris-500)] text-[var(--h-ink-inv)] shadow-sm">
                               {ageRange[1]} years
                             </span>
                           </div>
@@ -1909,7 +1905,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                       {/* Display age range validation error prominently */}
                       {(form.formState.errors.ageRangeMax || form.formState.errors.ageRangeMin) && (
-                        <p className="text-sm text-red-500 font-medium mt-2">
+                        <p className="text-sm text-[var(--h-coral)] font-medium mt-2">
                           {form.formState.errors.ageRangeMax?.message || form.formState.errors.ageRangeMin?.message}
                         </p>
                       )}
@@ -1917,8 +1913,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                     <motion.div
                       className={`space-y-4 p-4 rounded-xl border-2 transition-all duration-500 ${priceRangeHighlighted
-                        ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 shadow-lg'
-                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+                        ? 'border-[color-mix(in srgb, var(--h-amber) 35%, transparent)] bg-[var(--h-warn-soft)] shadow-lg'
+                        : 'border-[var(--h-line-2)] bg-[var(--h-surface-2)] '
                         }`}
                       animate={priceRangeHighlighted ? {
                         scale: [1, 1.02, 1],
@@ -1927,17 +1923,17 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                       transition={{ duration: 0.6, repeat: priceRangeHighlighted ? 2 : 0 }}
                     >
                       <div className="flex items-center space-x-2">
-                        <FormLabel className="text-[var(--text-2)] font-semibold text-sm flex items-center">
-                          <div className="w-3 h-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-2"></div>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm flex items-center">
+                          <div className="w-3 h-3 bg-[var(--h-amber)] rounded-full mr-2"></div>
                           Price Range
                         </FormLabel>
                         {priceRangeHighlighted && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="velvet-chip"
+                            className="halo-badge halo-badge-warn"
                           >
-                            <Target className="h-3 w-3" />
+                            <Star className="h-3 w-3" strokeWidth={1.75} />
                             Focus here
                           </motion.div>
                         )}
@@ -1989,14 +1985,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                         }
                                       }}
                                       disabled={form.watch('noSpecificity')}
-                                      className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                                      className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                                     />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                            <span className="text-gray-400 dark:text-gray-500 text-sm">to</span>
+                            <span className="text-[var(--h-ink-3)] text-sm">to</span>
                             <FormField
                               control={form.control}
                               name="priceRangeMax"
@@ -2019,7 +2015,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                         }
                                       }}
                                       disabled={form.watch('noSpecificity')}
-                                      className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                                      className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -2030,7 +2026,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                         </div>
 
                         {(form.formState.errors.priceRangeMax || form.formState.errors.priceRangeMin) && (
-                          <p className="text-sm text-red-500 font-medium mt-2">
+                          <p className="text-sm text-[var(--h-coral)] font-medium mt-2">
                             {form.formState.errors.priceRangeMax?.message || form.formState.errors.priceRangeMin?.message}
                           </p>
                         )}
@@ -2125,15 +2121,13 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
               </Card>
             </motion.div>
 
-            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                <div className="metric-icon-tone metric-icon-tone--teal !static">
-                  <Target className="h-4 w-4" />
+            <Card className="halo-card overflow-hidden">
+              <div className="halo-panel-head halo-rail-full">
+                  <div className="halo-panel-head-title">
+                    <span className="halo-chip"><Radio className="h-4 w-4" strokeWidth={1.75} /></span>
+                    <h3 className="halo-heading">Tracking & Pixels</h3>
+                  </div>
                 </div>
-                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                  Tracking & Pixels
-                </h3>
-              </div>
               <div className="p-8 space-y-8">
 
                 <div className="grid grid-cols-1 gap-6">
@@ -2201,19 +2195,19 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
             </Card>
 
             {/* Billing & Bidding — per-event charges + bidding bookkeeping (guide §3) */}
-            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                <div className="metric-icon-tone metric-icon-tone--amber !static">
-                  <IndianRupee className="h-4 w-4" />
+            <Card className="halo-card overflow-hidden">
+              <div className="halo-panel-head halo-rail-full">
+                <div className="halo-panel-head-title">
+                  <span className="halo-chip"><IndianRupee className="h-4 w-4" strokeWidth={1.75} /></span>
+                  <h3 className="halo-heading">
+                    Billing &amp; Bidding <span className="text-[var(--h-ink-3)] font-normal">(Optional)</span>
+                  </h3>
                 </div>
-                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                  Billing &amp; Bidding <span className="text-[var(--text-3)] font-normal">(Optional)</span>
-                </h3>
               </div>
               <div className="p-8 space-y-8">
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="velvet-section-title">Billing</span>
+                    <span className="halo-eyebrow">Billing</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <FormField
@@ -2228,7 +2222,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               placeholder="0.00"
                               value={field.value ?? ''}
                               onChange={(e) => handleNumberInput(e, field.onChange, 0)}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
                           <FormDescription>Deducted from balance per impression.</FormDescription>
@@ -2248,7 +2242,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               placeholder="0.00"
                               value={field.value ?? ''}
                               onChange={(e) => handleNumberInput(e, field.onChange, 0)}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
                           <FormDescription>Deducted from balance per click.</FormDescription>
@@ -2261,10 +2255,10 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
 
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Gavel className="h-3.5 w-3.5 text-[var(--text-3)]" />
-                    <span className="velvet-section-title !before:hidden">Bidding</span>
+                    <Gavel className="h-3.5 w-3.5 text-[var(--h-ink-3)]" strokeWidth={1.75} />
+                    <span className="halo-eyebrow">Bidding</span>
                   </div>
-                  <p className="text-[12px] text-[var(--text-3)] mb-4">
+                  <p className="text-[12px] text-[var(--h-ink-3)] mb-4">
                     Stored for bidding bookkeeping — not used by the current serve scoring.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -2280,7 +2274,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               placeholder="0.00"
                               value={field.value ?? ''}
                               onChange={(e) => handleNumberInput(e, field.onChange, 0)}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
                           <FormMessage />
@@ -2299,7 +2293,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               placeholder="0.00"
                               value={field.value ?? ''}
                               onChange={(e) => handleNumberInput(e, field.onChange, 0)}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
                           <FormMessage />
@@ -2318,7 +2312,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               placeholder="0"
                               value={field.value ?? ''}
                               onChange={(e) => handleNumberInput(e, field.onChange, 0)}
-                              className="bg-[var(--bg-panel)] border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all duration-200"
+                              className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                             />
                           </FormControl>
                           <FormMessage />
@@ -2330,14 +2324,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
               </div>
             </Card>
 
-            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                <div className="metric-icon-tone metric-icon-tone--violet !static">
-                  <Settings className="h-4 w-4" />
+            <Card className="halo-card overflow-hidden">
+              <div className="halo-panel-head halo-rail-full">
+                <div className="halo-panel-head-title">
+                  <span className="halo-chip"><Settings className="h-4 w-4" strokeWidth={1.75} /></span>
+                  <h3 className="halo-heading">
+                    Other Details <span className="text-[var(--h-ink-3)] font-normal">(Optional)</span>
+                  </h3>
                 </div>
-                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                  Other Details <span className="text-[var(--text-3)] font-normal">(Optional)</span>
-                </h3>
               </div>
               <div className="p-8 space-y-6">
                 {otherDetailsFields.map((field, index) => (
@@ -2349,7 +2343,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start"
                   >
                     <div>
-                      <Label className="text-gray-700 dark:text-gray-300">Key</Label>
+                      <Label className="text-[var(--h-ink-2)] ">Key</Label>
                       <Input
                         placeholder="e.g., dealType"
                         value={field.key}
@@ -2358,12 +2352,12 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                           newFields[index].key = e.target.value;
                           setOtherDetailsFields(newFields);
                         }}
-                        className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                        className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                       />
                     </div>
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
-                        <Label className="text-gray-700 dark:text-gray-300">Value</Label>
+                        <Label className="text-[var(--h-ink-2)] ">Value</Label>
                         <Input
                           placeholder="e.g., flash-sale"
                           value={field.value}
@@ -2372,7 +2366,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             newFields[index].value = e.target.value;
                             setOtherDetailsFields(newFields);
                           }}
-                          className="bg-white dark:bg-[var(--bg-panel-2)] border-slate-200 dark:border-[var(--line)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus-visible:ring-4 focus-visible:ring-purple-500/10 transition-all duration-200"
+                          className="bg-[var(--h-surface)] dark:bg-[var(--h-surface-2)] border-[var(--h-line-2)] dark:border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
                         />
                       </div>
                       {otherDetailsFields.length > 1 && (
@@ -2384,7 +2378,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             const newFields = otherDetailsFields.filter((_, i) => i !== index);
                             setOtherDetailsFields(newFields);
                           }}
-                          className="h-10 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                          className="h-10 px-3 text-[var(--h-coral)] hover:text-[var(--h-coral)] hover:bg-[var(--h-neg-soft)] "
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -2400,27 +2394,25 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                   onClick={() => {
                     setOtherDetailsFields([...otherDetailsFields, { key: '', value: '' }]);
                   }}
-                  className="w-full border-dashed border-2 border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950"
+                  className="w-full border-dashed border-2 border-[var(--h-line-accent)] text-[var(--h-iris-600)] hover:bg-[var(--h-tint-2)] "
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Another Field
                 </Button>
 
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                <p className="text-sm text-[var(--h-ink-3)] mt-4">
                   Add custom key-value pairs for any additional details you want to store with this ad.
                 </p>
               </div>
             </Card>
 
-            <Card className="velvet-surface velvet-micro-shadow rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--line)] flex items-center gap-3">
-                <div className="metric-icon-tone metric-icon-tone--accent !static">
-                  <CalendarIcon className="h-4 w-4" />
+            <Card className="halo-card overflow-hidden">
+              <div className="halo-panel-head halo-rail-full">
+                  <div className="halo-panel-head-title">
+                    <span className="halo-chip"><CalendarIcon className="h-4 w-4" strokeWidth={1.75} /></span>
+                    <h3 className="halo-heading">Scheduling</h3>
+                  </div>
                 </div>
-                <h3 className="velvet-section-title !my-0 !before:hidden text-[15px] font-semibold tracking-tight text-[var(--text-1)]">
-                  Scheduling
-                </h3>
-              </div>
               <div className="p-8 space-y-8">
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -2496,7 +2488,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                 }, 10);
                               }
                             }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--h-ink-3)] cursor-pointer hover:text-[var(--h-ink-2)] transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
                           >
                             <Clock className="h-4 w-4" />
                           </button>
@@ -2540,7 +2532,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                                 }, 10);
                               }
                             }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--h-ink-3)] cursor-pointer hover:text-[var(--h-ink-2)] transition-colors bg-transparent border-none outline-none p-0 m-0 z-10"
                           >
                             <Clock className="h-4 w-4" />
                           </button>
@@ -2557,33 +2549,32 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-[var(--line)]"
+              className="halo-glass sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 mt-2 flex flex-col sm:flex-row justify-end gap-3 rounded-t-[var(--h-r-lg)]"
             >
-              <Button
+              <button
                 type="button"
-                variant="outline"
                 onClick={() => navigate(`/campaigns/${campaignId}/ads`)}
                 disabled={loading}
-                className="w-full sm:w-auto px-6 h-11 rounded-xl border-[var(--line)] text-[var(--text-2)] hover:bg-[var(--bg-tint)] hover:text-[var(--indigo-500)] transition-all duration-200 order-2 sm:order-1"
+                className="btn-halo-ghost order-2 sm:order-1"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-8 h-11 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white font-semibold shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 order-1 sm:order-2"
+                className="btn-halo order-1 sm:order-2"
               >
                 {loading ? (
-                  <span className="flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Saving...
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="halo-spinner" style={{ borderTopColor: '#fff', borderColor: 'rgba(255,255,255,0.35)' }} />
+                    Saving…
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    {isEditMode ? 'Update Ad' : 'Create Ad'}
+                    {isEditMode ? 'Update ad' : 'Create ad'}
                   </span>
                 )}
-              </Button>
+              </button>
             </motion.div>
           </form>
         </Form>
