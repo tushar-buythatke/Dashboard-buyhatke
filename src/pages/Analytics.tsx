@@ -240,10 +240,17 @@ export default function Analytics() {
 
   // Manual fetch - removed automatic fetching on filter changes
 
-  // Fetch ad names when selected campaigns change or load all if none selected
+  // Fetch ad names only when the ad-name picker is actually in use: it renders
+  // only inside the expanded filter section with campaigns selected, and the
+  // 'ad' view needs options too. Previously this fired for ALL campaigns on
+  // mount — N extra requests on every page load that competed with the
+  // analytics fetch for connection slots.
   useEffect(() => {
     // Don't fetch ad names if data is still loading or no campaigns available
     if (loading || campaigns.length === 0) return;
+
+    const filtersNeedAdNames = isFilterExpanded && selectedCampaigns.length > 0;
+    if (!filtersNeedAdNames && activeView !== 'ad') return;
 
     const loadAdNames = async () => {
       try {
@@ -295,7 +302,7 @@ export default function Analytics() {
       }
     };
     loadAdNames();
-  }, [selectedCampaigns, campaigns]); // Added campaigns dependency for auto-loading
+  }, [selectedCampaigns, campaigns, isFilterExpanded, activeView]); // Fetches only when the ad picker/view needs options
 
   // Filter slots based on selected platforms
   useEffect(() => {
@@ -452,7 +459,26 @@ export default function Analytics() {
         console.log(`📊 Valid slot IDs:`, validSlotIdsAcrossViews || 'ALL SLOTS');
         console.log(`📊 Valid POS IDs:`, validPOSIdsAcrossViews || 'ALL POS');
 
-        // Campaign-wise comparison
+        // Batched metrics: the API aggregates across the campaignId array, so
+        // one call replaces the old per-campaign fan-out (N /metrics/all calls).
+        const metricsRes = await analyticsService.getMetrics({
+          ...dateRange,
+          campaignId: normalizeFilterIds(campaignsToProcess),
+          slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+          siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
+          adId: validAdIds,
+          interval: dataGrouping
+        });
+
+        if (metricsRes.success && metricsRes.data) {
+          aggregatedMetrics = metricsRes.data;
+          // Recalculate derived metrics
+          aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
+            (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        }
+
+        // Per-campaign trend calls stay — the multi-series chart needs one
+        // series per campaign (N calls, down from 2N with the batched metrics).
         const campaignResults = await Promise.all(
           campaignsToProcess.map(async (campaignId) => {
             const payload: MetricsPayload = {
@@ -464,18 +490,12 @@ export default function Analytics() {
               interval: dataGrouping
             };
 
-            console.log(`📊 Campaign ${campaignId} payload with interval:`, payload);
-
-            const [metricsRes, trendRes] = await Promise.all([
-              analyticsService.getMetrics(payload),
-              analyticsService.getTrendData(payload)
-            ]);
+            const trendRes = await analyticsService.getTrendData(payload);
 
             const campaign = campaigns.find(c => c.campaignId === campaignId);
             return {
               campaignId,
               campaignName: campaign?.brandName || `Campaign ${campaignId}`,
-              metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
               trendData: trendRes.success ? trendRes.data : []
             };
           })
@@ -494,24 +514,6 @@ export default function Analytics() {
             console.error('Error processing campaign trend data:', error, result);
           }
         });
-
-        // Calculate combined metrics
-        campaignResults.forEach(result => {
-          try {
-            if (result.metrics) {
-              aggregatedMetrics.impressions += result.metrics.impressions || 0;
-              aggregatedMetrics.clicks += result.metrics.clicks || 0;
-              aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
-            }
-          } catch (error) {
-            console.error('Error processing campaign metrics:', error, result);
-          }
-        });
-
-        // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
-          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else if (activeView === 'slot') {
         // Use centralized valid slot IDs (which already respects platform filter)
@@ -599,28 +601,41 @@ export default function Analytics() {
         console.log(`📊 Valid campaign IDs:`, validCampaignIdsAcrossViews || 'ALL CAMPAIGNS');
         console.log(`📊 Valid slot IDs:`, validSlotIdsAcrossViews || 'ALL SLOTS');
 
-        // POS-wise comparison
+        // Batched metrics: one call for all POS ids (old code: one per POS).
+        const posMetricsRes = await analyticsService.getMetrics({
+          ...dateRange,
+          siteId: normalizeFilterIds(posToProcess),
+          campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+          slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews ? normalizeFilterIds(validSlotIdsAcrossViews) : undefined : undefined,
+          adId: validAdIds,
+          interval: dataGrouping
+        });
+
+        if (posMetricsRes.success && posMetricsRes.data) {
+          aggregatedMetrics = posMetricsRes.data;
+          // Recalculate derived metrics
+          aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
+            (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        }
+
+        // Per-POS trend calls stay — the multi-series chart needs one series per POS.
         const posResults = await Promise.all(
           posToProcess.map(async (posId) => {
             const payload: MetricsPayload = {
               ...dateRange,
-              siteId: [Number(posId)],
+              siteId: normalizeFilterIds([posId]),
               campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
               slotId: selectedSlots.length > 0 ? validSlotIdsAcrossViews ? normalizeFilterIds(validSlotIdsAcrossViews) : undefined : undefined,
               adId: validAdIds,
               interval: dataGrouping
             };
 
-            const [metricsRes, trendRes] = await Promise.all([
-              analyticsService.getMetrics(payload),
-              analyticsService.getTrendData(payload)
-            ]);
+            const trendRes = await analyticsService.getTrendData(payload);
 
             const site = sites.find(s => s.posId === posId.toString());
             return {
               posId,
               posName: site?.name || `POS ${posId}`,
-              metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
               trendData: trendRes.success ? trendRes.data : []
             };
           })
@@ -640,24 +655,6 @@ export default function Analytics() {
           }
         });
 
-        // Calculate combined metrics
-        posResults.forEach(result => {
-          try {
-            if (result.metrics) {
-              aggregatedMetrics.impressions += result.metrics.impressions || 0;
-              aggregatedMetrics.clicks += result.metrics.clicks || 0;
-              aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
-            }
-          } catch (error) {
-            console.error('Error processing POS metrics:', error, result);
-          }
-        });
-
-        // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
-          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
-
       } else if (activeView === 'ad') {
         // If ad filters are set, use those. Otherwise, use all available ad options for selected campaigns.
         const adsToProcess = (selectedExactAdNames.length > 0 || selectedStartsWithAdNames.length > 0)
@@ -669,25 +666,39 @@ export default function Analytics() {
         // Take top 20 ads to avoid excessive requests, but ensure they are sorted or meaningful
         const limitedAds = adsToProcess.slice(0, 20);
 
+        // Batched metrics: one call for all ad ids (old code: one per ad).
+        const adMetricsRes = await analyticsService.getMetrics({
+          ...dateRange,
+          adId: normalizeFilterIds(limitedAds.map(ad => ad.adId)),
+          campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+          slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+          siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
+          interval: dataGrouping
+        });
+
+        if (adMetricsRes.success && adMetricsRes.data) {
+          aggregatedMetrics = adMetricsRes.data;
+          // Recalculate derived metrics
+          aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
+            (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
+        }
+
+        // Per-ad trend calls stay — the multi-series chart needs one series per ad.
         const adResults = await Promise.all(
           limitedAds.map(async (ad) => {
             const payload: MetricsPayload = {
               ...dateRange,
-              adId: [ad.adId],
-          campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
-          slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
-          siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
+              adId: normalizeFilterIds([ad.adId]),
+              campaignId: validCampaignIdsAcrossViews ? normalizeFilterIds(validCampaignIdsAcrossViews) : undefined,
+              slotId: selectedSlots.length > 0 ? normalizeFilterIds(selectedSlots) : undefined,
+              siteId: validPOSIdsAcrossViews ? normalizeFilterIds(validPOSIdsAcrossViews) : undefined,
               interval: dataGrouping
             };
 
-            const [metrics, trend] = await Promise.all([
-              analyticsService.getMetrics(payload),
-              analyticsService.getTrendData(payload)
-            ]);
+            const trend = await analyticsService.getTrendData(payload);
 
             return {
               adName: ad.label || ad.name,
-              metrics: metrics.success ? metrics.data : null,
               trendData: trend.success ? trend.data : []
             };
           })
@@ -701,20 +712,10 @@ export default function Analytics() {
                 data: result.trendData
               });
             }
-            if (result.metrics) {
-              aggregatedMetrics.impressions += result.metrics.impressions || 0;
-              aggregatedMetrics.clicks += result.metrics.clicks || 0;
-              aggregatedMetrics.conversions += result.metrics.conversions || 0;
-              aggregatedMetrics.landingCount += result.metrics.landingCount || 0;
-            }
           } catch (error) {
             console.error('Error processing ad results:', error, result);
           }
         });
-
-        // Recalculate derived metrics
-        aggregatedMetrics.ctr = aggregatedMetrics.impressions > 0 ?
-          (aggregatedMetrics.clicks / aggregatedMetrics.impressions) * 100 : 0;
 
       } else {
         // Default: overall analytics for all available data
@@ -843,9 +844,14 @@ export default function Analytics() {
 
       const breakdownPayload = {
         ...basePayload,
-        // Add a default campaignId if no filters are selected - use first VALID campaign
+        // Backend requires at least one filter for breakdown queries. Fall back to ALL
+        // campaigns (not just the first) so breakdown totals stay consistent with the
+        // "Key metrics" cards above, which aggregate across every campaign by default.
         ...(!hasValidCampaignId && !hasValidSlotId && !hasValidSiteId && {
-          campaignId: campaigns.length > 0 ? [campaigns[0].campaignId] : undefined
+          campaignId: (() => {
+            const allCampaignIds = dedupeNumericIds(campaigns.map(c => c.campaignId));
+            return allCampaignIds ? normalizeFilterIds(allCampaignIds) : undefined;
+          })()
         })
       };
 

@@ -54,6 +54,17 @@ export const MultiSelectDropdown = ({
 
   const handleClearAll = () => onChange([]);
 
+  const handleSelectAllFiltered = () => {
+    const filteredValues = filteredOptions.map(o => o.value);
+    const merged = maxSelections
+      ? [...new Set([...selectedValues, ...filteredValues])].slice(0, maxSelections)
+      : [...new Set([...selectedValues, ...filteredValues])];
+    onChange(merged);
+  };
+
+  const allFilteredSelected = filteredOptions.length > 0 &&
+    filteredOptions.every(o => selectedValues.includes(o.value));
+
   const getSelectedLabels = () =>
     selectedValues.map(value =>
       options.find(option => option.value === value)?.label || value
@@ -181,16 +192,29 @@ export const MultiSelectDropdown = ({
           </div>
 
           {/* Action buttons */}
-          {selectedValues.length > 0 && (
-            <div className="px-2 py-1.5 border-b border-[var(--h-line)]">
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-coral)] inline-flex items-center gap-1 transition-colors"
-              >
-                <X className="h-3 w-3" strokeWidth={2.5} />
-                Clear all ({selectedValues.length})
-              </button>
+          {(filteredOptions.length > 0 || selectedValues.length > 0) && (
+            <div className="px-2 py-1.5 border-b border-[var(--h-line)] flex items-center justify-between gap-2">
+              {filteredOptions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSelectAllFiltered}
+                  disabled={allFilteredSelected}
+                  className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-iris-600)] disabled:opacity-40 disabled:pointer-events-none inline-flex items-center gap-1 transition-colors"
+                >
+                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                  {searchTerm ? `Select all (${filteredOptions.length})` : 'Select all'}
+                </button>
+              )}
+              {selectedValues.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-coral)] inline-flex items-center gap-1 transition-colors"
+                >
+                  <X className="h-3 w-3" strokeWidth={2.5} />
+                  Clear all ({selectedValues.length})
+                </button>
+              )}
             </div>
           )}
 

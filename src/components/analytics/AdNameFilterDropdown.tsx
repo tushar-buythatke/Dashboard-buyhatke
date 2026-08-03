@@ -70,6 +70,20 @@ export const AdNameFilterDropdown = ({
     else onExactChange([]);
   };
 
+  const handleSelectAllFiltered = () => {
+    if (activeTab === 'startsWith') {
+      onStartsWithChange([...new Set([...selectedStartsWithValues, ...filteredLabels])]);
+    } else {
+      onExactChange([...new Set([...selectedExactValues, ...filteredOptions.map(o => o.name)])]);
+    }
+  };
+
+  const allFilteredSelected = activeTab === 'startsWith'
+    ? filteredLabels.length > 0 && filteredLabels.every(l => selectedStartsWithValues.includes(l))
+    : filteredOptions.length > 0 && filteredOptions.every(o => selectedExactValues.includes(o.name));
+
+  const filteredCountForTab = activeTab === 'startsWith' ? filteredLabels.length : filteredOptions.length;
+
   const exactLabels = selectedExactValues.map(name => ({
     name,
     displayName: options.find(opt => opt.name === name)?.name || name,
@@ -213,19 +227,32 @@ export const AdNameFilterDropdown = ({
               </div>
             </div>
 
-            {(activeTab === 'startsWith' && selectedStartsWithValues.length > 0) ||
-            (activeTab === 'exact' && selectedExactValues.length > 0) ? (
-              <div className="px-2 py-1.5 border-b border-[var(--h-line)]">
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-coral)] inline-flex items-center gap-1 transition-colors"
-                >
-                  <X className="h-3 w-3" strokeWidth={2.5} />
-                  Clear all ({activeTab === 'startsWith' ? selectedStartsWithValues.length : selectedExactValues.length})
-                </button>
+            {(filteredCountForTab > 0 ||
+              (activeTab === 'startsWith' ? selectedStartsWithValues.length > 0 : selectedExactValues.length > 0)) && (
+              <div className="px-2 py-1.5 border-b border-[var(--h-line)] flex items-center justify-between gap-2">
+                {filteredCountForTab > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSelectAllFiltered}
+                    disabled={allFilteredSelected}
+                    className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-iris-600)] disabled:opacity-40 disabled:pointer-events-none inline-flex items-center gap-1 transition-colors"
+                  >
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                    {searchTerm ? `Select all (${filteredCountForTab})` : 'Select all'}
+                  </button>
+                )}
+                {(activeTab === 'startsWith' ? selectedStartsWithValues.length > 0 : selectedExactValues.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="text-[11px] font-medium text-[var(--h-ink-3)] hover:text-[var(--h-coral)] inline-flex items-center gap-1 transition-colors"
+                  >
+                    <X className="h-3 w-3" strokeWidth={2.5} />
+                    Clear all ({activeTab === 'startsWith' ? selectedStartsWithValues.length : selectedExactValues.length})
+                  </button>
+                )}
               </div>
-            ) : null}
+            )}
 
             <TabsContent value="startsWith" className="m-0">
               <div className="max-h-[280px] overflow-y-auto scrollbar-thin">

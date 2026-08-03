@@ -13,6 +13,7 @@ import { analyticsService, MetricsPayload } from '@/services/analyticsService';
 import { MetricsData, BreakdownData, TrendChartSeries, Campaign } from '@/types';
 import { toast } from 'sonner';
 import { coerceName } from '@/lib/format';
+import { normalizeFilterIds } from '@/utils/v2Normalizer';
 
 // Utils
 import { exportToCSV, formatDashboardForCSV } from '@/utils/csvExport';
@@ -202,47 +203,37 @@ export function Dashboard() {
       const allCampaignIds = allCampaigns.map((c: Campaign) => c.campaignId);
       console.log('📊 Processing all campaign IDs:', allCampaignIds);
 
-      // Fetch data for each campaign individually BUT IN PARALLEL (much faster)
-      console.log('📊 Fetching metrics for each campaign individually IN PARALLEL...');
+      // Fetch metrics and trend for ALL campaigns in ONE batched call each.
+      // The API accepts a campaignId array and aggregates across it, so the
+      // old per-campaign fan-out (2N requests) collapses to 2 requests.
+      // The merge loop further down still works unchanged — it now merges a
+      // single already-aggregated result.
+      const campaignIds = normalizeFilterIds(allCampaignIds);
 
-      // Create all campaign promises for metrics and trend data
-      const campaignPromises = allCampaignIds.map(async (campaignId) => {
-        const payload: MetricsPayload = {
+      console.log(`📊 Fetching metrics + trend for ALL ${campaignIds.length} campaigns in 2 batched calls...`);
+
+      const [metricsResult, trendResult] = await Promise.all([
+        analyticsService.getMetrics({
           ...last7DaysPayload,
-          campaignId: [campaignId], // Single campaign ID in array
+          campaignId: campaignIds,
           slotId: undefined,
           siteId: undefined
-        };
+        }),
+        analyticsService.getTrendData({
+          ...last7DaysPayload,
+          campaignId: campaignIds,
+          slotId: undefined,
+          siteId: undefined
+        })
+      ]);
 
-        console.log(`📊 Campaign ${campaignId} payload:`, payload);
-
-        try {
-          const [metricsRes, trendRes] = await Promise.all([
-            analyticsService.getMetrics(payload),
-            analyticsService.getTrendData(payload)
-          ]);
-
-          const campaign = allCampaigns.find(c => c.campaignId === campaignId);
-          return {
-            campaignId,
-            campaignName: campaign?.brandName || `Campaign ${campaignId}`,
-            metrics: metricsRes.success ? metricsRes.data : getDefaultMetrics(),
-            trendData: trendRes.success ? trendRes.data : []
-          };
-        } catch (error) {
-          console.error(`Error fetching data for campaign ${campaignId}:`, error);
-          return {
-            campaignId,
-            campaignName: `Campaign ${campaignId}`,
-            metrics: getDefaultMetrics(),
-            trendData: []
-          };
-        }
-      });
-
-      // Execute all campaign calls in parallel
-      const campaignResults = await Promise.all(campaignPromises);
-      console.log('📊 Campaign results received (parallel):', campaignResults);
+      const campaignResults = [{
+        campaignId: 'all',
+        campaignName: 'Overall Performance',
+        metrics: metricsResult.success ? metricsResult.data : getDefaultMetrics(),
+        trendData: trendResult.success ? trendResult.data : []
+      }];
+      console.log('📊 Batched metrics + trend result received:', campaignResults);
 
       // Aggregate metrics from all campaigns (like Analytics does)
       let aggregatedMetrics: MetricsData = getDefaultMetrics();
@@ -310,90 +301,88 @@ export function Dashboard() {
         setTrendData([]);
       }
 
-      // Fetch breakdown data for each campaign individually BUT IN PARALLEL
-      console.log('📊 Fetching breakdown data for each campaign individually IN PARALLEL...');
+      // Fetch each breakdown type for ALL campaigns in ONE batched call.
+      // The API aggregates across the campaignId array — this collapses the
+      // old per-campaign × per-type fan-out (4N requests) into 4 requests.
+      // The merge logic below is unchanged: a single batched result flows
+      // through the same aggregation, dedupe, and percentage math.
+      console.log('📊 Fetching breakdown data for ALL campaigns in 4 batched calls...');
       const breakdownTypes = ['gender', 'platform', 'age', 'location'];
 
-      // Create all breakdown promises for all campaigns and types in parallel
+      // Create all breakdown promises (one per type, all campaigns batched)
       const allBreakdownPromises = breakdownTypes.map(async (breakdownType) => {
         const breakdownByType: { [key: string]: any } = {};
 
-        // Create promises for this breakdown type across all campaigns
-        const campaignBreakdownPromises = allCampaignIds.map(async (campaignId) => {
-          try {
-            const breakdownPayload = {
-              ...last7DaysPayload,
-              campaignId: [campaignId],
-              slotId: undefined,
-              siteId: undefined,
-              by: breakdownType
-            };
+        try {
+          const breakdownPayload = {
+            ...last7DaysPayload,
+            campaignId: campaignIds,
+            slotId: undefined,
+            siteId: undefined,
+            by: breakdownType
+          };
 
-            const breakdownResult = await analyticsService.getBreakdownData(breakdownPayload);
+          const breakdownResult = await analyticsService.getBreakdownData(breakdownPayload);
 
-            if (breakdownResult.success && Array.isArray(breakdownResult.data)) {
-              return breakdownResult.data;
-            }
-            return [];
-          } catch (error) {
-            console.error(`Error fetching ${breakdownType} breakdown for campaign ${campaignId}:`, error);
-            return [];
-          }
-        });
+          const allCampaignBreakdownData = (breakdownResult.success && Array.isArray(breakdownResult.data))
+            ? [breakdownResult.data]
+            : [];
 
-        // Wait for all campaigns for this breakdown type
-        const allCampaignBreakdownData = await Promise.all(campaignBreakdownPromises);
+          // Aggregate data for this breakdown type (single batched result now,
+          // but kept as an array so the merge loop stays identical)
+          allCampaignBreakdownData.forEach(campaignData => {
+            campaignData.forEach((item: any) => {
+              // CRITICAL: coerce to a string for the map key.
+              // Backend may return objects like { city, state } for location
+              // — which would dedupe everything under "[object Object]".
+              const rawKey = item[breakdownType] ?? item.name;
+              const key = coerceName(rawKey, 'Unspecified');
+              if (!breakdownByType[key]) {
+                breakdownByType[key] = {
+                  [breakdownType]: key,
+                  name: key,
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  value: 0
+                };
+              }
 
-        // Aggregate data for this breakdown type
-        allCampaignBreakdownData.forEach(campaignData => {
-          campaignData.forEach((item: any) => {
-            // CRITICAL: coerce to a string for the map key.
-            // Backend may return objects like { city, state } for location
-            // — which would dedupe everything under "[object Object]".
-            const rawKey = item[breakdownType] ?? item.name;
-            const key = coerceName(rawKey, 'Unspecified');
-            if (!breakdownByType[key]) {
-              breakdownByType[key] = {
-                [breakdownType]: key,
-                name: key,
-                impressions: 0,
-                clicks: 0,
-                conversions: 0,
-                value: 0
-              };
-            }
-
-            breakdownByType[key].impressions += item.impressions || 0;
-            breakdownByType[key].clicks += item.clicks || 0;
-            breakdownByType[key].conversions += item.conversions || 0;
-            breakdownByType[key].value = breakdownByType[key].impressions; // For chart display
+              breakdownByType[key].impressions += item.impressions || 0;
+              breakdownByType[key].clicks += item.clicks || 0;
+              breakdownByType[key].conversions += item.conversions || 0;
+              breakdownByType[key].value = breakdownByType[key].impressions; // For chart display
+            });
           });
-        });
 
-        // Convert to array and calculate CTR and proper percentages
-        const breakdownArray = Object.values(breakdownByType).map((item: any) => ({
-          ...item,
-          ctr: item.impressions > 0 ? (item.clicks / item.impressions) * 100 : 0
-        }));
+          // Convert to array and calculate CTR and proper percentages
+          const breakdownArray = Object.values(breakdownByType).map((item: any) => ({
+            ...item,
+            ctr: item.impressions > 0 ? (item.clicks / item.impressions) * 100 : 0
+          }));
 
-        // Calculate total impressions for percentage calculation
-        const totalImpressions = breakdownArray.reduce((sum, item: any) => sum + (item.impressions || 0), 0);
+          // Calculate total impressions for percentage calculation
+          const totalImpressions = breakdownArray.reduce((sum, item: any) => sum + (item.impressions || 0), 0);
 
-        // Calculate proper percentages based on total impressions
-        const breakdownWithPercentages = breakdownArray.map((item: any) => ({
-          ...item,
-          percentage: totalImpressions > 0 ? (item.impressions / totalImpressions) * 100 : 0
-        }));
+          // Calculate proper percentages based on total impressions
+          const breakdownWithPercentages = breakdownArray.map((item: any) => ({
+            ...item,
+            percentage: totalImpressions > 0 ? (item.impressions / totalImpressions) * 100 : 0
+          }));
 
-        return {
-          type: breakdownType,
-          data: breakdownWithPercentages
-        };
+          return {
+            type: breakdownType,
+            data: breakdownWithPercentages
+          };
+        } catch (error) {
+          console.error(`Error fetching ${breakdownType} breakdown:`, error);
+          return { type: breakdownType, data: [] };
+        }
       });
 
-      // Execute all breakdown calls in parallel (all types, all campaigns)
+      // Execute all breakdown calls in parallel (all types, one batched call each)
       const allBreakdownResults = await Promise.all(allBreakdownPromises);
-      console.log('📊 All breakdown results (parallel):', allBreakdownResults);
+      console.log('📊 All breakdown results (batched):', allBreakdownResults);
 
       // Set breakdown data by type
       const aggregatedBreakdownData: any = {};
@@ -443,53 +432,31 @@ export function Dashboard() {
       });
       console.log('✅ Set quick stats using aggregated data:', { activeCampaigns: activeCampaignsCount, bestCTR, topPlatform, conversionRate });
 
-      // Also fetch comparison data if possible (individual campaigns in parallel)
+      // Also fetch comparison data (previous 7 days) in ONE batched call.
+      // Note: comparisonPayload (computed above with the correct previous-7-day
+      // from/to) is used here. The old code spread last7DaysPayload and added
+      // startDate/endDate keys the API ignores, so the comparison silently
+      // fetched the SAME period as the current one (growth always ~0%).
       try {
-        const previous7DaysPayload = {
-          ...last7DaysPayload,
-          startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          endDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        };
+        console.log('📊 Fetching comparison data for ALL campaigns in 1 batched call...');
 
-        console.log('📊 Fetching comparison data for each campaign in parallel...');
-
-        // Create comparison promises for all campaigns
-        const comparisonPromises = allCampaignIds.map(async (campaignId) => {
-          const payload = {
-            ...previous7DaysPayload,
-            campaignId: [campaignId],
-            slotId: undefined,
-            siteId: undefined
-          };
-
-          try {
-            const metricsRes = await analyticsService.getMetrics(payload);
-            return metricsRes.success ? metricsRes.data : getDefaultMetrics();
-          } catch (error) {
-            console.error(`Error fetching comparison for campaign ${campaignId}:`, error);
-            return getDefaultMetrics();
-          }
+        const comparisonMetricsRes = await analyticsService.getMetrics({
+          ...comparisonPayload,
+          campaignId: campaignIds,
+          slotId: undefined,
+          siteId: undefined
         });
 
-        // Execute all comparison calls in parallel
-        const comparisonResults = await Promise.all(comparisonPromises);
+        const aggregatedComparison = comparisonMetricsRes.success && comparisonMetricsRes.data
+          ? comparisonMetricsRes.data
+          : getDefaultMetrics();
 
-        // Aggregate comparison metrics
-        let aggregatedComparison = getDefaultMetrics();
-        comparisonResults.forEach(metrics => {
-          if (metrics) {
-            aggregatedComparison.impressions += metrics.impressions || 0;
-            aggregatedComparison.clicks += metrics.clicks || 0;
-            aggregatedComparison.conversions += metrics.conversions || 0;
-            aggregatedComparison.landingCount += metrics.landingCount || 0;
-          }
-        });
-
+        // Recalculate derived metrics (parity with the aggregation path above)
         aggregatedComparison.ctr = aggregatedComparison.impressions > 0 ?
           (aggregatedComparison.clicks / aggregatedComparison.impressions) * 100 : 0;
 
         setComparisonMetricsData(aggregatedComparison);
-        console.log('✅ Set aggregated comparison metrics (parallel):', aggregatedComparison);
+        console.log('✅ Set comparison metrics (batched):', aggregatedComparison);
       } catch (error) {
         console.error('Error fetching comparison data:', error);
         setComparisonMetricsData(null);
@@ -834,7 +801,7 @@ export function Dashboard() {
                   index={idx}
                   onClick={() => setBreakdownModal({ open: true, title: `${title} · 7 days`, data })}
                 >
-                  <BreakdownPieChart data={data} title={`${title} · 7 days`} />
+                  <BreakdownPieChart data={data} title={`${title} · 7 days`} showAnimation={false} />
                 </BreakdownCard>
               ))}
             </div>
