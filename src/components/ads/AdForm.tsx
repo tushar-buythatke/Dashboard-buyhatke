@@ -248,7 +248,7 @@ const adSchema = z.object({
     if (!data.extraDetails || !data.extraDetails.trim()) return false;
     try {
       const parsed = JSON.parse(data.extraDetails);
-      return typeof parsed === 'object' && parsed !== null;
+      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
     } catch {
       return false;
     }
