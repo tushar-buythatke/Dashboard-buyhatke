@@ -316,7 +316,7 @@ export function AdDetail() {
       'Price Range': `${ad.priceRangeMin || 'N/A'} - ${ad.priceRangeMax || 'N/A'}`,
       'Is Test Phase': ad.isTestPhase ? 'Yes' : 'No',
       'Is Model Type': ad.isModelType === 1 ? 'Yes' : 'No',
-      'Serve Strategy': ad.serveStrategy || 'N/A',
+      'Serve Strategy': getServeStrategyLabel(ad.serveStrategy),
       'Created Date': ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : 'N/A',
       'Last Updated': ad.updatedAt ? new Date(ad.updatedAt).toLocaleDateString() : 'N/A'
     }];
@@ -369,6 +369,8 @@ export function AdDetail() {
           isTestPhase: ad.isTestPhase,
           serveStrategy: ad.serveStrategy,
           isModelType: ad.isModelType,
+          ...(ad.keywords !== undefined && { keywords: ad.keywords }),
+          ...(ad.isExtraDetails !== undefined && { isExtraDetails: ad.isExtraDetails }),
           couponCode: ad.couponCode || '',
           impressionCharge: ad.impressionCharge ?? 0,
           clickCharge: ad.clickCharge ?? 0,

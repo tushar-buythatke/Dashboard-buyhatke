@@ -68,6 +68,9 @@ export interface CreateAdData {
   minBid?: number;
   maxBid?: number;
   bidModel?: number;
+  keywords?: string[];
+  isExtraDetails?: number;
+  extraDetails?: Record<string, any>;
 }
 
 export interface UpdateAdData {
@@ -104,6 +107,9 @@ export interface UpdateAdData {
   minBid?: number;
   maxBid?: number;
   bidModel?: number;
+  keywords?: string[];
+  isExtraDetails?: number;
+  extraDetails?: Record<string, any>;
 }
 
 class AdService {

@@ -286,7 +286,7 @@ const toApiGender = (raw: unknown): string => {
   return 'NA';
 };
 
-// serveStrategy (guide §7): the five real ad types and what each does when served.
+// serveStrategy (guide §7 / V2_API_DOCS.md): the seven real ad types and what each does when served.
 const SERVE_STRATEGIES = [
   { value: 0, label: 'Banner', icon: ImageIcon, tone: 'violet', desc: 'Creative + landing URL only. No product list.' },
   { value: 1, label: 'Product', icon: Package, tone: 'sky', desc: 'Serves with a product list matched to user interest.' },
@@ -718,7 +718,7 @@ export function AdForm() {
                 maxBid: adData.maxBid ?? 0,
                 bidModel: adData.bidModel ?? 0,
                 otherDetails: adData.otherDetails || {},
-                keywords: adData.keywords || [],
+                keywords: Array.isArray(adData.keywords) ? adData.keywords : [],
                 isExtraDetails: adData.isExtraDetails ?? 0,
                 extraDetails: adData.extraDetails ? JSON.stringify(adData.extraDetails, null, 2) : ''
               });
