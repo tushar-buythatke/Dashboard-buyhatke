@@ -439,6 +439,8 @@ export function AdList() {
           isTestPhase: adToUpdate.isTestPhase,
           serveStrategy: adToUpdate.serveStrategy,
           isModelType: adToUpdate.isModelType,
+          keywords: adToUpdate.keywords || [],
+          isExtraDetails: adToUpdate.isExtraDetails ?? 0,
           couponCode: adToUpdate.couponCode || '',
           impressionCharge: adToUpdate.impressionCharge ?? 0,
           clickCharge: adToUpdate.clickCharge ?? 0,
