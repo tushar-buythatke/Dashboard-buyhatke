@@ -184,7 +184,8 @@ const adSchema = z.object({
   status: z.number().min(0).max(1).optional().default(1),
   isTestPhase: z.number().min(0).max(1).optional().default(0),
   serveStrategy: z.number().min(0).max(6).optional().default(0),
-  isModelType: z.number().min(0).max(1).optional().default(0)
+  isModelType: z.number().min(0).max(1).optional().default(0),
+  keywords: z.array(z.string()).optional().default([])
 }).refine((data) => {
   // Validate impression target >= click target
   if (data.impressionTarget && data.clickTarget) {
@@ -229,6 +230,15 @@ const adSchema = z.object({
 }, {
   message: "Coupon ads require at least one location, or they never serve.",
   path: ["location"]
+}).refine((data) => {
+  // Keyword-targeted ads (serveStrategy=6) require at least one keyword to ever serve.
+  if (data.serveStrategy === 6) {
+    return Array.isArray(data.keywords) && data.keywords.length > 0;
+  }
+  return true;
+}, {
+  message: "Keyword-targeted ads require at least one keyword, or they never serve.",
+  path: ["keywords"]
 });
 
 
@@ -376,6 +386,7 @@ export function AdForm() {
   const [openLabelSuggestions, setOpenLabelSuggestions] = useState(false);
   const [campaignName, setCampaignName] = useState('');
   const [otherDetailsFields, setOtherDetailsFields] = useState<Array<{ key: string; value: string }>>([{ key: '', value: '' }]);
+  const [keywordInput, setKeywordInput] = useState('');
 
   // New states for slot filtering
   const [slotFilterPlatform, setSlotFilterPlatform] = useState<number | undefined>(undefined);
@@ -427,7 +438,8 @@ export function AdForm() {
       status: 1,
       isTestPhase: 0,
       serveStrategy: 0,
-      isModelType: 0
+      isModelType: 0,
+      keywords: []
     }
   });
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -685,7 +697,8 @@ export function AdForm() {
                 minBid: adData.minBid ?? 0,
                 maxBid: adData.maxBid ?? 0,
                 bidModel: adData.bidModel ?? 0,
-                otherDetails: adData.otherDetails || {}
+                otherDetails: adData.otherDetails || {},
+                keywords: adData.keywords || []
               });
 
               // Set the selected slot for editing mode
@@ -1707,6 +1720,87 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                           <FormMessage />
                         </FormItem>
                       )}
+                    />
+                  )}
+
+                  {form.watch('serveStrategy') === 6 && (
+                    <FormField
+                      control={form.control}
+                      name="keywords"
+                      render={({ field }) => {
+                        const kws: string[] = field.value || [];
+                        const addKeyword = () => {
+                          const raw = keywordInput.trim().toLowerCase();
+                          if (!raw) return;
+                          if (raw.length > 100) {
+                            toast.error('Keyword must be 100 characters or fewer');
+                            return;
+                          }
+                          if (kws.includes(raw)) {
+                            setKeywordInput('');
+                            return;
+                          }
+                          if (kws.length >= 100) {
+                            toast.error('Maximum 100 keywords allowed');
+                            return;
+                          }
+                          field.onChange([...kws, raw]);
+                          setKeywordInput('');
+                        };
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">
+                              Keywords <span className="text-[var(--h-coral)]">*</span>
+                            </FormLabel>
+                            <FormDescription className="text-[var(--h-ink-3)]">
+                              Required for keyword-targeted ads — matched against the serve request's keywords. Stored lowercased and deduped.
+                            </FormDescription>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {kws.map((kw) => (
+                                <span
+                                  key={kw}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--h-line-accent)] bg-[var(--h-tint)] px-3 py-1 text-[12px] font-medium text-[var(--h-iris-700)]"
+                                >
+                                  {kw}
+                                  <button
+                                    type="button"
+                                    onClick={() => field.onChange(kws.filter((k) => k !== kw))}
+                                    className="text-[var(--h-iris-500)] hover:text-[var(--h-coral)]"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              <Input
+                                value={keywordInput}
+                                onChange={(e) => setKeywordInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ',') {
+                                    e.preventDefault();
+                                    addKeyword();
+                                  }
+                                }}
+                                placeholder="Type a keyword and press Enter"
+                                className="bg-[var(--h-surface)] border-[var(--h-line)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
+                              />
+                              <Button type="button" variant="outline" onClick={addKeyword}>
+                                Add
+                              </Button>
+                            </div>
+                            {kws.length === 0 && (
+                              <div className="mt-2 flex items-start gap-2 rounded-xl border border-[color-mix(in srgb, color-mix(in srgb, var(--h-amber) 35%, transparent) 60%, transparent)] bg-[var(--h-warn-soft)] p-3">
+                                <AlertTriangle className="h-4 w-4 text-[var(--h-amber)] shrink-0 mt-0.5" />
+                                <p className="text-[12px] leading-snug text-[var(--h-amber)]">
+                                  Keyword-targeted ads with no keywords never serve.
+                                </p>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   )}
 
