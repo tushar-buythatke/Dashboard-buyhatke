@@ -9,6 +9,7 @@ import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -185,7 +186,9 @@ const adSchema = z.object({
   isTestPhase: z.number().min(0).max(1).optional().default(0),
   serveStrategy: z.number().min(0).max(6).optional().default(0),
   isModelType: z.number().min(0).max(1).optional().default(0),
-  keywords: z.array(z.string()).optional().default([])
+  keywords: z.array(z.string()).optional().default([]),
+  isExtraDetails: z.number().min(0).max(1).optional().default(0),
+  extraDetails: z.string().optional().default('')
 }).refine((data) => {
   // Validate impression target >= click target
   if (data.impressionTarget && data.clickTarget) {
@@ -239,6 +242,21 @@ const adSchema = z.object({
 }, {
   message: "Keyword-targeted ads require at least one keyword, or they never serve.",
   path: ["keywords"]
+}).refine((data) => {
+  // isExtraDetails=1 requires valid JSON in extraDetails — a write failure fails the whole save (guide §2).
+  if (data.isExtraDetails === 1) {
+    if (!data.extraDetails || !data.extraDetails.trim()) return false;
+    try {
+      const parsed = JSON.parse(data.extraDetails);
+      return typeof parsed === 'object' && parsed !== null;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "Extra Details must be valid JSON when enabled.",
+  path: ["extraDetails"]
 });
 
 
@@ -439,7 +457,9 @@ export function AdForm() {
       isTestPhase: 0,
       serveStrategy: 0,
       isModelType: 0,
-      keywords: []
+      keywords: [],
+      isExtraDetails: 0,
+      extraDetails: ''
     }
   });
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -698,7 +718,9 @@ export function AdForm() {
                 maxBid: adData.maxBid ?? 0,
                 bidModel: adData.bidModel ?? 0,
                 otherDetails: adData.otherDetails || {},
-                keywords: adData.keywords || []
+                keywords: adData.keywords || [],
+                isExtraDetails: adData.isExtraDetails ?? 0,
+                extraDetails: adData.extraDetails ? JSON.stringify(adData.extraDetails, null, 2) : ''
               });
 
               // Set the selected slot for editing mode
@@ -875,7 +897,18 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
         }
       });
 
-      const { slotId: formSlotId, ...restData } = data;
+      const { slotId: formSlotId, extraDetails: rawExtraDetails, ...restData } = data;
+
+      // extraDetails is edited as raw JSON text in the form; parse it to an object
+      // only when the flag is on (guide: isExtraDetails=1 requires extraDetails).
+      let parsedExtraDetails: Record<string, any> | undefined;
+      if (data.isExtraDetails === 1) {
+        try {
+          parsedExtraDetails = JSON.parse(rawExtraDetails || '{}');
+        } catch {
+          parsedExtraDetails = {};
+        }
+      }
 
       // Both V1 and V2 create/update expect `slotId`. In V2 the slot field actually
       // carries a `slotType` (multiple slots share a slotType, so the picker dedupes
@@ -899,6 +932,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
         campaignId: normalizeRouteId(campaignId),
         logo: data.logo || '',
         otherDetails: parsedOtherDetails,
+        ...(parsedExtraDetails !== undefined && { extraDetails: parsedExtraDetails }),
         ...(isEditMode && { adId: isV2Active() ? adId : Number(adId) })
       };
 
@@ -2515,6 +2549,58 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                 <p className="text-sm text-[var(--h-ink-3)] mt-4">
                   Add custom key-value pairs for any additional details you want to store with this ad.
                 </p>
+              </div>
+            </Card>
+
+            <Card className="halo-card overflow-hidden">
+              <div className="halo-panel-head halo-rail-full">
+                <div className="halo-panel-head-title">
+                  <span className="halo-chip"><Braces className="h-4 w-4" strokeWidth={1.75} /></span>
+                  <h3 className="halo-heading">
+                    Extra Details <span className="text-[var(--h-ink-3)] font-normal">(Optional)</span>
+                  </h3>
+                </div>
+              </div>
+              <div className="p-8 space-y-6">
+                <FormField
+                  control={form.control}
+                  name="isExtraDetails"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ElegantToggle
+                        checked={field.value === 1}
+                        onChange={(checked) => field.onChange(checked ? 1 : 0)}
+                        label="Enable Extra Details"
+                        description="Stores a JSON payload alongside this ad, read from adsExtraDetails/<adId>.json at serve time."
+                        variant="primary"
+                      />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch('isExtraDetails') === 1 && (
+                  <FormField
+                    control={form.control}
+                    name="extraDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Extra Details JSON</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            rows={8}
+                            placeholder='{ "dealType": "flash-sale" }'
+                            className="font-mono text-xs bg-[var(--h-surface)] border-[var(--h-line-2)] focus:border-[var(--h-line-accent)] focus:ring-4 focus:ring-[color-mix(in srgb, var(--h-iris-500) 10%, transparent)] transition-all duration-200"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-[var(--h-ink-3)]">
+                          Must be valid JSON. Written verbatim to the ad's extra-details file; a write failure fails the whole save.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
             </Card>
 
