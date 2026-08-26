@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Copy, Play, Pause, Calendar, Flag, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket } from 'lucide-react';
+import { Edit, Copy, Play, Pause, Calendar, Flag, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket, Hash, Braces } from 'lucide-react';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import { analyticsService } from '@/services/analyticsService';
 import { exportToCsv } from '@/utils/csvExport';
 import { buildApiUrl } from '@/config/api';
 import { normalizeAd, normalizeSlotList, isV2Active, resolveCatIds } from '@/utils/v2Normalizer';
+import { getServeStrategyLabel } from '@/constants/serveStrategy';
 import { getPlatformName } from '@/utils/platform';
 import { extractCategoriesForUpdate, getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
@@ -644,7 +645,7 @@ export function AdDetail() {
                   Serve strategy
                 </div>
                 <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink)]">
-                  {ad.serveStrategy === 1 ? 'User-based targeting' : 'Product-based targeting'}
+                  {getServeStrategyLabel(ad.serveStrategy)}
                 </p>
               </div>
               <div className="halo-inset p-3.5">
@@ -675,6 +676,26 @@ export function AdDetail() {
                 <p className="mt-1.5 font-mono text-[13px] font-semibold text-[var(--h-ink)]">
                   {ad.couponCode}
                 </p>
+              </div>
+            )}
+
+            {/* Keywords — shown when the ad has any (typically serveStrategy=6) */}
+            {ad.keywords && ad.keywords.length > 0 && (
+              <div className="halo-inset p-3.5 mt-3">
+                <div className="halo-label flex items-center gap-1.5">
+                  <Hash className="h-3 w-3" />
+                  Keywords
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ad.keywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="rounded-full border border-[var(--h-line-accent)] bg-[var(--h-tint)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--h-iris-700)]"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1070,6 +1091,39 @@ export function AdDetail() {
                 </p>
               </div>
             ))}
+          </div>
+        </SectionPanel>
+      )}
+
+      {/* Extra Details (v2) */}
+      {ad.isExtraDetails === 1 && ad.extraDetails && (
+        <SectionPanel
+          icon={<Braces className="h-3.5 w-3.5" />}
+          title="Extra details"
+          delay={0.28}
+        >
+          <div className="halo-inset relative group/json p-4">
+            <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[var(--h-ink-2)] pr-9">
+              {JSON.stringify(ad.extraDetails, null, 2)}
+            </pre>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(JSON.stringify(ad.extraDetails, null, 2));
+                  toast.success('Copied to clipboard');
+                } catch {
+                  toast.error('Copy failed');
+                }
+              }}
+              aria-label="Copy JSON"
+              className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md
+                         text-[var(--h-ink-3)] opacity-0 group-hover/json:opacity-100
+                         hover:bg-[var(--h-tint)] hover:text-[var(--h-iris-500)]
+                         transition-all duration-200"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
           </div>
         </SectionPanel>
       )}
