@@ -64,6 +64,9 @@ export interface Ad {
   minBid?: number;
   maxBid?: number;
   bidModel?: number;
+  keywords?: string[];
+  isExtraDetails?: number;
+  extraDetails?: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,6 +113,9 @@ export interface ApiAd {
   minBid?: number;
   maxBid?: number;
   bidModel?: number;
+  keywords?: string[];
+  isExtraDetails?: number;
+  extraDetails?: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
 }
