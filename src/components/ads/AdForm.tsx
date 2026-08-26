@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, FileText, Star, Radio, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, FileText, Star, Radio, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check, Percent, Hash, Braces } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
@@ -183,7 +183,7 @@ const adSchema = z.object({
   noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1).optional().default(1),
   isTestPhase: z.number().min(0).max(1).optional().default(0),
-  serveStrategy: z.number().min(0).max(4).optional().default(0),
+  serveStrategy: z.number().min(0).max(6).optional().default(0),
   isModelType: z.number().min(0).max(1).optional().default(0)
 }).refine((data) => {
   // Validate impression target >= click target
@@ -265,6 +265,8 @@ const SERVE_STRATEGIES = [
   { value: 2, label: 'Coupon', icon: Ticket, tone: 'amber', desc: 'Coupon offer. Requires a location match to serve.' },
   { value: 3, label: 'Flight', icon: Plane, tone: 'teal', desc: 'Served via the separate flight path, not the normal query.' },
   { value: 4, label: 'Category-locked', icon: Lock, tone: 'plum', desc: "Banner that serves only when the request's category is in this ad's categories." },
+  { value: 5, label: 'Deals', icon: Percent, tone: 'coral', desc: 'Deals-style ad — served as a special offer listing.' },
+  { value: 6, label: 'Keyword-targeted', icon: Hash, tone: 'iris', desc: 'Matched against the serve request keywords. Requires at least one keyword.' },
 ] as const;
 
 // ── Date helpers: the form stores dates as local YYYY-MM-DD strings. Parse/format
@@ -1658,6 +1660,22 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               <Lock className="h-4 w-4 text-[var(--h-iris-500)] shrink-0 mt-0.5" />
                               <p className="text-[12px] leading-snug text-[var(--h-ink-2)]">
                                 Category-locked ads serve only when the request's category is in this ad's Categories. Make sure Categories below is set.
+                              </p>
+                            </div>
+                          )}
+                          {field.value === 5 && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--h-line-accent)] bg-[var(--h-tint)] p-3">
+                              <Percent className="h-4 w-4 text-[var(--h-iris-500)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-ink-2)]">
+                                Deals ads are served as a special offer listing.
+                              </p>
+                            </div>
+                          )}
+                          {field.value === 6 && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[color-mix(in srgb, color-mix(in srgb, var(--h-amber) 35%, transparent) 60%, transparent)] bg-[var(--h-warn-soft)] p-3">
+                              <Hash className="h-4 w-4 text-[var(--h-amber)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-amber)] ">
+                                <strong>Keyword-targeted ads require at least one keyword.</strong> Add keywords in the field below, or this ad will never serve.
                               </p>
                             </div>
                           )}
