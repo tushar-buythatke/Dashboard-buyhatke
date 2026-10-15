@@ -1,3 +1,5 @@
+import type { ProdRules } from '@/utils/prodRules';
+
 export interface Campaign {
   campaignId: number | string;
   brandName: string;
@@ -65,6 +67,7 @@ export interface Ad {
   maxBid?: number;
   bidModel?: number;
   keywords?: string[];
+  prodRules?: ProdRules | null;   // V2, serveStrategy 9
   isExtraDetails?: number;
   extraDetails?: Record<string, any> | null;
   createdAt: string;
@@ -114,6 +117,7 @@ export interface ApiAd {
   maxBid?: number;
   bidModel?: number;
   keywords?: string[];
+  prodRules?: ProdRules | null;   // V2, serveStrategy 9
   isExtraDetails?: number;
   extraDetails?: Record<string, any> | null;
   createdAt: string;

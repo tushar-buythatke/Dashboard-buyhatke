@@ -13,6 +13,7 @@ export const SERVE_STRATEGY_META: ServeStrategyMeta[] = [
   { value: 4, label: 'Category-locked', desc: "Banner that serves only when the request's category is in this ad's categories." },
   { value: 5, label: 'Deals', desc: 'Deals-style ad — served as a special offer listing.' },
   { value: 6, label: 'Keyword-targeted', desc: 'Matched against the serve request keywords. Requires at least one keyword.' },
+  { value: 9, label: 'Prod-match', desc: 'Matched against the product name on the page by word rules (V2 only).' },
 ];
 
 export const getServeStrategyLabel = (value: number | undefined | null): string =>

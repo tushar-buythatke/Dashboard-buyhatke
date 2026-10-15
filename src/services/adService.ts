@@ -1,5 +1,6 @@
 import { buildApiUrl } from '@/config/api';
 import { normalizeAdList } from '@/utils/v2Normalizer';
+import type { ProdRules } from '@/utils/prodRules';
 
 const getAdApiUrl = () => buildApiUrl('/ads');
 
@@ -69,6 +70,7 @@ export interface CreateAdData {
   maxBid?: number;
   bidModel?: number;
   keywords?: string[];
+  prodRules?: ProdRules | null;   // V2, serveStrategy 9; null clears
   isExtraDetails?: number;
   extraDetails?: Record<string, any>;
 }
@@ -108,6 +110,7 @@ export interface UpdateAdData {
   maxBid?: number;
   bidModel?: number;
   keywords?: string[];
+  prodRules?: ProdRules | null;   // V2, serveStrategy 9; null clears
   isExtraDetails?: number;
   extraDetails?: Record<string, any>;
 }

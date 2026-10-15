@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, FileText, Star, Radio, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check, Percent, Hash, Braces } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar as CalendarIcon, Clock, FileText, Star, Radio, Loader2, X, Settings, Zap, CheckCircle2, Plus, Image as ImageIcon, Package, Ticket, Plane, Lock, AlertTriangle, IndianRupee, Gavel, ChevronsUpDown, Check, Percent, Hash, Braces, ScanSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { VelvetLoader } from '@/components/ui/velvet-loader';
@@ -37,6 +37,8 @@ import { getPlatformName, PLATFORM_OPTIONS } from '@/utils/platform';
 import { getCacheBustedUrl, toLocalDateInput } from '@/utils/adUtils';
 import { usePermissions } from '@/context/PermissionsContext';
 import { FileUpload } from '@/components/ui/file-upload';
+import { ProdRulesBuilder } from '@/components/ads/ProdRulesBuilder';
+import { PROD_MATCH_SERVE_STRATEGY, emptyProdRules, toFormProdRules, toApiProdRules, prodRulesError } from '@/utils/prodRules';
 
 // Elegant Toggle Component
 interface ElegantToggleProps {
@@ -184,11 +186,17 @@ const adSchema = z.object({
   noSpecificity: z.boolean().optional(),
   status: z.number().min(0).max(1).optional().default(1),
   isTestPhase: z.number().min(0).max(1).optional().default(0),
-  serveStrategy: z.number().min(0).max(6).optional().default(0),
+  serveStrategy: z.number().min(0).max(9).optional().default(0),
   isModelType: z.number().min(0).max(1).optional().default(0),
   keywords: z.array(z.string()).optional().default([]),
   isExtraDetails: z.number().min(0).max(1).optional().default(0),
-  extraDetails: z.string().optional().default('')
+  extraDetails: z.string().optional().default(''),
+  // Prod-match rules (serveStrategy 9, V2 only) — edited by ProdRulesBuilder
+  prodRules: z.object({
+    op: z.enum(['and', 'or']),
+    rules: z.array(z.object({ op: z.enum(['and', 'or']), words: z.array(z.string()) })),
+    exclude: z.array(z.string()),
+  }).optional()
 }).refine((data) => {
   // Validate impression target >= click target
   if (data.impressionTarget && data.clickTarget) {
@@ -242,6 +250,11 @@ const adSchema = z.object({
 }, {
   message: "Keyword-targeted ads require at least one keyword, or they never serve.",
   path: ["keywords"]
+}).superRefine((data, ctx) => {
+  // Prod-match ads (serveStrategy=9) need at least one rule with a word to ever serve.
+  if (data.serveStrategy !== PROD_MATCH_SERVE_STRATEGY) return;
+  const err = prodRulesError(data.prodRules);
+  if (err) ctx.addIssue({ code: z.ZodIssueCode.custom, message: err, path: ['prodRules'] });
 }).refine((data) => {
   // isExtraDetails=1 requires valid JSON in extraDetails — a write failure fails the whole save (guide §2).
   if (data.isExtraDetails === 1) {
@@ -295,7 +308,12 @@ const SERVE_STRATEGIES = [
   { value: 4, label: 'Category-locked', icon: Lock, tone: 'plum', desc: "Banner that serves only when the request's category is in this ad's categories." },
   { value: 5, label: 'Deals', icon: Percent, tone: 'coral', desc: 'Deals-style ad — served as a special offer listing.' },
   { value: 6, label: 'Keyword-targeted', icon: Hash, tone: 'iris', desc: 'Matched against the serve request keywords. Requires at least one keyword.' },
+  { value: 9, label: 'Prod-match', icon: ScanSearch, tone: 'iris', desc: 'Matched against the product name on the page by word rules. V2 only.', v2Only: true },
 ] as const;
+
+// Strategies the active API version accepts — prod-match (9) exists only on V2.
+const availableServeStrategies = () =>
+  SERVE_STRATEGIES.filter((s) => !('v2Only' in s) || isV2Active());
 
 // ── Date helpers: the form stores dates as local YYYY-MM-DD strings. Parse/format
 // via local Y/M/D parts to avoid the UTC-midnight timezone shift.
@@ -459,7 +477,8 @@ export function AdForm() {
       isModelType: 0,
       keywords: [],
       isExtraDetails: 0,
-      extraDetails: ''
+      extraDetails: '',
+      prodRules: emptyProdRules()
     }
   });
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -720,7 +739,8 @@ export function AdForm() {
                 otherDetails: adData.otherDetails || {},
                 keywords: Array.isArray(adData.keywords) ? adData.keywords : [],
                 isExtraDetails: adData.isExtraDetails ?? 0,
-                extraDetails: adData.extraDetails ? JSON.stringify(adData.extraDetails, null, 2) : ''
+                extraDetails: adData.extraDetails ? JSON.stringify(adData.extraDetails, null, 2) : '',
+                prodRules: toFormProdRules(adData.prodRules)
               });
 
               // Set the selected slot for editing mode
@@ -897,7 +917,13 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
         }
       });
 
-      const { slotId: formSlotId, extraDetails: rawExtraDetails, ...restData } = data;
+      const { slotId: formSlotId, extraDetails: rawExtraDetails, prodRules: formProdRules, ...restData } = data;
+
+      // prodRules exists only on V2. Sent for a prod-match ad; on any other V2 ad
+      // it is sent as null, so switching an ad away from strategy 9 clears its rules.
+      const prodRulesBody = isV2Active()
+        ? { prodRules: data.serveStrategy === PROD_MATCH_SERVE_STRATEGY ? toApiProdRules(formProdRules) : null }
+        : {};
 
       // extraDetails is edited as raw JSON text in the form; parse it to an object
       // only when the flag is on (guide: isExtraDetails=1 requires extraDetails).
@@ -933,6 +959,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
         logo: data.logo || '',
         otherDetails: parsedOtherDetails,
         ...(parsedExtraDetails !== undefined && { extraDetails: parsedExtraDetails }),
+        ...prodRulesBody,
         ...(isEditMode && { adId: isV2Active() ? adId : Number(adId) })
       };
 
@@ -1649,7 +1676,8 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                     control={form.control}
                     name="serveStrategy"
                     render={({ field }) => {
-                      const selected = SERVE_STRATEGIES.find((s) => s.value === field.value) ?? SERVE_STRATEGIES[0];
+                      const strategies = availableServeStrategies();
+                      const selected = strategies.find((s) => s.value === field.value) ?? strategies[0];
                       return (
                         <FormItem>
                           <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">Serve Strategy</FormLabel>
@@ -1657,7 +1685,7 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                             The ad type. Determines how it's selected and rendered when served.
                           </FormDescription>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
-                            {SERVE_STRATEGIES.map((s) => {
+                            {strategies.map((s) => {
                               const active = field.value === s.value;
                               const Icon = s.icon;
                               return (
@@ -1723,6 +1751,14 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                               <Hash className="h-4 w-4 text-[var(--h-amber)] shrink-0 mt-0.5" />
                               <p className="text-[12px] leading-snug text-[var(--h-amber)] ">
                                 <strong>Keyword-targeted ads require at least one keyword.</strong> Add keywords in the field below, or this ad will never serve.
+                              </p>
+                            </div>
+                          )}
+                          {field.value === PROD_MATCH_SERVE_STRATEGY && (
+                            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--h-line-accent)] bg-[var(--h-tint)] p-3">
+                              <ScanSearch className="h-4 w-4 text-[var(--h-iris-500)] shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-snug text-[var(--h-ink-2)]">
+                                <strong>Prod-match ads serve on product pages whose name matches the rules below.</strong> They compete with the product ad and score slightly above it, then rotate with it. The other targeting (slot, sites, price, location, categories) still applies.
                               </p>
                             </div>
                           )}
@@ -1835,6 +1871,28 @@ if (currentSlotId && slots.length > 0 && (!selectedSlot || !slotMatches(selected
                           </FormItem>
                         );
                       }}
+                    />
+                  )}
+
+                  {isV2Active() && form.watch('serveStrategy') === PROD_MATCH_SERVE_STRATEGY && (
+                    <FormField
+                      control={form.control}
+                      name="prodRules"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[var(--h-ink-2)] font-semibold text-sm">
+                            Product Name Rules <span className="text-[var(--h-coral)]">*</span>
+                          </FormLabel>
+                          <FormDescription className="text-[var(--h-ink-3)]">
+                            Which product names this ad serves on. Each rule is a set of words; combine words and rules with ALL / ANY.
+                          </FormDescription>
+                          <ProdRulesBuilder
+                            value={field.value ?? emptyProdRules()}
+                            onChange={field.onChange}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   )}
 

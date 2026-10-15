@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Copy, Play, Pause, Calendar, Flag, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket, Hash, Braces } from 'lucide-react';
+import { Edit, Copy, Play, Pause, Calendar, Flag, MousePointerClick, Clock, Globe, Users, Tag, MapPin, Banknote, Settings, Image as ImageIcon, TrendingUp, BarChart3, Download, Zap, ChevronRight, Check, Code2, IndianRupee, Ticket, Hash, Braces, ScanSearch } from 'lucide-react';
+import { PROD_MATCH_SERVE_STRATEGY, toFormProdRules, describeProdRules } from '@/utils/prodRules';
 import { VelvetBackButton } from '@/components/ui/velvet-back-button';
 import { StatusPill, type StatusKind } from '@/components/ui/status-pill';
 import { toast } from 'sonner';
@@ -697,6 +698,19 @@ export function AdDetail() {
                       {kw}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Product name rules — prod-match ads (serveStrategy=9, V2) */}
+            {ad.serveStrategy === PROD_MATCH_SERVE_STRATEGY && (
+              <div className="halo-inset p-3.5 mt-3">
+                <div className="halo-label flex items-center gap-1.5">
+                  <ScanSearch className="h-3 w-3" />
+                  Product Name Rules
+                </div>
+                <div className="mt-1.5 font-mono text-[11.5px] text-[var(--h-ink-2)] break-words">
+                  {describeProdRules(toFormProdRules(ad.prodRules))}
                 </div>
               </div>
             )}
