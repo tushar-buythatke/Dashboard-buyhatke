@@ -406,7 +406,7 @@ export function MultiHierarchicalCategorySelector({
                     <button
                       type="button"
                       onClick={() => addSelection(breadcrumb)}
-                      title={`Target "${currentLevel.catName}" and everything under it`}
+                      title={`Target "${currentLevel.catName}" #${currentLevel.catId} - saved as this category`}
                       className="shrink-0 inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[12px] font-medium bg-[var(--indigo-500)] text-white hover:opacity-90 transition-opacity"
                     >
                       <Plus className="h-3.5 w-3.5" />
