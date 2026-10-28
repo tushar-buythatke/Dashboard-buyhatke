@@ -1,6 +1,7 @@
 import { buildApiUrl } from '@/config/api';
 import { normalizeAdList } from '@/utils/v2Normalizer';
 import type { ProdRules } from '@/utils/prodRules';
+import type { CategoryLevel, CategorySearchResult } from '@/types';
 
 const getAdApiUrl = () => buildApiUrl('/ads');
 
@@ -285,6 +286,51 @@ class AdService {
         data: {},
         message: 'Failed to fetch category details'
       };
+    }
+  }
+
+  // Children of catId (top-level categories without it), each with productCount and
+  // mapped variants. Same /categoryDetails2 call as getCategoryDetails2, but keeps
+  // the whole row instead of reducing it to { catId: catName }.
+  async getCategoryOptions(catId?: number): Promise<{ success: boolean; data: CategoryLevel[]; message?: string }> {
+    try {
+      const url = catId
+        ? `${getAdApiUrl()}/categoryDetails2?catId=${catId}`
+        : `${getAdApiUrl()}/categoryDetails2`;
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      return {
+        success: result.status === 1,
+        data: (result.data?.categoryDetails || []) as CategoryLevel[],
+        message: result.message,
+      };
+    } catch (error) {
+      console.error('Error fetching category options:', error);
+      return { success: false, data: [], message: 'Failed to fetch category details' };
+    }
+  }
+
+  // Categories whose name contains the search term, each with its breadcrumb path.
+  async searchCategories(searchTerm: string): Promise<{ success: boolean; data: CategorySearchResult[]; message?: string }> {
+    try {
+      const response = await fetch(`${getAdApiUrl()}/categorySearch?q=${encodeURIComponent(searchTerm)}`, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      return {
+        success: result.status === 1,
+        data: (result.data?.categories || []) as CategorySearchResult[],
+        message: result.message,
+      };
+    } catch (error) {
+      console.error('Error searching categories:', error);
+      return { success: false, data: [], message: 'Failed to search categories' };
     }
   }
 

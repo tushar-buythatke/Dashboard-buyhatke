@@ -204,6 +204,13 @@ export interface HierarchicalCategory {
 export interface CategoryLevel {
   catId: number;
   catName: string;
+  productCount?: number;     // products in this category's subtree
+  mapped?: CategoryLevel[];  // same category written differently, merged in by the API on save
+}
+
+// A /categorySearch hit: the category plus its breadcrumb from the root, itself included.
+export interface CategorySearchResult extends CategoryLevel {
+  path: CategoryLevel[];
 }
 
 export interface CategorySelection {
