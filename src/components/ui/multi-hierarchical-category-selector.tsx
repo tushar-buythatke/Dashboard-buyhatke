@@ -35,16 +35,24 @@ function ProductCount({ count }: { count?: number }) {
   );
 }
 
+function CatId({ id }: { id: number }) {
+  return (
+    <span className="shrink-0 text-[10.5px] font-mono tabular-nums text-[var(--text-3)]">#{id}</span>
+  );
+}
+
+const withIds = (cats: CategoryLevel[]) => cats.map(m => `${m.catName} #${m.catId}`).join(', ');
+
 // Variants (singular/plural, & / and) the API merges in on save.
 function MergedHint({ mapped }: { mapped?: CategoryLevel[] }) {
   if (!mapped || mapped.length === 0) return null;
   return (
     <span
-      title={`Also targets: ${mapped.map(m => m.catName).join(', ')}`}
+      title={`Also targets: ${withIds(mapped)}`}
       className="inline-flex items-center gap-1 text-[11px] text-[var(--text-3)] truncate"
     >
       <Layers className="h-3 w-3 shrink-0" />
-      <span className="truncate">+ {mapped.map(m => m.catName).join(', ')}</span>
+      <span className="truncate">+ {withIds(mapped)}</span>
     </span>
   );
 }
@@ -279,12 +287,13 @@ export function MultiHierarchicalCategorySelector({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     className={cn(S.chip, 'pl-2 pr-1')}
-                    title={mapped.length ? `Also targets: ${mapped.map(m => m.catName).join(', ')}` : undefined}
+                    title={mapped.length ? `Also targets: ${withIds(mapped)}` : undefined}
                   >
                     <FolderTree className="h-3 w-3 shrink-0" />
                     <span className="max-w-[200px] truncate">
                       {selection.path.map(cat => cat.catName).join(' → ')}
                     </span>
+                    <span className="font-mono tabular-nums opacity-70">#{selection.selected.catId}</span>
                     {mapped.length > 0 && (
                       <span className="inline-flex items-center gap-0.5 opacity-80">
                         <Layers className="h-3 w-3" />+{mapped.length}
@@ -438,6 +447,7 @@ export function MultiHierarchicalCategorySelector({
                                 )}>
                                   {hit.catName}
                                 </span>
+                                <CatId id={hit.catId} />
                                 <ProductCount count={hit.productCount} />
                               </div>
                               {ancestors.length > 0 && (
@@ -490,6 +500,7 @@ export function MultiHierarchicalCategorySelector({
                               )}>
                                 {category.catName}
                               </span>
+                              <CatId id={category.catId} />
                               <ProductCount count={category.productCount} />
                             </div>
                             <MergedHint mapped={category.mapped} />
