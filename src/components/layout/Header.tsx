@@ -223,6 +223,14 @@ function NotificationDropdown() {
   );
 }
 
+const ACCENTS = [
+  { key: 'iris', label: 'Ember', color: '#e5603f' },
+  { key: 'blue', label: 'Blue', color: '#0d7fe6' },
+  { key: 'mint', label: 'Green', color: '#0ea975' },
+  { key: 'coral', label: 'Red', color: '#f2453f' },
+  { key: 'pink', label: 'Pink', color: '#e8408f' },
+] as const;
+
 interface HeaderProps {
   onMenuClick: () => void;
 }
@@ -252,37 +260,36 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header
-      className="halo-glass halo-glass-nav fixed top-0 left-0 right-0 z-[99999] h-[var(--h-header-h)]"
-      style={{ border: 'none', borderBottom: '1px solid var(--h-line)' }}
+      className="relative z-30 h-[var(--h-header-h)] flex-none"
     >
-      <div className="relative h-full max-w-[1560px] mx-auto px-4 sm:px-6 flex items-center justify-between">
+      <div className="relative h-full max-w-[var(--h-page-max)] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between">
         {/* Left: hamburger (mobile) + logo (desktop) */}
         <div className="flex items-center gap-3 z-[1]">
           <button
             onClick={onMenuClick}
             aria-label="Open menu"
-            className="lg:hidden btn-halo-ghost btn-halo-icon"
+            className="xl:hidden e-round"
           >
             <Menu size={18} strokeWidth={1.75} />
           </button>
 
           <button
             onClick={() => navigate('/')}
-            className="hidden lg:flex items-center gap-2.5"
+            className="hidden xl:flex items-center gap-3"
           >
-            <img src="/logo_512x512.png" alt="Logo" className="w-7 h-7 object-contain" />
-            <span
-              className="text-[17px] font-semibold tracking-tight text-[var(--h-ink)]"
-              style={{ fontFamily: 'var(--h-font-display)' }}
-            >
-              Hatke
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--e-ink-pill)]">
+              <img src="/logo_512x512.png" alt="" className="w-6 h-6 object-contain" />
+            </span>
+            <span className="text-left leading-[1.1]">
+              <span className="block text-[17px] font-medium tracking-[-0.03em] text-[var(--h-ink)]">Hatke</span>
+              <span className="block text-[17px] font-normal tracking-[-0.03em] text-[var(--h-ink-3)]">Ads Studio</span>
             </span>
           </button>
         </div>
 
         {/* Center: nav rail (desktop) / centered logo (mobile) */}
-        <div className="absolute left-1/2 -translate-x-1/2 hidden lg:flex">
-          <div className="halo-segment">
+        <div className="absolute left-1/2 -translate-x-1/2 hidden xl:flex">
+          <div className="e-nav">
             {navItems.map((item) => (
               <NavLink
                 key={item.name}
@@ -300,7 +307,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <button
           onClick={() => navigate('/')}
-          className="absolute left-1/2 -translate-x-1/2 lg:hidden flex items-center gap-2"
+          className="absolute left-1/2 -translate-x-1/2 xl:hidden flex items-center gap-2"
         >
           <img src="/logo_512x512.png" alt="Logo" className="w-7 h-7 object-contain" />
           <span
@@ -313,61 +320,10 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         {/* Right: actions */}
         <div className="flex items-center gap-2 z-[1]">
-          {(() => {
-            const ACCENTS = [
-              { key: 'iris', label: 'Purple-blue', color: '#5b4bff' },
-              { key: 'blue', label: 'Blue', color: '#0d7fe6' },
-              { key: 'mint', label: 'Green', color: '#0ea975' },
-              { key: 'coral', label: 'Orange-red', color: '#f2453f' },
-              { key: 'pink', label: 'Soft pink', color: '#e8408f' },
-            ] as const;
-            const n = ACCENTS.length;
-            // Reordered so the selected swatch always sits in the middle —
-            // on hover the pill widens symmetrically and the rest reveal
-            // outward on each side, instead of growing off to one edge.
-            const idx = ACCENTS.findIndex((a) => a.key === accent);
-            const half = Math.floor(n / 2);
-            const ordered = Array.from({ length: n }, (_, i) => ACCENTS[(idx - half + i + n) % n]);
-            const hoverWidth = 24 + n * 16 + (n - 1) * 12;
-
-            return (
-              // Same transparent ghost-button shell as the theme toggle beside it —
-              // ring icon at rest, widening to reveal solid dots on hover.
-              <div
-                className="group hidden lg:flex h-9 w-9 items-center justify-center overflow-hidden rounded-full transition-[width,background-color] duration-300 ease-out hover:w-[var(--hover-w)] hover:bg-[var(--h-tint)]"
-                style={{ '--hover-w': `${hoverWidth}px` } as React.CSSProperties}
-              >
-                <div className="flex items-center gap-3 px-3">
-                  {ordered.map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setAccent(opt.key)}
-                      aria-label={`${opt.label} theme`}
-                      aria-pressed={accent === opt.key}
-                      title={opt.label}
-                      className="flex h-4 w-4 flex-none items-center justify-center rounded-full"
-                    >
-                      {/* Resting: an outline ring at icon scale, matching the moon
-                          glyph's weight. On hover: fills solid, like it did before. */}
-                      <span
-                        className="h-4 w-4 rounded-full border-2 bg-transparent transition-[background-color,transform] duration-200 group-hover:[background-color:var(--dot-color)]"
-                        style={{
-                          '--dot-color': opt.color,
-                          borderColor: opt.color,
-                          transform: accent === opt.key ? 'scale(1)' : 'scale(0.8)',
-                        } as React.CSSProperties}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
           <button
             onClick={toggleTheme}
             aria-label="Toggle theme"
-            className="hidden lg:inline-flex btn-halo-ghost btn-halo-icon"
+            className="hidden lg:inline-flex e-round"
           >
             <AnimatePresence mode="wait" initial={false}>
               {theme === 'dark' ? (
@@ -413,12 +369,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="hidden lg:inline-flex btn-halo-ghost btn-halo-icon relative"
+                className="hidden lg:inline-flex e-round relative"
                 aria-label="Notifications"
               >
                 <Bell size={16} strokeWidth={1.75} />
                 {unreadCount > 0 && (
-                  <span className="halo-dot halo-dot-live absolute top-2 right-2 text-[var(--h-coral)]" />
+                  <span className="halo-dot halo-dot-live absolute top-2.5 right-2.5 text-[var(--h-iris-500)]" />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -428,12 +384,16 @@ export function Header({ onMenuClick }: HeaderProps) {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="h-9 pl-1.5 pr-2 rounded-[var(--h-r-pill)] flex items-center gap-1 hover:bg-[var(--h-tint)] transition-colors">
-                  <div className="h-[26px] w-[26px] rounded-full bg-[var(--h-tint-2)] flex items-center justify-center text-[var(--h-iris-600)]">
-                    <span className="text-[11px] font-semibold">
+                <button className="h-11 pl-1 pr-3 rounded-full flex items-center gap-2 border border-[var(--h-line-2)] bg-[var(--h-surface)] hover:bg-[var(--h-surface-3)] transition-colors">
+                  <div className="h-9 w-9 rounded-full bg-[var(--h-iris-500)] flex items-center justify-center text-white">
+                    <span className="text-[12px] font-medium">
                       {getInitials(user.username)}
                     </span>
                   </div>
+                  <span className="hidden 2xl:block text-left leading-tight">
+                    <span className="block max-w-[120px] truncate text-[12.5px] font-medium text-[var(--h-ink)]">{user.username}</span>
+                    <span className="block text-[11px] capitalize text-[var(--h-ink-3)]">{userRole}</span>
+                  </span>
                   <ChevronDown size={14} strokeWidth={1.75} className="text-[var(--h-ink-3)]" />
                 </button>
               </DropdownMenuTrigger>
@@ -458,6 +418,26 @@ export function Header({ onMenuClick }: HeaderProps) {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--h-line)' }}>
+                  <p className="text-[11px] text-[var(--h-ink-3)] mb-2.5">Accent</p>
+                  <div className="flex items-center gap-2.5">
+                    {ACCENTS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setAccent(opt.key)}
+                        aria-label={`${opt.label} accent`}
+                        aria-pressed={accent === opt.key}
+                        title={opt.label}
+                        className="h-7 w-7 rounded-full transition-transform hover:scale-110"
+                        style={{
+                          background: opt.color,
+                          boxShadow: accent === opt.key ? `0 0 0 2px var(--h-surface), 0 0 0 4px ${opt.color}` : 'none',
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
 

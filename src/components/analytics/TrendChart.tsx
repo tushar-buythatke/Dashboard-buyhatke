@@ -66,6 +66,7 @@ export const TrendChart = memo<TrendChartProps>(({
   const palette = useHaloChartPalette(theme);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const [showCombined, setShowCombined] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const uniqueId = useMemo(() => Math.random().toString(36).slice(2, 8), []);
 
   const isCTR = dataKey === 'ctr';
@@ -214,10 +215,22 @@ export const TrendChart = memo<TrendChartProps>(({
   return (
     <div className="space-y-3">
       {/* Header + Interactive Legend */}
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="halo-heading flex-shrink-0">{title}</h3>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="halo-heading flex-shrink-0">{title}</h3>
+          {seriesNames.length > 10 && (
+            <button onClick={() => setLegendOpen((v) => !v)} className="btn-halo-ghost btn-halo-sm flex-none">
+              {legendOpen ? 'Collapse legend' : `${visibleNames.length}/${seriesNames.length} series`}
+            </button>
+          )}
+        </div>
         {seriesNames.length > 1 && (
-          <div className="flex items-center gap-1 flex-wrap justify-end min-w-0">
+          <div
+            className={`flex items-center gap-1 flex-wrap min-w-0 overflow-hidden transition-[max-height] duration-300 ${
+              seriesNames.length > 10 && !legendOpen ? 'max-h-[34px]' : 'max-h-[600px] overflow-y-auto'
+            }`}
+            style={seriesNames.length > 10 && !legendOpen ? { maskImage: 'linear-gradient(to right, #000 80%, transparent)', WebkitMaskImage: 'linear-gradient(to right, #000 80%, transparent)' } : undefined}
+          >
             <button
               onClick={allVisible ? hideAll : selectAll}
               className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold text-[var(--h-iris-600)] hover:bg-[var(--h-tint)] transition-all mr-1 flex-shrink-0"

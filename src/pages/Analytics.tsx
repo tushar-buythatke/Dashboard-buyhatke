@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Calendar, TrendingUp, Filter, BarChart3, Tag, Plane, MapPin, Eye, CheckCircle2, Inbox, X, Sparkles, SlidersHorizontal, AlertTriangle } from 'lucide-react';
+import { Download, RefreshCw, Calendar, TrendingUp, Filter, BarChart3, Tag, Plane, MapPin, Eye, CheckCircle2, Inbox, X, Sparkles, SlidersHorizontal, AlertTriangle , ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { TrendChart, type ChartType } from '@/components/analytics/TrendChart';
 import { ComboChart } from '@/components/analytics/ComboChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
+import { DeepDive } from '@/components/analytics/DeepDive';
 import { BreakdownModal } from '@/components/analytics/BreakdownModal';
 import { MultiSelectDropdown } from '@/components/analytics/MultiSelectDropdown';
 import { AdNameFilterDropdown } from '@/components/analytics/AdNameFilterDropdown';
@@ -1290,8 +1291,8 @@ export default function Analytics() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-3.5 w-3.5" />
                     Fetch results
+                    <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
@@ -1475,7 +1476,7 @@ export default function Analytics() {
               <div className="mt-4">
                 {activeFilterChips.length === 0 ? (
                   <div className="halo-inset flex items-center gap-2 px-3 py-2.5 text-xs" style={{ color: 'var(--h-ink-3)' }}>
-                    <Sparkles className="h-3 w-3" style={{ color: 'var(--h-iris-500)' }} strokeWidth={1.75} />
+                    <span className="halo-dot text-[var(--h-iris-500)]" />
                     <span>No filters applied — we&apos;ll fetch data for all available {activeView === 'campaign' ? 'campaigns' : activeView === 'slot' ? 'slots' : activeView === 'pos' ? 'marketplaces' : 'ads'}.</span>
                   </div>
                 ) : (
@@ -1576,6 +1577,10 @@ export default function Analytics() {
               />
             )}
           </motion.div>
+
+          {!dataLoading && trendData.length > 0 && (
+            <DeepDive series={trendData} entity={activeView === 'pos' ? 'POS' : activeView} />
+          )}
 
           {/* Analytics Chart */}
           <motion.div

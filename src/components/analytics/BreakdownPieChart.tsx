@@ -238,8 +238,8 @@ export const BreakdownPieChart: React.FC<BreakdownPieChartProps> = ({
         {showInnerRadius && enriched.length > 0 && totalValue > 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <p className="halo-eyebrow leading-none">Total</p>
-            <p className="halo-metric leading-none mt-1" style={{ fontSize: 18 }}>
-              {formatCount(totalValue)}
+            <p className="halo-metric leading-none mt-1" style={{ fontSize: 22 }} title={formatCount(totalValue)}>
+              {new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(totalValue)}
             </p>
             <p className={`text-[9px] max-w-[70%] truncate leading-none mt-1 ${top[0]?.isMissing ? 'text-[var(--h-ink-3)] italic' : 'text-[var(--h-ink-3)]'}`}>
               {top[0]?.name}

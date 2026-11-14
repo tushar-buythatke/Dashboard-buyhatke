@@ -4,9 +4,10 @@ import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 import { TrendChart } from '@/components/analytics/TrendChart';
 import { BreakdownPieChart } from '@/components/analytics/BreakdownPieChart';
 import { BreakdownModal } from '@/components/analytics/BreakdownModal';
-import { RefreshCw, Download, TrendingUp, Zap, Activity, BarChart3, ArrowUpRight, Percent, Gauge, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Zap, BarChart3, ArrowUpRight, ArrowRight, CalendarDays, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/ui/page-header';
+import { useAuth } from '@/context/AuthContext';
+import { DotMatrix } from '@/components/ui/dot-matrix';
 import { CometCard } from '@/components/ui/comet-card';
 import { useSpotlight } from '@/hooks/useSpotlight';
 import { analyticsService, MetricsPayload } from '@/services/analyticsService';
@@ -93,6 +94,7 @@ const getPlatformName = (platformId: number | string): string => {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(false); // Start with false - no auto-loading
   const [dataLoaded, setDataLoaded] = useState(false); // Track if any data has been loaded
@@ -646,12 +648,15 @@ export function Dashboard() {
 
   return (
     <div className="halo-page">
-      <PageHeader
-        eyebrow="Dashboard"
-        title="Performance overview"
-        subhead="Combined performance across every live campaign over the last 7 days, cached locally for a day."
-        actions={headerActions}
-      />
+      <EmberHero name={user?.username} onCampaigns={() => navigate('/campaigns')} onCalendar={() => navigate('/analytics')} />
+
+      <div className="mt-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="halo-title">Overview</h1>
+          <p className="halo-subtitle mt-3 max-w-xl">Every live campaign, last 7 days. Cached locally for a day.</p>
+        </div>
+        {headerActions && <div className="flex flex-wrap items-center gap-2">{headerActions}</div>}
+      </div>
 
       <div className="mt-7 space-y-5">
         {fetchError && (
@@ -673,58 +678,64 @@ export function Dashboard() {
         {loading ? (
           <DashboardSkeleton />
         ) : !dataLoaded ? (
-          <div className="halo-card halo-card-raised mx-auto max-w-md py-12 px-8 text-center">
-            <div className="halo-chip-lg mx-auto">
-              <BarChart3 className="h-5 w-5" strokeWidth={1.75} />
+          <div className="halo-card relative grid overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)]">
+            <div className="relative z-[1] flex flex-col justify-between gap-10 p-8 lg:p-12">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--h-surface-2)] px-3.5 py-1.5 text-[12px] text-[var(--h-ink-2)]">
+                <span className="halo-dot halo-dot-live text-[var(--h-iris-500)]" /> Standing by
+              </span>
+              <div>
+                <h2 className="text-[clamp(2.2rem,3.6vw,3.4rem)] font-medium leading-[0.98] tracking-[-0.035em] text-[var(--h-ink)]">
+                  Pull the last<br />7 days, <span className="text-[var(--h-iris-500)]">live.</span>
+                </h2>
+                <p className="halo-subtitle mt-4 max-w-sm">
+                  Combined metrics across every campaign — impressions, clicks, CTR and audience splits. Cached for 24h once loaded.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button onClick={handleFetchAnalytics} disabled={loading} className="btn-halo btn-halo-lg !h-14 !px-7 !text-[15px]">
+                  <TrendingUp className="h-5 w-5" strokeWidth={2} />
+                  Fetch analytics
+                </button>
+                <button onClick={() => navigate('/analytics')} className="btn-ink !h-14 !px-6">
+                  Deep analytics <ArrowUpRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <h2 className="halo-heading mt-4">Ready to fetch</h2>
-            <p className="halo-subtitle mt-1.5">
-              Combined metrics from all campaigns, cached for 24 hours once loaded.
-            </p>
-            <div className="mt-6 flex justify-center">
-              <Button onClick={handleFetchAnalytics} disabled={loading} size="lg">
-                <TrendingUp className="h-4 w-4" strokeWidth={1.75} />
-                Fetch analytics
-              </Button>
+            <div className="relative min-h-[280px] lg:min-h-[420px] bg-[var(--h-surface-2)]">
+              <DotMatrix text="hatke" className="absolute inset-0" />
+              <span className="pointer-events-none absolute bottom-5 right-6 text-[11px] text-[var(--h-ink-3)]">move your cursor ↗</span>
             </div>
           </div>
         ) : (
           <div className="space-y-5">
             {hasComparisonData && ctrGrowth !== null && (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-3 items-stretch">
-                <div className="halo-card halo-rail halo-rail-iris halo-tile-iris halo-rise p-5 flex items-center gap-3" style={{ '--i': 0 } as CSSProperties}>
-                  <div className="halo-badge-glass halo-chip-iris flex-none">
-                    <Activity className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-[var(--h-ink-2)]">7-day period</p>
-                    <p className="mt-0.5 truncate font-semibold text-[var(--h-ink)]">Week-over-week</p>
-                  </div>
-                </div>
-                <div
-                  className={`halo-card halo-rail ${ctrGrowth >= 0 ? 'halo-rail-mint halo-tile-mint' : 'halo-rail-coral halo-tile-coral'} halo-rise p-5 flex items-center justify-between`}
-                  style={{ '--i': 1 } as CSSProperties}
-                >
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-stretch">
+                <div className="e-glow-card halo-rise p-7 lg:col-span-5 min-h-[240px] flex flex-col justify-between" style={{ '--i': 0 } as CSSProperties}>
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[12px] backdrop-blur">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white" /> Insight · week over week
+                  </span>
                   <div>
-                    <p className={`num text-xl font-semibold leading-none ${ctrGrowth >= 0 ? 'halo-delta-up' : 'halo-delta-down'}`}>
+                    <p className="num text-[clamp(3rem,6vw,5rem)] font-light leading-none tracking-[-0.06em]">
                       {ctrGrowth > 0 ? '+' : ''}{ctrGrowth.toFixed(1)}%
                     </p>
-                    <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink-2)]">CTR growth</p>
-                  </div>
-                  <div className={`halo-badge-glass ${ctrGrowth >= 0 ? 'halo-chip-mint' : 'halo-chip-coral'} flex-none`}>
-                    <Percent className="h-[18px] w-[18px]" strokeWidth={2} />
+                    <p className="mt-3 max-w-sm text-[15px] font-medium leading-snug">
+                      CTR {ctrGrowth >= 0 ? 'climbed' : 'slipped'} vs the previous 7 days — now sitting at {metricsData.ctr.toFixed(2)}%.
+                    </p>
                   </div>
                 </div>
-                <div className="halo-card halo-rail halo-rail-violet halo-tile-violet halo-rise p-5 flex items-center justify-between" style={{ '--i': 2 } as CSSProperties}>
-                  <div>
-                    <p className="num text-xl font-semibold leading-none text-[var(--h-ink)]">
-                      {metricsData.ctr.toFixed(2)}<span className="text-sm text-[var(--h-ink-3)]">%</span>
-                    </p>
-                    <p className="mt-1.5 text-[13px] font-medium text-[var(--h-ink-2)]">Overall CTR</p>
+
+                <ClicksCompareCard
+                  current={metricsData.clicks}
+                  previous={comparisonMetricsData.clicks}
+                  growth={clicksGrowth ?? 0}
+                />
+
+                <div className="halo-card halo-rise p-7 lg:col-span-3 flex flex-col justify-between" style={{ '--i': 2 } as CSSProperties}>
+                  <div className="flex items-center justify-between">
+                    <p className="halo-heading">Overall CTR</p>
+                    <span className="halo-badge">7d</span>
                   </div>
-                  <div className="halo-badge-glass halo-chip-violet flex-none">
-                    <Gauge className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </div>
+                  <CtrRing value={metricsData.ctr} />
                 </div>
               </div>
             )}
@@ -738,30 +749,30 @@ export function Dashboard() {
               />
             </section>
 
-            <div className="halo-card p-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex items-center gap-3">
-                <div className="halo-badge-glass halo-chip-iris flex-none">
-                  <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={2} />
+            <div className="halo-card px-6 py-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-[var(--h-tint-2)] text-[var(--h-iris-600)]">
+                  <LayoutGrid className="h-5 w-5" strokeWidth={1.75} />
                 </div>
                 <div>
                   <p className="halo-heading">Ad slot management</p>
                   <p className="halo-subtitle">Slots across platforms</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/slot-management')}>
+              <button className="btn-ink" onClick={() => navigate('/slot-management')}>
                 Manage slots
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Button>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 items-stretch">
-              <div className="halo-card p-5 flex flex-col min-h-[360px] xl:col-span-8">
+              <div className="halo-card p-6 flex flex-col min-h-[360px] xl:col-span-8">
                 <div className="flex-1 min-h-[300px]">
                   <TrendChart series={trendData} title="7-day performance" showGrid animated={false} height={300} />
                 </div>
               </div>
-              <div className="halo-card p-5 flex flex-col min-h-[360px] xl:col-span-4">
-                <h3 className="halo-heading mb-3">Quick insights</h3>
+              <div className="halo-card p-6 flex flex-col min-h-[360px] xl:col-span-4">
+                <h3 className="halo-heading mb-4">Quick insights</h3>
                 <div className="flex-1 space-y-2">
                   {[
                     { label: 'Active campaigns', value: quickStats.activeCampaigns, tone: 'pos' },
@@ -769,7 +780,7 @@ export function Dashboard() {
                     { label: 'Top platform', value: quickStats.topPlatform, tone: 'ink' },
                     { label: 'Conversion rate', value: `${quickStats.conversionRate.toFixed(1)}%`, tone: 'violet' },
                   ].map((row) => (
-                    <div key={row.label} className="halo-inset flex items-center justify-between px-3 py-2.5">
+                    <div key={row.label} className="halo-inset flex items-center justify-between rounded-full px-5 py-3.5">
                       <span className="halo-label">{row.label}</span>
                       <span
                         className="num text-sm font-semibold"
@@ -822,6 +833,99 @@ export function Dashboard() {
 /* ============================================================
    Local presentational helpers
    ============================================================ */
+
+function EmberHero({ name, onCampaigns, onCalendar }: { name?: string; onCampaigns: () => void; onCalendar: () => void }) {
+  const now = new Date();
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'short' });
+  const month = now.toLocaleDateString('en-US', { month: 'long' });
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const first = name?.split(/[\s_.@]/)[0];
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="e-date num">{now.getDate()}</div>
+        <div className="text-[19px] font-medium leading-[1.15] tracking-[-0.03em] text-[var(--h-ink)]">
+          {weekday},<br />{month}
+        </div>
+        <span className="mx-2 hidden h-10 w-px bg-[var(--h-line-2)] sm:block" />
+        <button onClick={onCampaigns} className="btn-halo btn-halo-lg !h-14 !px-7 !text-[15px]">
+          Show campaigns <ArrowRight className="ml-3 h-5 w-5" />
+        </button>
+        <button onClick={onCalendar} aria-label="Open analytics" className="e-round !h-14 !w-14 relative">
+          <CalendarDays className="h-5 w-5" strokeWidth={1.75} />
+          <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[var(--h-iris-500)]" />
+        </button>
+      </div>
+      <div className="lg:text-right">
+        <p className="text-[clamp(1.8rem,3vw,2.75rem)] font-medium leading-[1.05] tracking-[-0.05em] text-[var(--h-ink)]">
+          {greeting}{first ? `, ${first}` : ''} <span className="inline-block origin-[70%_70%] animate-[wave_2.4s_ease-in-out_1]">👋</span>
+        </p>
+        <p className="text-[clamp(1.8rem,3vw,2.75rem)] font-normal leading-[1.1] tracking-[-0.05em] text-[var(--h-ink-3)]">
+          Here's your ad pulse.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ClicksCompareCard({ current, previous, growth }: { current: number; previous: number; growth: number }) {
+  const max = Math.max(current, previous, 1);
+  const bars = [
+    { label: 'Previous 7d', value: previous, hatch: true },
+    { label: 'This week', value: current, hatch: false },
+  ];
+  return (
+    <div className="halo-card halo-rise p-7 lg:col-span-4 flex flex-col" style={{ '--i': 1 } as CSSProperties}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="halo-heading">Clicks</p>
+          <p className="halo-metric num mt-3">{current.toLocaleString()}</p>
+        </div>
+        <span className={`halo-badge num ${growth >= 0 ? 'halo-badge-pos' : 'halo-badge-neg'}`}>
+          {growth >= 0 ? '▲' : '▼'} {Math.abs(growth).toFixed(1)}%
+        </span>
+      </div>
+      <div className="mt-6 flex flex-1 items-end gap-3">
+        {bars.map((b) => (
+          <div key={b.label} className="flex flex-1 flex-col gap-2">
+            <div className="flex h-24 items-end">
+              <div
+                className={`w-full rounded-[14px] ${b.hatch ? 'e-hatch text-[var(--h-iris-300)] bg-[var(--h-tint)]' : 'bg-[var(--h-iris-500)]'}`}
+                style={{ height: `${Math.max(8, (b.value / max) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[12px] text-[var(--h-ink-3)]">{b.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CtrRing({ value }: { value: number }) {
+  // Ring scale caps at 10% CTR so typical values stay visible.
+  const pct = Math.min(value / 10, 1);
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative mx-auto mt-4 h-[148px] w-[148px]">
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+        <circle cx="60" cy="60" r="56" fill="var(--e-ink-pill)" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="5" />
+        <circle
+          cx="60" cy="60" r={r} fill="none" stroke="var(--h-iris-500)" strokeWidth="5" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
+          style={{ transition: 'stroke-dashoffset .8s var(--h-ease)' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--h-canvas)]">
+        <span className="num text-[26px] font-medium tracking-[-0.04em]">{value.toFixed(2)}%</span>
+        <span className="text-[11px] opacity-60">click-through</span>
+      </div>
+    </div>
+  );
+}
 
 function BreakdownCard({
   index,

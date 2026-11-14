@@ -66,6 +66,8 @@ export function coerceName(value: unknown, fallback = 'Unknown'): string {
     const trimmed = value.trim();
     if (!trimmed) return fallback;
     const lower = trimmed.toLowerCase();
+    // Backend sometimes stringifies objects upstream.
+    if (lower === '[object object]') return 'Unmapped';
     // Treat literal "NA", "N/A", "none", "null", "-" as missing
     if (lower === 'na' || lower === 'n/a' || lower === 'none' || lower === 'null' || lower === '-') {
       return 'Unspecified';

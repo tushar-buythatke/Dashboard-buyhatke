@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, Megaphone, TrendingUp, Settings, X, Shield, ImagePlus, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { BarChart3, Megaphone, TrendingUp, Settings, X, Shield, ImagePlus, Sun, Moon, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePermissions } from '@/context/PermissionsContext';
-import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useEnvironment } from '@/context/EnvironmentContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 export interface NavItem {
   name: string;
@@ -32,16 +34,6 @@ export function useNavItems(): NavItem[] {
   ];
 }
 
-function getInitials(userName: string | null | undefined) {
-  if (!userName) return 'U';
-  const name = userName.trim();
-  if (name.length === 0) return 'U';
-  if (name.length === 1) return name.toUpperCase();
-  const parts = name.split(/[\s_]/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -49,10 +41,10 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
-  const { userRole } = usePermissions();
-  const { user } = useAuth();
   const navigation = useNavItems();
-  const [collapsed, setCollapsed] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { setApiVersion, isV2 } = useEnvironment();
+  const { unreadCount, openNotificationsModal } = useNotifications();
 
   // Close the mobile drawer on Escape.
   useEffect(() => {
@@ -64,81 +56,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const desktopWidth = collapsed ? 'var(--h-sidebar-w-collapsed)' : 'var(--h-sidebar-w)';
-
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside
-        className="fixed left-0 top-[var(--h-header-h)] z-30 hidden h-[calc(100vh-var(--h-header-h))] flex-shrink-0 lg:flex"
-        style={{ width: desktopWidth, borderRight: '1px solid var(--h-line)' }}
-      >
-        <div className="flex w-full flex-col overflow-hidden">
-          {!collapsed && (
-            <div className="px-4 pt-5 pb-2">
-              <span className="halo-eyebrow">Navigation</span>
-            </div>
-          )}
-          {collapsed && <div className="pt-5" />}
-
-          <nav className="flex-1 space-y-1 px-3 pb-4 overflow-y-auto scrollbar-thin">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                end={item.href === '/'}
-                title={collapsed ? item.name : undefined}
-                className={({ isActive }) =>
-                  `halo-nav-item relative ${collapsed ? 'justify-center !px-0' : ''} ${
-                    isActive ? 'bg-[var(--h-tint-2)] text-[var(--h-iris-600)]' : ''
-                  }`
-                }
-              >
-                {() => (
-                  <>
-                    <item.icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
-                    {!collapsed && <span className="truncate">{item.name}</span>}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-
-          {/* Bottom: compact user/role block + collapse control */}
-          <div className="px-3 pb-4 pt-2 space-y-2" style={{ borderTop: '1px solid var(--h-line)' }}>
-            {user && (
-              <div className={`flex items-center gap-2.5 rounded-[var(--h-r-pill)] px-2 py-1.5 ${collapsed ? 'justify-center' : ''}`}>
-                <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[var(--h-tint-2)] text-[11px] font-semibold text-[var(--h-iris-600)]">
-                  {getInitials(user.username)}
-                </div>
-                {!collapsed && (
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <p className="truncate text-[12.5px] font-medium text-[var(--h-ink)]">{user.username}</p>
-                    <p className="truncate text-[10.5px] capitalize text-[var(--h-ink-3)]">{userRole}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="halo-nav-item w-full text-[var(--h-ink-3)] hover:text-[var(--h-ink)]"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={collapsed ? 'Expand' : 'Collapse'}
-            >
-              {collapsed ? (
-                <ChevronsRight size={18} strokeWidth={1.75} className="mx-auto flex-shrink-0" />
-              ) : (
-                <>
-                  <ChevronsLeft size={18} strokeWidth={1.75} className="flex-shrink-0" />
-                  <span>Collapse</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </aside>
-
       {/* Mobile Sidebar — overlay drawer */}
       <AnimatePresence>
         {isOpen && (
@@ -148,7 +67,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.19 }}
-              className="fixed inset-0 z-40 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 backdrop-blur-sm xl:hidden"
               style={{ background: 'rgba(10, 11, 17, .42)' }}
               onClick={onClose}
               aria-hidden
@@ -158,7 +77,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.19, ease: [0.22, 1, 0.36, 1] }}
-              className="halo-card fixed left-0 top-0 bottom-0 z-50 flex w-[272px] flex-col rounded-none lg:hidden"
+              className="halo-card fixed left-0 top-0 bottom-0 z-50 flex w-[272px] flex-col rounded-none xl:hidden"
               role="dialog"
               aria-modal="true"
             >
@@ -217,7 +136,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 ))}
               </nav>
 
-              <div className="px-4 py-4" style={{ borderTop: '1px solid var(--h-line)' }}>
+              <div className="space-y-3 px-4 py-4" style={{ borderTop: '1px solid var(--h-line)' }}>
+                <div className="flex items-center gap-2">
+                  <button onClick={toggleTheme} className="e-round flex-none" aria-label="Toggle theme">
+                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                  </button>
+                  <button
+                    onClick={() => { openNotificationsModal(); onClose(); }}
+                    className="e-round relative flex-none"
+                    aria-label="Notifications"
+                  >
+                    <Bell size={16} />
+                    {unreadCount > 0 && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[var(--h-iris-500)]" />}
+                  </button>
+                  <div className="halo-segment ml-auto" role="group" aria-label="API version">
+                    <button onClick={() => isV2 && setApiVersion('v1')} className={`halo-segment-item ${!isV2 ? 'is-active' : ''}`}>V1</button>
+                    <button onClick={() => !isV2 && setApiVersion('v2')} className={`halo-segment-item ${isV2 ? 'is-active' : ''}`}>V2</button>
+                  </div>
+                </div>
                 <p className="text-center text-[10px] text-[var(--h-ink-3)]">© 2026 Hatke Dashboard</p>
               </div>
             </motion.div>
@@ -225,11 +161,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Desktop spacer — keeps main content clear of the fixed sidebar */}
-      <div
-        className="hidden lg:block flex-shrink-0"
-        style={{ width: desktopWidth }}
-      />
     </>
   );
 }

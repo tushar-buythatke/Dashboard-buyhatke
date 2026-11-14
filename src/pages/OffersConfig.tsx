@@ -361,7 +361,7 @@ export default function OffersConfig() {
       campaign_id: offer.campaignId ? String(offer.campaignId) : '',
       ad_id: offer.adId ? String(offer.adId) : '',
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('app-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getStartEpoch = () => startDate ? Math.floor(startDate.getTime() / 1000) : 0;

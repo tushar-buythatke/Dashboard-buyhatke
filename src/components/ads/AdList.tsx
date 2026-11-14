@@ -520,12 +520,12 @@ export function AdList() {
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4">
           {/* Creative */}
           <div className="flex-shrink-0 self-center lg:self-auto">
-            <div className="h-16 w-20 flex items-center justify-center overflow-hidden halo-inset">
+            <div className="h-28 w-48 lg:h-[84px] lg:w-[150px] flex items-center justify-center overflow-hidden rounded-[18px] bg-[var(--h-surface-3)] shadow-[0_10px_24px_-14px_rgba(0,0,0,.45)]">
               {ad.creativeUrl ? (
                 isVideo ? (
                   <video
                     src={getCacheBustedUrl(ad.creativeUrl)}
-                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
+                    className="h-full w-full object-cover"
                     muted
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -533,7 +533,7 @@ export function AdList() {
                   <img
                     src={getCacheBustedUrl(ad.creativeUrl)}
                     alt="Ad creative"
-                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
+                    className="h-full w-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       if (!target.dataset.fallback) {
@@ -1036,12 +1036,12 @@ export function AdList() {
                           className="group cursor-pointer"
                         >
                           <TableCell className="p-3">
-                            <div className="h-14 w-20 flex items-center justify-center overflow-hidden halo-inset">
+                            <div className="h-[76px] w-[136px] flex items-center justify-center overflow-hidden rounded-[18px] bg-[var(--h-surface-3)] shadow-[0_10px_24px_-14px_rgba(0,0,0,.45)] transition-transform duration-300 group-hover:scale-[1.04]">
                               {ad.creativeUrl ? (
                                 isVideo ? (
                                   <video
                                     src={getCacheBustedUrl(ad.creativeUrl)}
-                                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
+                                    className="h-full w-full object-cover"
                                     muted
                                     onClick={(e) => e.stopPropagation()}
                                   />
@@ -1049,7 +1049,7 @@ export function AdList() {
                                   <img
                                     src={getCacheBustedUrl(ad.creativeUrl)}
                                     alt="Ad creative"
-                                    className="h-full w-full object-contain rounded-[var(--h-r-sm)]"
+                                    className="h-full w-full object-cover"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       if (!target.dataset.fallback) {
